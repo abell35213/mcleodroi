@@ -1,0 +1,382 @@
+import type { BusinessType, ProductContext, ValueModuleDefinition, ValueModuleInputDefinition, ValueModuleKey } from "./types";
+
+function productContextsFor(businessTypes: readonly BusinessType[]): ProductContext[] {
+  return businessTypes.map((businessType) => businessType === "TRUCKLOAD" ? "LOADMASTER" : "POWERBROKER");
+}
+
+function input(key: string, label: string, type: ValueModuleInputDefinition["type"], unit: ValueModuleInputDefinition["unit"], displayOrder: number, helpText: string, defaultValue?: number): ValueModuleInputDefinition {
+  return { key, label, type, unit, required: true, helpText, ...(defaultValue === undefined ? {} : { defaultValue }), displayOrder };
+}
+
+export const valueModules = [
+  {
+    key: "INCREASE_UTILIZATION",
+    name: "Increase Asset Utilization",
+    description: "Estimate incremental margin opportunity from improving productive asset utilization.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "REVENUE_MARGIN_OPPORTUNITY",
+    inputDefinitions: [
+      input("utilization_improvement_pct", "Expected utilization improvement", "PERCENTAGE", "PERCENT", 1, "Gather the customer value for expected utilization improvement."),
+      input("monthly_miles", "Total miles per month", "NUMBER", "MILES_PER_MONTH", 2, "Gather the customer value for total miles per month."),
+      input("monthly_loads", "Total loads per month", "NUMBER", "COUNT", 3, "Gather the customer value for total loads per month."),
+      input("average_revenue_per_load", "Average revenue per load", "CURRENCY", "CURRENCY_PER_LOAD", 4, "Gather the customer value for average revenue per load."),
+      input("incremental_margin_pct", "Expected margin on incremental loads", "PERCENTAGE", "PERCENT", 5, "Gather the customer value for expected margin on incremental loads."),
+    ],
+    overlapGroups: ["ASSET_PRODUCTIVITY"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 1,
+  },
+  {
+    key: "REDUCE_DEADHEAD",
+    name: "Reduce Deadhead Miles",
+    description: "Quantify the operating cost associated with avoidable empty miles.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "COST_REDUCTION",
+    inputDefinitions: [
+      input("current_deadhead_pct", "Current deadhead percentage", "PERCENTAGE", "PERCENT", 1, "Current percentage of fleet miles operated empty."),
+      input("target_deadhead_pct", "Target deadhead percentage", "PERCENTAGE", "PERCENT", 2, "The deadhead percentage used as the improvement target for this analysis."),
+      input("monthly_miles", "Total miles per month", "NUMBER", "MILES_PER_MONTH", 3, "Gather the customer value for total miles per month."),
+      input("variable_cost_per_mile", "Estimated variable operating cost per mile", "CURRENCY", "CURRENCY_PER_MILE", 4, "Gather the customer value for estimated variable operating cost per mile."),
+    ],
+    overlapGroups: ["ASSET_PRODUCTIVITY"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 2,
+  },
+  {
+    key: "REDUCE_OUT_OF_ROUTE",
+    name: "Reduce Out-of-Route Miles",
+    description: "Estimate fuel-cost opportunity from reducing avoidable out-of-route miles.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "COST_REDUCTION",
+    inputDefinitions: [
+      input("tractor_count", "Number of tractors", "INTEGER", "COUNT", 1, "Gather the customer value for number of tractors."),
+      input("miles_per_tractor_month", "Average miles per tractor per month", "NUMBER", "MILES_PER_TRACTOR_MONTH", 2, "Gather the customer value for average miles per tractor per month."),
+      input("current_oor_pct", "Current out-of-route percentage", "PERCENTAGE", "PERCENT", 3, "Gather the customer value for current out-of-route percentage."),
+      input("target_oor_pct", "Target out-of-route percentage", "PERCENTAGE", "PERCENT", 4, "Gather the customer value for target out-of-route percentage."),
+      input("average_mpg", "Average fleet MPG", "NUMBER", "MPG", 5, "Gather the customer value for average fleet mpg."),
+      input("fuel_cost_per_gallon", "Average fuel cost per gallon", "CURRENCY", "CURRENCY_PER_GALLON", 6, "Gather the customer value for average fuel cost per gallon."),
+    ],
+    overlapGroups: ["ASSET_PRODUCTIVITY"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 3,
+  },
+  {
+    key: "DRIVER_DETENTION",
+    name: "Improve Detention Recovery",
+    description: "Estimate additional revenue opportunity from identifying and recovering billable detention.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "REVENUE_MARGIN_OPPORTUNITY",
+    inputDefinitions: [
+      input("unrecovered_detention_hours_month", "Detention hours currently not billed or recovered monthly", "NUMBER", "HOURS_PER_MONTH", 1, "Gather the customer value for detention hours currently not billed or recovered monthly."),
+      input("recoverable_detention_hours_month", "Additional detention hours believed recoverable monthly", "NUMBER", "HOURS_PER_MONTH", 2, "Gather the customer value for additional detention hours believed recoverable monthly."),
+      input("detention_rate_per_hour", "Average billable detention rate", "CURRENCY", "CURRENCY_PER_HOUR", 3, "Gather the customer value for average billable detention rate."),
+    ],
+    overlapGroups: [],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 4,
+  },
+  {
+    key: "DRIVER_TURNOVER",
+    name: "Reduce Driver Turnover",
+    description: "Quantify recruiting and onboarding cost avoidance from reducing driver turnover.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "COST_AVOIDANCE",
+    inputDefinitions: [
+      input("current_annual_turnover_pct", "Current annualized driver turnover", "PERCENTAGE", "PERCENT", 1, "Gather the customer value for current annualized driver turnover."),
+      input("target_annual_turnover_pct", "Target annualized driver turnover", "PERCENTAGE", "PERCENT", 2, "Gather the customer value for target annualized driver turnover."),
+      input("driver_count", "Current driver count", "INTEGER", "COUNT", 3, "Gather the customer value for current driver count."),
+      input("recruiting_cost_per_driver", "Estimated recruiting and onboarding cost per driver", "CURRENCY", "CURRENCY", 4, "Gather the customer value for estimated recruiting and onboarding cost per driver."),
+    ],
+    overlapGroups: [],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 5,
+  },
+  {
+    key: "STREAMLINE_BACK_OFFICE",
+    name: "Streamline Back Office Processes",
+    description: "Estimate staff capacity tied to redundant manual back-office activity.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("non_ops_staff_count", "Number of non-operations employees", "INTEGER", "COUNT", 1, "Gather the customer value for number of non-operations employees."),
+      input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 2, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 3, "Typical working days used in the monthly productivity assumption."),
+      input("redundant_activity_pct", "Estimated time spent on redundant manual activity", "PERCENTAGE", "PERCENT", 4, "Gather the customer value for estimated time spent on redundant manual activity."),
+    ],
+    overlapGroups: ["BACK_OFFICE_REDUNDANT_LABOR"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 6,
+  },
+  {
+    key: "OPERATIONS_EFFICIENCY",
+    name: "Increase Operations Efficiency",
+    description: "Estimate operations capacity tied to routine or redundant work.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("operations_staff_count", "Number of operations employees", "INTEGER", "COUNT", 1, "Gather the customer value for number of operations employees."),
+      input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 2, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 3, "Typical working days used in the monthly productivity assumption."),
+      input("redundant_activity_pct", "Estimated time spent on redundant activity", "PERCENTAGE", "PERCENT", 4, "Gather the customer value for estimated time spent on redundant activity."),
+    ],
+    overlapGroups: ["OPERATIONS_REDUNDANT_LABOR"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 7,
+  },
+  {
+    key: "TRAILER_ASSET_UTILIZATION",
+    name: "Improve Trailer Asset Utilization",
+    description: "Estimate potential avoided trailer investment from improving trailer-to-tractor utilization.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "CAPITAL_AVOIDANCE",
+    inputDefinitions: [
+      input("trailer_count", "Number of trailers", "INTEGER", "COUNT", 1, "Gather the customer value for number of trailers."),
+      input("tractor_count", "Number of tractors", "INTEGER", "COUNT", 2, "Gather the customer value for number of tractors."),
+      input("average_trailer_value", "Average replacement value per trailer", "CURRENCY", "CURRENCY", 3, "Gather the customer value for average replacement value per trailer."),
+      input("ratio_improvement_pct", "Expected improvement in trailer-to-tractor ratio", "PERCENTAGE", "PERCENT", 4, "Gather the customer value for expected improvement in trailer-to-tractor ratio."),
+      input("asset_life_months", "Trailer economic life in months", "INTEGER", "COUNT", 5, "Gather the customer value for trailer economic life in months.", 60),
+      input("residual_value_pct", "Expected residual value percentage", "PERCENTAGE", "PERCENT", 6, "Gather the customer value for expected residual value percentage.", 20),
+    ],
+    overlapGroups: ["ASSET_PRODUCTIVITY"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 8,
+  },
+  {
+    key: "BROKER_PRODUCTIVITY",
+    name: "Increase Broker Productivity",
+    description: "Estimate gross-margin opportunity from increasing average loads managed per broker.",
+    businessTypes: ["BROKERAGE"],
+    productContexts: productContextsFor(["BROKERAGE"]),
+    valueType: "REVENUE_MARGIN_OPPORTUNITY",
+    inputDefinitions: [
+      input("current_loads_per_broker_day", "Current average loads per broker per day", "NUMBER", "LOADS_PER_DAY", 1, "Gather the customer value for current average loads per broker per day."),
+      input("target_loads_per_broker_day", "Target average loads per broker per day", "NUMBER", "LOADS_PER_DAY", 2, "Gather the customer value for target average loads per broker per day."),
+      input("broker_count", "Number of brokers", "INTEGER", "COUNT", 3, "Gather the customer value for number of brokers."),
+      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 4, "Typical working days used in the monthly productivity assumption."),
+      input("average_margin_per_load", "Average gross margin per brokered load", "CURRENCY", "CURRENCY_PER_LOAD", 5, "Use the customer's average contribution or gross margin per load, depending on business type."),
+    ],
+    overlapGroups: [],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 9,
+  },
+  {
+    key: "INSURANCE_CREDIT_MONITORING",
+    name: "Automate Insurance & Credit Monitoring",
+    description: "Estimate administrative capacity recovered through more automated carrier monitoring.",
+    businessTypes: ["BROKERAGE"],
+    productContexts: productContextsFor(["BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("admin_hours_saved_month", "Administrative hours potentially recovered monthly", "NUMBER", "HOURS_PER_MONTH", 1, "Gather the customer value for administrative hours potentially recovered monthly."),
+      input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 2, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+    ],
+    overlapGroups: ["BACK_OFFICE_REDUNDANT_LABOR"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 10,
+  },
+  {
+    key: "PROFIT_MARGIN_INCREASE",
+    name: "Improve Gross Margin Performance",
+    description: "Estimate retained margin opportunity from improving gross margin performance.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "REVENUE_MARGIN_OPPORTUNITY",
+    inputDefinitions: [
+      input("monthly_gross_revenue", "Monthly gross revenue", "CURRENCY", "CURRENCY", 1, "Gather the customer value for monthly gross revenue."),
+      input("current_margin_pct", "Current gross margin percentage", "PERCENTAGE", "PERCENT", 2, "Gather the customer value for current gross margin percentage."),
+      input("target_margin_pct", "Target gross margin percentage", "PERCENTAGE", "PERCENT", 3, "Gather the customer value for target gross margin percentage."),
+    ],
+    overlapGroups: [],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 11,
+  },
+  {
+    key: "NON_OPS_PRODUCTIVITY",
+    name: "Improve Non-Operations Productivity",
+    description: "Quantify staff capacity spent on known redundant administrative activity.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("redundant_hours_month", "Monthly hours spent on redundant manual entry", "NUMBER", "HOURS_PER_MONTH", 1, "Gather the customer value for monthly hours spent on redundant manual entry."),
+      input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 2, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+    ],
+    overlapGroups: ["BACK_OFFICE_REDUNDANT_LABOR"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 12,
+  },
+  {
+    key: "BROKERAGE_LTL",
+    name: "Streamline Brokerage LTL Processing",
+    description: "Estimate employee capacity recovered from manual brokerage LTL processing.",
+    businessTypes: ["BROKERAGE"],
+    productContexts: productContextsFor(["BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("current_manual_hours_month", "Monthly hours spent manually processing LTL shipments", "NUMBER", "HOURS_PER_MONTH", 1, "Gather the customer value for monthly hours spent manually processing ltl shipments."),
+      input("hours_saved_month", "Estimated hours recoverable monthly", "NUMBER", "HOURS_PER_MONTH", 2, "Gather the customer value for estimated hours recoverable monthly."),
+      input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 3, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+    ],
+    overlapGroups: ["BACK_OFFICE_REDUNDANT_LABOR"],
+    narrativeStatus: "NEEDS_PRODUCT_REVIEW",
+    displayOrder: 13,
+  },
+  {
+    key: "RECURRING_ORDER_AUTOMATION",
+    name: "Automate Recurring Order Entry",
+    description: "Estimate employee capacity recovered from repetitive recurring-order entry.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("current_recurring_order_hours_month", "Monthly hours spent entering recurring orders", "NUMBER", "HOURS_PER_MONTH", 1, "Gather the customer value for monthly hours spent entering recurring orders."),
+      input("hours_saved_month", "Estimated hours recoverable monthly", "NUMBER", "HOURS_PER_MONTH", 2, "Gather the customer value for estimated hours recoverable monthly."),
+      input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 3, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+    ],
+    overlapGroups: ["OPERATIONS_REDUNDANT_LABOR"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 14,
+  },
+  {
+    key: "RFP_PROCESS_EFFICIENCY",
+    name: "Streamline the RFP Process",
+    description: "Quantify staff capacity recovered by reducing RFP and bid preparation time.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("current_minutes_per_rfp", "Current minutes required per RFP or bid", "NUMBER", "MINUTES_PER_RFP", 1, "Gather the customer value for current minutes required per rfp or bid."),
+      input("target_minutes_per_rfp", "Target minutes required per RFP or bid", "NUMBER", "MINUTES_PER_RFP", 2, "Gather the customer value for target minutes required per rfp or bid."),
+      input("rfps_per_month", "RFPs or bids processed monthly", "INTEGER", "COUNT", 3, "Gather the customer value for rfps or bids processed monthly."),
+      input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 4, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+    ],
+    overlapGroups: ["RFP_VALUE"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 15,
+  },
+  {
+    key: "RFP_GROWTH_OPPORTUNITY",
+    name: "Capture Additional RFP Opportunity",
+    description: "Estimate incremental margin opportunity created by additional RFP or quoting capacity.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "REVENUE_MARGIN_OPPORTUNITY",
+    inputDefinitions: [
+      input("additional_loads_week", "Additional loads that could potentially be captured per week", "NUMBER", "LOADS_PER_WEEK", 1, "Gather the customer value for additional loads that could potentially be captured per week."),
+      input("average_margin_per_load", "Average contribution margin per load", "CURRENCY", "CURRENCY_PER_LOAD", 2, "Use the customer's average contribution or gross margin per load, depending on business type."),
+    ],
+    overlapGroups: ["RFP_VALUE"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 16,
+  },
+  {
+    key: "EDI_ORDER_AUTOMATION",
+    name: "Automate Order Entry Through EDI",
+    description: "Estimate employee capacity recovered from manual entry of EDI-eligible orders.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("edi_eligible_orders_month", "Monthly orders eligible for EDI", "INTEGER", "COUNT", 1, "Gather the customer value for monthly orders eligible for edi."),
+      input("minutes_saved_per_order", "Estimated manual time eliminated per order", "NUMBER", "MINUTES_PER_ORDER", 2, "Gather the customer value for estimated manual time eliminated per order."),
+      input("hourly_labor_rate", "Average loaded operations labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 3, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+    ],
+    overlapGroups: ["OPERATIONS_REDUNDANT_LABOR"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 17,
+  },
+  {
+    key: "REDUCE_EDI_VAN_CHARGES",
+    name: "Reduce EDI VAN Charges",
+    description: "Estimate recurring EDI VAN expense that could potentially be eliminated.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "COST_REDUCTION",
+    inputDefinitions: [
+      input("monthly_van_cost", "Current monthly EDI VAN expense", "CURRENCY", "CURRENCY", 1, "Gather the customer value for current monthly edi van expense."),
+      input("eliminated_cost_pct", "Estimated percentage of VAN expense eliminated", "PERCENTAGE", "PERCENT", 2, "Gather the customer value for estimated percentage of van expense eliminated."),
+    ],
+    overlapGroups: [],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 18,
+  },
+  {
+    key: "REDUCE_HARD_BILLING_COST",
+    name: "Reduce Hard Billing Costs",
+    description: "Estimate hard-cost reduction from moving paper invoices to electronic billing.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "COST_REDUCTION",
+    inputDefinitions: [
+      input("paper_invoices_month", "Current paper invoices sent monthly", "INTEGER", "COUNT", 1, "Gather the customer value for current paper invoices sent monthly."),
+      input("invoices_converted_month", "Paper invoices expected to move to electronic or rendition billing", "INTEGER", "COUNT", 2, "Gather the customer value for paper invoices expected to move to electronic or rendition billing."),
+      input("hard_cost_per_invoice", "Average hard cost per paper invoice", "CURRENCY", "CURRENCY_PER_INVOICE", 3, "Gather the customer value for average hard cost per paper invoice."),
+    ],
+    overlapGroups: ["BILLING_EFFICIENCY"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 19,
+  },
+  {
+    key: "REDUCE_BILLING_LABOR",
+    name: "Reduce Manual Billing Labor",
+    description: "Estimate billing staff capacity recovered through workflow automation.",
+    businessTypes: ["TRUCKLOAD", "BROKERAGE"],
+    productContexts: productContextsFor(["TRUCKLOAD", "BROKERAGE"]),
+    valueType: "CAPACITY_VALUE",
+    inputDefinitions: [
+      input("current_billing_hours_month", "Current monthly hours spent compiling billing", "NUMBER", "HOURS_PER_MONTH", 1, "Gather the customer value for current monthly hours spent compiling billing."),
+      input("billing_hours_saved_month", "Estimated billing hours recoverable monthly", "NUMBER", "HOURS_PER_MONTH", 2, "Gather the customer value for estimated billing hours recoverable monthly."),
+      input("hourly_labor_rate", "Average loaded billing labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 3, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+    ],
+    overlapGroups: ["BACK_OFFICE_REDUNDANT_LABOR", "BILLING_EFFICIENCY"],
+    narrativeStatus: "DRAFT_APPROVED",
+    displayOrder: 20,
+  },
+  {
+    key: "SHORT_HAUL_EFFICIENCY",
+    name: "Improve Short Haul Processing Efficiency",
+    description: "Estimate net labor-capacity value from reducing high-volume short haul processing time.",
+    businessTypes: ["TRUCKLOAD"],
+    productContexts: productContextsFor(["TRUCKLOAD"]),
+    valueType: "NET_CAPACITY_VALUE",
+    inputDefinitions: [
+      input("tickets_per_week", "Short haul deliveries or tickets processed per week", "INTEGER", "COUNT", 1, "Gather the customer value for short haul deliveries or tickets processed per week."),
+      input("current_minutes_per_ticket", "Current processing time per ticket", "NUMBER", "MINUTES_PER_TICKET", 2, "Gather the customer value for current processing time per ticket."),
+      input("target_minutes_per_ticket", "Target processing time per ticket", "NUMBER", "MINUTES_PER_TICKET", 3, "Gather the customer value for target processing time per ticket."),
+      input("hourly_labor_rate", "Average loaded data-entry labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 4, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
+      input("transaction_cost_per_ticket", "Short Haul transaction cost per processed ticket", "CURRENCY", "CURRENCY_PER_TICKET", 5, "Gather the customer value for short haul transaction cost per processed ticket.", 0.25),
+    ],
+    overlapGroups: ["BILLING_EFFICIENCY"],
+    narrativeStatus: "NEEDS_PRODUCT_REVIEW",
+    displayOrder: 21,
+  },
+] as const satisfies readonly ValueModuleDefinition[];
+
+export function getAllValueModules(): ValueModuleDefinition[] {
+  return valueModules.map((module) => ({ ...module, businessTypes: [...module.businessTypes], productContexts: [...module.productContexts], inputDefinitions: module.inputDefinitions.map((inputDefinition) => ({ ...inputDefinition })), overlapGroups: [...module.overlapGroups] }));
+}
+
+export function getValueModule(moduleKey: ValueModuleKey): ValueModuleDefinition {
+  const valueModule = valueModules.find((module) => module.key === moduleKey);
+  if (!valueModule) {
+    throw new Error(`Unknown value module: ${moduleKey}`);
+  }
+  return { ...valueModule, businessTypes: [...valueModule.businessTypes], productContexts: [...valueModule.productContexts], inputDefinitions: valueModule.inputDefinitions.map((inputDefinition) => ({ ...inputDefinition })), overlapGroups: [...valueModule.overlapGroups] };
+}
+
+export function getModulesForBusinessType(businessType: BusinessType): ValueModuleDefinition[] {
+  return getAllValueModules().filter((module) => module.businessTypes.includes(businessType));
+}
+
+export function isModuleAvailableForBusinessType(moduleKey: ValueModuleKey, businessType: BusinessType): boolean {
+  return getValueModule(moduleKey).businessTypes.includes(businessType);
+}
+
