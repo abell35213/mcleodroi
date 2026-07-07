@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f8f1e4;
+  --foreground: #11223a;
+  --midnight: #0b1d33;
+  --navy: #16385f;
+  --gold: #d89b2b;
+  --cream: #fffaf0;
+  --muted: #627085;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: rgba(216, 155, 43, 0.35);
+}
