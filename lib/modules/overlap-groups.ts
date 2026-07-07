@@ -34,7 +34,9 @@ export const overlapGroups = [
 ] as const satisfies readonly OverlapGroupDefinition[];
 
 export function getOverlapGroupsForModule(moduleKey: ValueModuleKey): OverlapGroupDefinition[] {
-  return overlapGroups.filter((group) => (group.modules as readonly ValueModuleKey[]).includes(moduleKey));
+  return overlapGroups
+    .filter((group) => group.modules.includes(moduleKey))
+    .map((group) => ({ ...group, modules: [...group.modules] }));
 }
 
 export function getOverlapNoticesForSelectedModules(moduleKeys: readonly ValueModuleKey[]): OverlapNotice[] {
