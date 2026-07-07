@@ -142,9 +142,10 @@ describe("canonical value module registry", () => {
   it("returns safe copies instead of mutable registry arrays", () => {
     const modules = getAllValueModules();
     modules.pop();
-    const mutableInputs = modules[0]?.inputDefinitions as ValueModuleInputDefinition[] | undefined;
-    mutableInputs?.pop();
+    const module = modules.find((valueModule) => valueModule.key === "INCREASE_UTILIZATION")!;
+    const mutableInputs = module.inputDefinitions as ValueModuleInputDefinition[];
+    mutableInputs.pop();
     expect(getAllValueModules()).toHaveLength(21);
-    expect(getAllValueModules()[0]?.inputDefinitions).toHaveLength(5);
+    expect(getAllValueModules().find((valueModule) => valueModule.key === "INCREASE_UTILIZATION")!.inputDefinitions).toHaveLength(5);
   });
 });
