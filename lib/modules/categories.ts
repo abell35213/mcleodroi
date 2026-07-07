@@ -12,7 +12,9 @@ export const valueModuleCategories = [
 ] as const satisfies readonly ValueModuleCategoryDefinition[];
 
 export function getCategoriesForBusinessType(businessType: BusinessType): ValueModuleCategoryDefinition[] {
-  return valueModuleCategories.filter((category) => category.businessType === businessType);
+  return valueModuleCategories
+    .filter((category) => category.businessType === businessType)
+    .map((category) => ({ ...category }));
 }
 
 export function getCategoryByKey(categoryKey: CategoryKey): ValueModuleCategoryDefinition | undefined {
