@@ -46,5 +46,7 @@ export function getModulesForCategory(categoryKey: CategoryKey): ValueModuleDefi
 
 export function getCategoryMappingsForBusinessType(businessType: BusinessType): ModuleCategoryMapping[] {
   const available = new Set(getModulesForBusinessType(businessType).map((module) => module.key));
-  return moduleCategoryMappings.filter((mapping) => available.has(mapping.moduleKey) && getCategoryByKey(mapping.categoryKey)?.businessType === businessType);
+  return moduleCategoryMappings
+    .filter((mapping) => available.has(mapping.moduleKey) && getCategoryByKey(mapping.categoryKey)?.businessType === businessType)
+    .map((mapping) => ({ ...mapping }));
 }
