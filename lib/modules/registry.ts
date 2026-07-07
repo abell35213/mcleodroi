@@ -8,7 +8,7 @@ function input(key: string, label: string, type: ValueModuleInputDefinition["typ
   return { key, label, type, unit, required: true, helpText, ...(defaultValue === undefined ? {} : { defaultValue }), displayOrder };
 }
 
-export const valueModules = [
+const valueModules = [
   {
     key: "INCREASE_UTILIZATION",
     name: "Increase Asset Utilization",
