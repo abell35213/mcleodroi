@@ -16,5 +16,6 @@ export function getCategoriesForBusinessType(businessType: BusinessType): ValueM
 }
 
 export function getCategoryByKey(categoryKey: CategoryKey): ValueModuleCategoryDefinition | undefined {
-  return valueModuleCategories.find((category) => category.key === categoryKey);
+  const category = valueModuleCategories.find((candidate) => candidate.key === categoryKey);
+  return category ? { ...category } : undefined;
 }
