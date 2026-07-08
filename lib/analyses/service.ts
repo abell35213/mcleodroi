@@ -143,8 +143,15 @@ export async function selectAnalysisModule(args: { analysisId: string; moduleKey
     return selectedKey ? getCategoryForModule(selectedKey, analysis.businessType) === category : false;
   });
   const displayOrder = selectedInCategory.reduce((max, selectedAnalysisModule) => Math.max(max, selectedAnalysisModule.displayOrder), 0) + DISPLAY_ORDER_STEP;
-  const created = await db.analysisModule.create({ data: { analysisId: args.analysisId, moduleKey, displayOrder }, include: { inputs: true } });
-  return ok(toState(created, "NOT_STARTED"));
+  try {
+    const created = await db.analysisModule.create({ data: { analysisId: args.analysisId, moduleKey, displayOrder }, include: { inputs: true } });
+    return ok(toState(created, "NOT_STARTED"));
+  } catch (error: any) {
+    if (error?.code === "P2002") {
+      return err("MODULE_ALREADY_SELECTED", "Value module is already selected for this analysis.");
+    }
+    throw error;
+  }
 }
 
 export async function removeAnalysisModule(args: { analysisModuleId: string; db?: Db }): Promise<ServiceResult<{ analysisModuleId: string }>> {
