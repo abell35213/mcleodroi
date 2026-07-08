@@ -162,3 +162,9 @@ Customer Analysis text is rendered from the deterministic narrative engine in TE
 CUSTOM narratives store a `customNarrativeSourceFingerprint`, a SHA-256 hash of deterministic source data: module key, business type, reconstructed calculation inputs, financial outputs, derived metrics, and `NARRATIVE_REGISTRY_VERSION` (`1.0.0`). If inputs or the narrative registry version source changes after editing, Review shows “Custom Narrative May Need Review” while preserving the custom narrative. CUSTOM rows with no fingerprint are treated as needing review.
 
 Presentation Readiness summarizes calculation completion, narrative review status, product-review narrative counts, and blocking errors. The Generate Presentation CTA hands off to `/analyses/[id]/presentation`, which remains a guarded shell and does not generate PowerPoint or PDF files.
+
+## P1-8 Presentation snapshot and PowerPoint foundation
+
+P1-8 adds immutable presentation snapshots and the reusable PowerPoint design system. A presentation snapshot is created only from a review-ready analysis, stores both the presentation template version and narrative registry version, and remains historical state even if the analysis later changes. Slide components consume typed view models rather than Prisma records or live calculations; full automatic deck composition is deferred to P1-9.
+
+See `docs/presentation-architecture.md` for snapshot persistence, 16:9 theme/layout constants, reusable PptxGenJS components, slide template primitives, generated-file path strategy, and the development-only golden fixture (`npm run presentation:golden`).
