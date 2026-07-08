@@ -100,3 +100,16 @@ P1-1 intentionally does **not** implement:
 - CRM integrations
 - AI or external benchmark services
 - Cloud deployment, AWS, Postgres, Docker, Redis, or background workers
+
+## P1-3 deterministic calculation engine
+
+The calculation engine in `lib/calculations` provides pure TypeScript business validation and deterministic financial calculations for the 21 canonical value modules from `lib/modules`.
+
+Key methodology rules:
+
+- Percentage inputs use decimal representation: pass 2% as `0.02`, 17% as `0.17`, and 100% as `1`.
+- `WEEKS_PER_MONTH` is fixed at `4.33` for the MVP methodology.
+- Calculation functions preserve internal precision and do not perform display rounding.
+- Capacity value is modeled recovered capacity; it is not automatically cash savings.
+- Trailer avoided capital is reported as `informationalCapitalValue`, distinct from the recurring monthly equivalent.
+- Driver turnover reports annual cost avoidance as `annualOnlyValue`; monthly equivalent is a derived metric only.

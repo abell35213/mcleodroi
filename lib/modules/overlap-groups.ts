@@ -35,7 +35,7 @@ export const overlapGroups = [
 
 export function getOverlapGroupsForModule(moduleKey: ValueModuleKey): OverlapGroupDefinition[] {
   return overlapGroups
-    .filter((group) => group.modules.includes(moduleKey))
+    .filter((group) => group.modules.some((m) => m === moduleKey))
     .map((group) => ({ ...group, modules: [...group.modules] }));
 }
 
