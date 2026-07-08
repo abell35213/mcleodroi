@@ -122,14 +122,14 @@ describe("custom narrative resolution", () => {
   });
 });
 
-import { createNarrativeSourceFingerprint, normalizeNarrativeForComparison } from "@/lib/narratives/fingerprint";
-
 describe("P1-7 narrative fingerprint helpers", () => {
-  it("normalizes outer whitespace and line endings only", () => {
+  it("normalizes outer whitespace and line endings only", async () => {
+    const { normalizeNarrativeForComparison } = await import("@/lib/narratives/fingerprint");
     expect(normalizeNarrativeForComparison("  A\r\n\r\nB  ")).toBe("A\n\nB");
   });
 
-  it("includes narrative registry version in fingerprint source", () => {
+  it("includes narrative registry version in fingerprint source", async () => {
+    const { createNarrativeSourceFingerprint } = await import("@/lib/narratives/fingerprint");
     const calculatedModule = moduleFor("BROKER_PRODUCTIVITY", { current_loads_per_broker_day: 0, target_loads_per_broker_day: 3.5, broker_count: 5, working_days_month: 20, average_margin_per_load: 75 });
     expect(createNarrativeSourceFingerprint({ module: calculatedModule, businessType: "BROKERAGE", narrativeRegistryVersion: "1.0.0" })).not.toBe(createNarrativeSourceFingerprint({ module: calculatedModule, businessType: "BROKERAGE", narrativeRegistryVersion: "1.0.1" }));
   });
