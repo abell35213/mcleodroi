@@ -58,7 +58,7 @@ export function resolveEffectiveNarrative(args: EffectiveNarrativeArgs): Narrati
   return { ok: true, value: custom };
 }
 
-export function toPresentationModuleNarrative(args: { readonly renderedDefaultNarrative: RenderedModuleNarrative; readonly narrativeMode: "TEMPLATE" | "CUSTOM"; readonly customNarrative: string | null }): NarrativeResult<PresentationModuleNarrative> {
+export function toPresentationModuleNarrative(args: { readonly renderedDefaultNarrative: RenderedModuleNarrative; readonly narrativeMode: EffectiveNarrativeArgs["narrativeMode"]; readonly customNarrative: string | null }): NarrativeResult<PresentationModuleNarrative> {
   const effective = resolveEffectiveNarrative(args);
   if (!effective.ok) return effective;
   const { fullDisclaimer: _fullDisclaimer, ...presentation } = args.renderedDefaultNarrative;
