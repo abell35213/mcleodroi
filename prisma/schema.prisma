@@ -19,6 +19,17 @@ enum AnalysisStatus {
   COMPLETE
 }
 
+enum AnalysisModuleStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum NarrativeMode {
+  TEMPLATE
+  CUSTOM
+}
+
 model Analysis {
   id               String         @id @default(cuid())
   companyName      String
@@ -30,4 +41,34 @@ model Analysis {
   status           AnalysisStatus @default(DRAFT)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  modules          AnalysisModule[]
+}
+
+model AnalysisModule {
+  id              String               @id @default(cuid())
+  analysisId      String
+  analysis        Analysis             @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  moduleKey       String
+  status          AnalysisModuleStatus @default(NOT_STARTED)
+  displayOrder    Int
+  narrativeMode   NarrativeMode        @default(TEMPLATE)
+  customNarrative String?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  inputs          AnalysisModuleInput[]
+
+  @@unique([analysisId, moduleKey])
+  @@index([analysisId, displayOrder])
+}
+
+model AnalysisModuleInput {
+  id               String         @id @default(cuid())
+  analysisModuleId String
+  analysisModule   AnalysisModule @relation(fields: [analysisModuleId], references: [id], onDelete: Cascade)
+  inputKey         String
+  numericValue     Float
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([analysisModuleId, inputKey])
 }

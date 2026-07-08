@@ -3,6 +3,7 @@ import { result, validOrIssues } from "./helpers";
 import { positive } from "../validate";
 export function calculateTrailerAssetUtilization(inputs: TrailerAssetUtilizationInputs) {
  return validOrIssues("TRAILER_ASSET_UTILIZATION", inputs, [...positive(inputs.trailer_count,"trailer_count"),...positive(inputs.tractor_count,"tractor_count"),...positive(inputs.asset_life_months,"asset_life_months")], () => {
+  const current_trailer_ratio = inputs.trailer_count / inputs.tractor_count;
   const target_trailer_ratio = current_trailer_ratio * (1 - inputs.ratio_improvement_pct);
   const target_trailer_requirement = inputs.tractor_count * target_trailer_ratio;
   const avoided_trailers = inputs.trailer_count - target_trailer_requirement;

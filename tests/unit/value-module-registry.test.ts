@@ -105,7 +105,7 @@ describe("canonical value module registry", () => {
     const shortHaulInputs = getAllValueModules().find((valueModule) => valueModule.key === "SHORT_HAUL_EFFICIENCY")?.inputDefinitions;
 
     expect(trailerInputs?.find((input) => input.key === "asset_life_months")?.defaultValue).toBe(60);
-    expect(trailerInputs?.find((input) => input.key === "residual_value_pct")?.defaultValue).toBe(20);
+    expect(trailerInputs?.find((input) => input.key === "residual_value_pct")?.defaultValue).toBe(0.2);
     expect(shortHaulInputs?.find((input) => input.key === "transaction_cost_per_ticket")?.defaultValue).toBe(0.25);
   });
 
