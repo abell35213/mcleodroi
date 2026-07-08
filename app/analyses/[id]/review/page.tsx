@@ -23,8 +23,12 @@ export default async function ReviewPage({ params }: PageProps) {
   const narratives = renderAnalysisNarratives(calculated.value);
   if (!narratives.ok) notFound();
   const renderedById = new Map(calculated.value.calculatedModules.map((m, i) => [m.analysisModuleId, narratives.value[i]]));
-  const byCategory = new Map<string, typeof calculated.value.calculatedModules>();
-  for (const m of calculated.value.calculatedModules) byCategory.set(m.category, [...(byCategory.get(m.category) ?? []), m]);
+  const byCategory = new Map<string, (typeof calculated.value.calculatedModules)[number][]>();
+  for (const m of calculated.value.calculatedModules) {
+    const group = byCategory.get(m.category) ?? [];
+    group.push(m);
+    byCategory.set(m.category, group);
+  }
   const product = productContextForBusinessType(calculated.value.analysis.businessType) === "POWERBROKER" ? "PowerBroker" : "LoadMaster";
   const needsReviewCount = calculated.value.calculatedModules.filter(m => getValueModule(m.moduleKey).narrativeStatus === "NEEDS_PRODUCT_REVIEW").length;
   return <main className="min-h-screen bg-[#f8f1e4] px-8 py-10"><div className="mx-auto max-w-7xl space-y-8"><WorkflowProgress activeStage="review" />
