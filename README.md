@@ -25,8 +25,9 @@ P1-1 establishes only the repository foundation and local application bootstrap.
 
 ## Local prerequisites
 
-- Node.js 20 or newer
+- Node.js 20 (the supported local MVP version)
 - npm
+- nvm (recommended for using the included `.nvmrc`)
 
 No Docker, cloud services, authentication provider, or external AI APIs are required.
 
@@ -35,6 +36,8 @@ No Docker, cloud services, authentication provider, or external AI APIs are requ
 ```bash
 git clone <repository-url>
 cd mcleodroi
+nvm install
+nvm use
 npm install
 npm run db:setup
 npm run dev
@@ -44,7 +47,7 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Database setup
 
-The app uses Prisma with a local SQLite database at `prisma/dev.db` by default. The development database URL is stored in `.env`:
+The app uses Prisma with a local SQLite database at `prisma/dev.db` by default. The included `.nvmrc` targets Node 20 for local development. The development database URL is stored in `.env`, and `npm run db:setup` creates `.env` from `.env.example` when `.env` is missing. Existing `.env` files are never overwritten.
 
 ```bash
 DATABASE_URL="file:./dev.db"

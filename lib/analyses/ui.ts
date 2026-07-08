@@ -61,7 +61,7 @@ const standardMetrics = (definition: ValueModuleDefinition): MetricDisplay[] => 
 
 const baseAssessmentDisplayConfig = Object.fromEntries(
   getAllValueModules().map((definition) => [definition.key, { metrics: standardMetrics(definition) }]),
-) as Record<ValueModuleKey, AssessmentDisplayConfig>;
+) as unknown as Record<ValueModuleKey, AssessmentDisplayConfig>;
 
 export const assessmentDisplayConfig: Record<ValueModuleKey, AssessmentDisplayConfig> = {
   ...baseAssessmentDisplayConfig,
