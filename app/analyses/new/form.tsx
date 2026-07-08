@@ -1,4 +1,8 @@
-const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+"use client";
+
+const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000)
+  .toISOString()
+  .slice(0, 10);
 
 export function CreateAnalysisForm() {
   return <form action="/analyses/new/create" method="post" className="mt-8 grid gap-6 rounded-2xl border border-[#e8dcc6] bg-white/60 p-6">
