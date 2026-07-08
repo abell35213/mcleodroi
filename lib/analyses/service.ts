@@ -64,8 +64,8 @@ function toPersistedInputs(rows: readonly { inputKey: string; numericValue: numb
   return rows.map((row) => ({ inputKey: row.inputKey, numericValue: row.numericValue }));
 }
 
-export function reconstructCalculationInputs(definition: ValueModuleDefinition, persistedInputs: readonly PersistedModuleInput[]): Record<string, number> {
-  const reconstructed: Record<string, number> = {};
+export function reconstructCalculationInputs(definition: ValueModuleDefinition, persistedInputs: readonly PersistedModuleInput[]): Partial<Record<string, number>> {
+  const reconstructed: Partial<Record<string, number>> = {};
   for (const input of definition.inputDefinitions) {
     const persisted = persistedInputs.find((candidate) => candidate.inputKey === input.key);
     if (persisted) {
