@@ -16,10 +16,10 @@ type Props = {
   needsProductReview: boolean;
   canMoveUp: boolean;
   canMoveDown: boolean;
-  saveAction: (formData: FormData) => void;
-  resetAction: () => void;
-  moveUpAction: () => void;
-  moveDownAction: () => void;
+  saveAction: (formData: FormData) => Promise<void>;
+  resetAction: () => Promise<void>;
+  moveUpAction: () => Promise<void>;
+  moveDownAction: () => Promise<void>;
 };
 
 export function ReviewModuleCard(props: Props) {
