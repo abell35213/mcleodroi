@@ -1,0 +1,207 @@
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { PrismaClient } from "@prisma/client";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import {
+  calculateAnalysis,
+  clearAnalysisModuleInput,
+  getCalculatedAnalysisModule,
+  reconstructCalculationInputs,
+  saveAnalysisModuleInputs,
+  selectAnalysisModule,
+} from "@/lib/analyses";
+import { getValueModule } from "@/lib/modules";
+
+let db: PrismaClient;
+let dbUrl: string;
+let tempDir: string;
+
+beforeAll(() => {
+  tempDir = mkdtempSync(join(tmpdir(), "mcleod-roi-p1-4-"));
+  dbUrl = `file:${join(tempDir, "test.db")}`;
+  execFileSync("npx", ["prisma", "migrate", "deploy"], { env: { ...process.env, DATABASE_URL: dbUrl }, stdio: "pipe" });
+  db = new PrismaClient({ datasourceUrl: dbUrl });
+});
+
+afterAll(async () => {
+  await db.$disconnect();
+  rmSync(tempDir, { recursive: true, force: true });
+});
+
+beforeEach(async () => {
+  await db.analysisModuleInput.deleteMany();
+  await db.analysisModule.deleteMany();
+  await db.analysis.deleteMany();
+});
+
+async function createAnalysis(businessType: "TRUCKLOAD" | "BROKERAGE") {
+  return db.analysis.create({ data: { companyName: `${businessType} Customer`, businessType, preparedBy: "Tester", analysisDate: new Date("2026-07-08T00:00:00Z") } });
+}
+
+async function selectOrThrow(analysisId: string, moduleKey: string) {
+  const result = await selectAnalysisModule({ analysisId, moduleKey, db });
+  expect(result.ok).toBe(true);
+  if (!result.ok) throw new Error(result.error.message);
+  return result.value;
+}
+
+async function saveOrThrow(analysisModuleId: string, inputs: Record<string, number>) {
+  const result = await saveAnalysisModuleInputs({ analysisModuleId, inputs, db });
+  expect(result.ok).toBe(true);
+  if (!result.ok) throw new Error(result.error.message);
+  return result.value;
+}
+
+describe("analysis module selection", () => {
+  it("selects modules by business type and rejects unavailable or duplicate modules", async () => {
+    const truckload = await createAnalysis("TRUCKLOAD");
+    const brokerage = await createAnalysis("BROKERAGE");
+    expect((await selectAnalysisModule({ analysisId: truckload.id, moduleKey: "REDUCE_DEADHEAD", db })).ok).toBe(true);
+    expect((await selectAnalysisModule({ analysisId: brokerage.id, moduleKey: "BROKER_PRODUCTIVITY", db })).ok).toBe(true);
+    expect((await selectAnalysisModule({ analysisId: truckload.id, moduleKey: "PROFIT_MARGIN_INCREASE", db })).ok).toBe(true);
+    expect((await selectAnalysisModule({ analysisId: truckload.id, moduleKey: "BROKER_PRODUCTIVITY", db })).ok).toBe(false);
+    expect((await selectAnalysisModule({ analysisId: brokerage.id, moduleKey: "REDUCE_DEADHEAD", db })).ok).toBe(false);
+    const duplicate = await selectAnalysisModule({ analysisId: truckload.id, moduleKey: "REDUCE_DEADHEAD", db });
+    expect(duplicate.ok).toBe(false);
+    if (!duplicate.ok) expect(duplicate.error.code).toBe("MODULE_ALREADY_SELECTED");
+  });
+});
+
+describe("analysis module inputs", () => {
+  it("uses PATCH upsert semantics, validates keys, and clears one input without treating it as zero", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const selectedModule = await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await saveOrThrow(selectedModule.analysisModuleId, { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16 });
+    await saveOrThrow(selectedModule.analysisModuleId, { monthly_miles: 2500000 });
+    await saveOrThrow(selectedModule.analysisModuleId, { monthly_miles: 2600000, variable_cost_per_mile: 0.45 });
+    let calculated = await getCalculatedAnalysisModule({ analysisModuleId: selectedModule.analysisModuleId, db });
+    expect(calculated.ok && calculated.value.reconstructedInputs.current_deadhead_pct).toBe(0.17);
+    expect(calculated.ok && calculated.value.reconstructedInputs.monthly_miles).toBe(2600000);
+    const invalid = await saveAnalysisModuleInputs({ analysisModuleId: selectedModule.analysisModuleId, inputs: { not_a_key: 1 }, db });
+    expect(invalid.ok).toBe(false);
+    const cleared = await clearAnalysisModuleInput({ analysisModuleId: selectedModule.analysisModuleId, inputKey: "monthly_miles", db });
+    expect(cleared.ok && cleared.value.status).toBe("IN_PROGRESS");
+    calculated = await getCalculatedAnalysisModule({ analysisModuleId: selectedModule.analysisModuleId, db });
+    expect(calculated.ok && calculated.value.reconstructedInputs.monthly_miles).toBeUndefined();
+  });
+});
+
+describe("defaults and status derivation", () => {
+  it("reconstructs defaults from registry without persisted rows", async () => {
+    const trailerInputs = reconstructCalculationInputs(getValueModule("TRAILER_ASSET_UTILIZATION"), [
+      { inputKey: "trailer_count", numericValue: 400 },
+      { inputKey: "tractor_count", numericValue: 155 },
+      { inputKey: "average_trailer_value", numericValue: 57500 },
+      { inputKey: "ratio_improvement_pct", numericValue: 0.02 },
+    ]);
+    expect(trailerInputs.asset_life_months).toBe(60);
+    expect(trailerInputs.residual_value_pct).toBe(0.2);
+    expect(reconstructCalculationInputs(getValueModule("SHORT_HAUL_EFFICIENCY"), []).transaction_cost_per_ticket).toBe(0.25);
+  });
+
+  it("returns NOT_STARTED, IN_PROGRESS, COMPLETE, and validation issues", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const selectedModule = await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    expect((await getCalculatedAnalysisModule({ analysisModuleId: selectedModule.analysisModuleId, db })).ok).toBe(true);
+    let state = await saveOrThrow(selectedModule.analysisModuleId, { current_deadhead_pct: 0.17 });
+    expect(state.status).toBe("IN_PROGRESS");
+    state = await saveOrThrow(selectedModule.analysisModuleId, { target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 });
+    expect(state.status).toBe("COMPLETE");
+    state = await saveOrThrow(selectedModule.analysisModuleId, { target_deadhead_pct: 0.18 });
+    expect(state.status).toBe("IN_PROGRESS");
+    const calculated = await getCalculatedAnalysisModule({ analysisModuleId: selectedModule.analysisModuleId, db });
+    expect(calculated.ok && calculated.value.validationIssues.length).toBeGreaterThan(0);
+  });
+
+  it("calculates REDUCE_DEADHEAD example", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const selectedModule = await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await saveOrThrow(selectedModule.analysisModuleId, { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 });
+    const calculated = await getCalculatedAnalysisModule({ analysisModuleId: selectedModule.analysisModuleId, db });
+    expect(calculated.ok && calculated.value.status).toBe("COMPLETE");
+    if (calculated.ok && calculated.value.calculationOutcome?.success) {
+      expect(calculated.value.calculationOutcome.result.derivedMetrics.avoided_deadhead_miles).toBeCloseTo(25000);
+      expect(calculated.value.calculationOutcome.result.financialOutputs.monthlyRecurringValue).toBeCloseTo(11250);
+    }
+  });
+});
+
+describe("analysis aggregation", () => {
+  it("aggregates recurring Brokerage modules by value type", async () => {
+    const analysis = await createAnalysis("BROKERAGE");
+    const broker = await selectOrThrow(analysis.id, "BROKER_PRODUCTIVITY");
+    const margin = await selectOrThrow(analysis.id, "PROFIT_MARGIN_INCREASE");
+    const nonOps = await selectOrThrow(analysis.id, "NON_OPS_PRODUCTIVITY");
+    await saveOrThrow(broker.analysisModuleId, { current_loads_per_broker_day: 2, target_loads_per_broker_day: 3, broker_count: 5, working_days_month: 21, average_margin_per_load: 50 });
+    await saveOrThrow(margin.analysisModuleId, { monthly_gross_revenue: 500000, current_margin_pct: 0.12, target_margin_pct: 0.13 });
+    await saveOrThrow(nonOps.analysisModuleId, { redundant_hours_month: 42, hourly_labor_rate: 50 });
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok && calculated.value.summary.monthlyRecurringValueTotal).toBeCloseTo(12350);
+    expect(calculated.ok && calculated.value.summary.annualRecurringValueTotal).toBeCloseTo(148200);
+    expect(calculated.ok && calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity).toBeCloseTo(148200);
+    if (calculated.ok) {
+      const revenue = calculated.value.summary.valueTypeBreakdown.find((item) => item.valueType === "REVENUE_MARGIN_OPPORTUNITY");
+      const capacity = calculated.value.summary.valueTypeBreakdown.find((item) => item.valueType === "CAPACITY_VALUE");
+      expect(revenue?.monthlyRecurringValue).toBeCloseTo(10250);
+      expect(revenue?.annualRecurringValue).toBeCloseTo(123000);
+      expect(capacity?.monthlyRecurringValue).toBeCloseTo(2100);
+      expect(capacity?.annualRecurringValue).toBeCloseTo(25200);
+    }
+  });
+
+  it("keeps annual-only and informational capital values separate", async () => {
+    const turnoverAnalysis = await createAnalysis("TRUCKLOAD");
+    const turnover = await selectOrThrow(turnoverAnalysis.id, "DRIVER_TURNOVER");
+    await saveOrThrow(turnover.analysisModuleId, { current_annual_turnover_pct: 0.4, target_annual_turnover_pct: 0.35, driver_count: 170, recruiting_cost_per_driver: 3000 });
+    let calculated = await calculateAnalysis({ analysisId: turnoverAnalysis.id, db });
+    expect(calculated.ok && calculated.value.summary.monthlyRecurringValueTotal).toBe(0);
+    expect(calculated.ok && calculated.value.summary.annualOnlyValueTotal).toBeCloseTo(25500);
+
+    const trailerAnalysis = await createAnalysis("TRUCKLOAD");
+    const trailer = await selectOrThrow(trailerAnalysis.id, "TRAILER_ASSET_UTILIZATION");
+    await saveOrThrow(trailer.analysisModuleId, { trailer_count: 400, tractor_count: 155, average_trailer_value: 57500, ratio_improvement_pct: 0.02 });
+    calculated = await calculateAnalysis({ analysisId: trailerAnalysis.id, db });
+    expect(calculated.ok && calculated.value.summary.monthlyRecurringValueTotal).toBeCloseTo(6133.333333);
+    expect(calculated.ok && calculated.value.summary.annualRecurringValueTotal).toBeCloseTo(73600);
+    expect(calculated.ok && calculated.value.summary.informationalCapitalValueTotal).toBeCloseTo(460000);
+    expect(calculated.ok && calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity).toBeCloseTo(73600);
+  });
+
+  it("excludes incomplete modules and derives readiness", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const complete = await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await selectOrThrow(analysis.id, "DRIVER_TURNOVER");
+    await saveOrThrow(complete.analysisModuleId, { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 });
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok && calculated.value.summary.completeModuleCount).toBe(1);
+    expect(calculated.ok && calculated.value.summary.incompleteModuleCount).toBe(1);
+    expect(calculated.ok && calculated.value.summary.monthlyRecurringValueTotal).toBeCloseTo(11250);
+    expect(calculated.ok && calculated.value.workflowReadiness.canReview).toBe(false);
+    expect(calculated.ok && calculated.value.workflowReadiness.canGeneratePresentation).toBe(false);
+  });
+
+  it("reuses overlap notices", async () => {
+    const operationsAnalysis = await createAnalysis("TRUCKLOAD");
+    await selectOrThrow(operationsAnalysis.id, "OPERATIONS_EFFICIENCY");
+    await selectOrThrow(operationsAnalysis.id, "RECURRING_ORDER_AUTOMATION");
+    let calculated = await calculateAnalysis({ analysisId: operationsAnalysis.id, db });
+    expect(calculated.ok && calculated.value.overlapNotices.some((notice) => notice.key === "OPERATIONS_REDUNDANT_LABOR" && notice.type === "REVIEW")).toBe(true);
+
+    const rfpAnalysis = await createAnalysis("BROKERAGE");
+    await selectOrThrow(rfpAnalysis.id, "RFP_PROCESS_EFFICIENCY");
+    await selectOrThrow(rfpAnalysis.id, "RFP_GROWTH_OPPORTUNITY");
+    calculated = await calculateAnalysis({ analysisId: rfpAnalysis.id, db });
+    expect(calculated.ok && calculated.value.overlapNotices.some((notice) => notice.key === "RFP_VALUE" && notice.type === "INFORMATION")).toBe(true);
+  });
+
+  it("orders calculated modules by category then selected display order", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    await selectOrThrow(analysis.id, "NON_OPS_PRODUCTIVITY");
+    await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await selectOrThrow(analysis.id, "RECURRING_ORDER_AUTOMATION");
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok && calculated.value.calculatedModules.map((calculatedModule) => calculatedModule.moduleKey)).toEqual(["RECURRING_ORDER_AUTOMATION", "REDUCE_DEADHEAD", "NON_OPS_PRODUCTIVITY"]);
+  });
+});

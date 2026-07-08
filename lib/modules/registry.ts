@@ -143,7 +143,7 @@ const valueModules = [
       input("average_trailer_value", "Average replacement value per trailer", "CURRENCY", "CURRENCY", 3, "Gather the customer value for average replacement value per trailer."),
       input("ratio_improvement_pct", "Expected improvement in trailer-to-tractor ratio", "PERCENTAGE", "PERCENT", 4, "Gather the customer value for expected improvement in trailer-to-tractor ratio."),
       input("asset_life_months", "Trailer economic life in months", "INTEGER", "COUNT", 5, "Gather the customer value for trailer economic life in months.", 60),
-      input("residual_value_pct", "Expected residual value percentage", "PERCENTAGE", "PERCENT", 6, "Gather the customer value for expected residual value percentage.", 20),
+      input("residual_value_pct", "Expected residual value percentage", "PERCENTAGE", "PERCENT", 6, "Gather the customer value for expected residual value percentage.", 0.20),
     ],
     overlapGroups: ["ASSET_PRODUCTIVITY"],
     narrativeStatus: "DRAFT_APPROVED",
