@@ -169,7 +169,19 @@ export async function saveAnalysisModuleInputs(args: { analysisModuleId: string;
   for (const inputKey of Object.keys(args.inputs)) {
     if (!definitions.has(inputKey)) return err("INVALID_INPUT_KEY", `Input key ${inputKey} does not belong to ${moduleKey}.`);
   }
-  await db.$transaction(Object.entries(args.inputs).map(([inputKey, numericValue]) => db.analysisModuleInput.upsert({ where: { analysisModuleId_inputKey: { analysisModuleId: args.analysisModuleId, inputKey } }, create: { analysisModuleId: args.analysisModuleId, inputKey, numericValue }, update: { numericValue } })));
+
+  const entries = Object.entries(args.inputs);
+  if (entries.length > 0) {
+    await db.$transaction(
+      entries.map(([inputKey, numericValue]) =>
+        db.analysisModuleInput.upsert({
+          where: { analysisModuleId_inputKey: { analysisModuleId: args.analysisModuleId, inputKey } },
+          create: { analysisModuleId: args.analysisModuleId, inputKey, numericValue },
+          update: { numericValue },
+        }),
+      ),
+    );
+  }
   const updated = await loadModule(db, args.analysisModuleId);
   if (!updated) return err("ANALYSIS_MODULE_NOT_FOUND", "Selected analysis module was not found.");
   const status = await updatePersistedStatus(db, updated);
