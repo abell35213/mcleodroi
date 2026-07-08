@@ -90,7 +90,7 @@ export function deriveAnalysisModuleStatus(definition: ValueModuleDefinition, pe
   if (missingRequiredInputKeys.length > 0) {
     return { status: "IN_PROGRESS", outcome: null, missingRequiredInputKeys };
   }
-  const outcome = calculateValueModule(definition.key, reconstructCalculationInputs(definition, persistedInputs));
+  const outcome = calculateValueModule(definition.key, reconstructCalculationInputs(definition, persistedInputs) as Record<string, number>);
   return { status: outcome.success ? "COMPLETE" : "IN_PROGRESS", outcome, missingRequiredInputKeys };
 }
 
@@ -146,8 +146,8 @@ export async function selectAnalysisModule(args: { analysisId: string; moduleKey
   try {
     const created = await db.analysisModule.create({ data: { analysisId: args.analysisId, moduleKey, displayOrder }, include: { inputs: true } });
     return ok(toState(created, "NOT_STARTED"));
-  } catch (error: any) {
-    if (error?.code === "P2002") {
+  } catch (error: unknown) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "P2002") {
       return err("MODULE_ALREADY_SELECTED", "Value module is already selected for this analysis.");
     }
     throw error;
@@ -219,7 +219,7 @@ export async function getCalculatedAnalysisModule(args: { analysisModuleId: stri
   const definition = getValueModule(moduleKey);
   const inputs = toPersistedInputs(selectedModule.inputs);
   const derived = deriveAnalysisModuleStatus(definition, inputs);
-  const outcome = derived.outcome ?? (derived.missingRequiredInputKeys.length === 0 && inputs.length > 0 ? calculateValueModule(moduleKey, reconstructCalculationInputs(definition, inputs)) : null);
+  const outcome = derived.outcome ?? (derived.missingRequiredInputKeys.length === 0 && inputs.length > 0 ? calculateValueModule(moduleKey, reconstructCalculationInputs(definition, inputs) as Record<string, number>) : null);
   if (selectedModule.status !== derived.status) await db.analysisModule.update({ where: { id: selectedModule.id }, data: { status: derived.status } });
   return ok({
     ...toState(selectedModule, derived.status),
