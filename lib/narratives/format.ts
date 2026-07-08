@@ -11,7 +11,7 @@ export function formatCurrency(value: number, options: { maximumFractionDigits?:
 }
 
 export function formatCurrencyRate(value: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0, maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 }
 
 export function formatPercentage(value: number): string {
