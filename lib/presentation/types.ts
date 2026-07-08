@@ -1,5 +1,5 @@
 import type { BusinessType, CategoryKey, NarrativeStatus, OverlapNotice, ProductContext, ValueModuleKey, ValueType } from "@/lib/modules";
-import type { NarrativeMode } from "@/lib/analyses/types";
+import type { InformationalCapitalValue, NarrativeMode, ValueTypeSummary } from "@/lib/analyses/types";
 
 export type SnapshotScalarMap = Record<string, number | string | boolean | null>;
 export type PresentationSnapshotModule = {
@@ -11,7 +11,7 @@ export type PresentationSnapshotCategory = { categoryKey: CategoryKey; name: str
 export type PresentationSnapshot = {
   snapshotVersion: string; presentationTemplateVersion: string; narrativeRegistryVersion: string; createdAt: string;
   analysis: { id: string; companyName: string; customerContact: string | null; businessType: BusinessType; productContext: ProductContext; preparedBy: string; analysisDate: string };
-  summary: { monthlyRecurringValueTotal: number; annualRecurringValueTotal: number; annualOnlyValueTotal: number; totalIdentifiedAnnualEconomicOpportunity: number; informationalCapitalValueTotal: number; valueTypeBreakdown: unknown; informationalCapitalValues: unknown };
+  summary: { monthlyRecurringValueTotal: number; annualRecurringValueTotal: number; annualOnlyValueTotal: number; totalIdentifiedAnnualEconomicOpportunity: number; informationalCapitalValueTotal: number; valueTypeBreakdown: readonly ValueTypeSummary[]; informationalCapitalValues: readonly InformationalCapitalValue[] };
   overlapNotices: readonly OverlapNotice[]; categories: PresentationSnapshotCategory[];
 };
 export type PresentationGenerationMetadata = { id: string; analysisId: string; templateVersion: string; filePath: string | null; status: string; generatedAt: Date };
