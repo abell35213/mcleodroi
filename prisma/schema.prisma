@@ -30,6 +30,10 @@ enum NarrativeMode {
   CUSTOM
 }
 
+enum PresentationGenerationStatus {
+  SNAPSHOT_CREATED
+}
+
 model Analysis {
   id               String         @id @default(cuid())
   companyName      String
@@ -42,6 +46,7 @@ model Analysis {
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   modules          AnalysisModule[]
+  presentationGenerations PresentationGeneration[]
 }
 
 model AnalysisModule {
@@ -72,4 +77,18 @@ model AnalysisModuleInput {
   updatedAt        DateTime       @updatedAt
 
   @@unique([analysisModuleId, inputKey])
+}
+
+
+model PresentationGeneration {
+  id              String   @id @default(cuid())
+  analysisId      String
+  analysis        Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  templateVersion String
+  snapshotJson    String
+  filePath        String?
+  status          PresentationGenerationStatus @default(SNAPSHOT_CREATED)
+  generatedAt     DateTime @default(now())
+
+  @@index([analysisId, generatedAt])
 }

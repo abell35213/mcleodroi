@@ -14,7 +14,8 @@
     "db:setup": "node scripts/db-setup.mjs",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "presentation:golden": "tsx scripts/presentation-golden.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
@@ -38,8 +39,10 @@
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.10",
     "jsdom": "29.1.1",
+    "jszip": "^3.10.1",
     "prisma": "6.19.3",
     "tailwindcss": "4.3.2",
+    "tsx": "4.21.0",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
   },
