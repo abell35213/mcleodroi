@@ -24,7 +24,7 @@ export type AnalysisModuleState = {
 };
 
 export type CalculatedAnalysisModule = AnalysisModuleState & {
-  readonly reconstructedInputs: Record<string, number>;
+  readonly reconstructedInputs: Partial<Record<string, number>>;
   readonly missingRequiredInputKeys: readonly string[];
   readonly calculationOutcome: CalculationOutcome<CalculationResult> | null;
   readonly validationIssues: readonly ValidationIssue[];
