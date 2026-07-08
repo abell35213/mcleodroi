@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { createAnalysisAction, type CreateAnalysisFormState } from "./actions";
 
-const today = new Date().toISOString().slice(0, 10);
+const today = new Date(Date.now() - new Date().getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
 
 export function CreateAnalysisForm() {
   const [state, action, pending] = useActionState<CreateAnalysisFormState, FormData>(createAnalysisAction, {});
