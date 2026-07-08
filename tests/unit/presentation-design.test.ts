@@ -1,5 +1,6 @@
 import { readFileSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
 import { presentationTheme, presentationLayout, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
@@ -35,13 +36,13 @@ describe("presentation design system", () => {
     expect(production).not.toMatch(/West Side Transport|\$503,196|\$503,200/);
     expect(readFileSync("lib/presentation/slides/templates.ts", "utf8")).not.toMatch(/prisma|calculateAnalysis|calculateValueModule/);
   });
-  it("generates a valid golden pptx package", () => {
+  it("generates a valid golden pptx package", async () => {
     execFileSync("npm", ["run", "presentation:golden"], { stdio: "pipe" });
     const path = "test-results/presentation-golden.pptx";
     expect(statSync(path).size).toBeGreaterThan(10_000);
-    const listing = execFileSync("unzip", ["-l", path], { encoding: "utf8" });
-    expect(listing).toContain("ppt/slides/slide6.xml");
-    const slideText = execFileSync("unzip", ["-p", path, "ppt/slides/slide2.xml"], { encoding: "utf8" });
+    const zip = await JSZip.loadAsync(readFileSync(path));
+    expect(zip.file("ppt/slides/slide6.xml")).not.toBeNull();
+    const slideText = await zip.file("ppt/slides/slide2.xml")?.async("text");
     expect(slideText).toContain("West Side Transport");
     expect(slideText).toContain("$503,200");
   });

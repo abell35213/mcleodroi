@@ -30,6 +30,10 @@ enum NarrativeMode {
   CUSTOM
 }
 
+enum PresentationGenerationStatus {
+  SNAPSHOT_CREATED
+}
+
 model Analysis {
   id               String         @id @default(cuid())
   companyName      String
@@ -83,7 +87,7 @@ model PresentationGeneration {
   templateVersion String
   snapshotJson    String
   filePath        String?
-  status          String   @default("SNAPSHOT_CREATED")
+  status          PresentationGenerationStatus @default(SNAPSHOT_CREATED)
   generatedAt     DateTime @default(now())
 
   @@index([analysisId, generatedAt])

@@ -1,5 +1,6 @@
 import type { BusinessType, CategoryKey, NarrativeStatus, OverlapNotice, ProductContext, ValueModuleKey, ValueType } from "@/lib/modules";
 import type { InformationalCapitalValue, NarrativeMode, ValueTypeSummary } from "@/lib/analyses/types";
+import type { PresentationGenerationStatus } from "@prisma/client";
 
 export type SnapshotScalarMap = Record<string, number | string | boolean | null>;
 export type PresentationSnapshotModule = {
@@ -14,7 +15,7 @@ export type PresentationSnapshot = {
   summary: { monthlyRecurringValueTotal: number; annualRecurringValueTotal: number; annualOnlyValueTotal: number; totalIdentifiedAnnualEconomicOpportunity: number; informationalCapitalValueTotal: number; valueTypeBreakdown: readonly ValueTypeSummary[]; informationalCapitalValues: readonly InformationalCapitalValue[] };
   overlapNotices: readonly OverlapNotice[]; categories: PresentationSnapshotCategory[];
 };
-export type PresentationGenerationMetadata = { id: string; analysisId: string; templateVersion: string; filePath: string | null; status: string; generatedAt: Date };
+export type PresentationGenerationMetadata = { id: string; analysisId: string; templateVersion: string; filePath: string | null; status: PresentationGenerationStatus; generatedAt: Date };
 export type PresentationServiceResult<T> = { ok: true; value: T } | { ok: false; error: { code: string; message: string } };
 
 export type MetricModel = { value: string; period?: string; label: string; supportingText?: string };
