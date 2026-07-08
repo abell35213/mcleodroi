@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 import { rmSync } from "node:fs";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
 
-const projectRoot = resolve(import.meta.dirname, "..");
+const projectRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const databaseUrl = process.env.DATABASE_URL ?? "file:./e2e.db";
 
 if (databaseUrl !== "file:./e2e.db") {
