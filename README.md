@@ -129,3 +129,19 @@ Module status is derived centrally: `NOT_STARTED` means no customer inputs are p
 Aggregate totals include only selected modules that are `COMPLETE` with successful calculation outcomes. Monthly recurring totals sum only `financialOutputs.monthlyRecurringValue`; annual-only values such as Driver Turnover do not create synthetic monthly recurring totals. Total identified annual economic opportunity is `annualRecurringValueTotal + annualOnlyValueTotal`. Informational capital values, such as Trailer Asset Utilization avoided capital investment, are exposed separately and are excluded from total annual economic opportunity. Successful module value is also grouped by canonical `ValueType`.
 
 Database-integrated Vitest coverage uses a temporary SQLite database per test file. Tests run `prisma migrate deploy` against that temporary database, instantiate an isolated Prisma client with the temporary datasource URL, reset data between tests, and remove the temporary database directory afterward.
+
+## P1-6 Usable Analysis Workflow
+
+The Business Impact Analyses dashboard now displays persisted analyses only. Each row calculates its current identified annual economic opportunity at render time and resumes the user at Opportunities, Assessment, or Review based on existing analysis readiness.
+
+Users create a Business Impact Analysis from `/analyses/new` by entering company details, choosing Truckload or Brokerage, and submitting the existing create-analysis Zod validation. Customer logo upload is intentionally not exposed yet.
+
+Opportunity selection at `/analyses/[id]/opportunities` is driven by the canonical module registry. Categories and module ordering come from registry metadata, business-type availability is enforced by domain services, and overlap notices render from the existing overlap service output without blocking selection.
+
+Assessment at `/analyses/[id]/assessment` shows one selected module at a time. The module navigation uses calculated module ordering and derived statuses: Not Started, In Progress, and Complete. If no module is requested, the first incomplete module opens; when every module is complete, the first module opens.
+
+Input forms are generated from canonical input definitions. Percentages are displayed as salesperson-friendly whole percentages, so `17` in the UI is persisted and calculated as `0.17`; persisted `0.17` displays as `17`. Canonical defaults are displayed as methodology defaults without being persisted merely by viewing a page.
+
+The MVP uses an explicit **Save & Calculate** action. It sends current form values with PATCH-style semantics, clears emptied fields instead of converting them to zero, recalculates through the domain calculation layer, and displays validation issues, financial outputs, derived metrics, and default customer-specific narrative output from the narrative renderer.
+
+Review remains a guarded handoff shell. Users can continue to Review only when all selected modules are complete; otherwise Review redirects back to the first incomplete assessment module.

@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { createAnalysisSchema, type CreateAnalysisInput } from "@/lib/validation/analysis";
 import { prisma as defaultPrisma } from "@/lib/db";
 import { calculateValueModule } from "@/lib/calculations";
 import type { CalculationOutcome, CalculationResult } from "@/lib/calculations";
@@ -213,9 +214,13 @@ export async function getCalculatedAnalysisModule(args: { analysisModuleId: stri
   const db = args.db ?? defaultPrisma;
   const selectedModule = await loadModule(db, args.analysisModuleId);
   if (!selectedModule?.analysis) return err("ANALYSIS_MODULE_NOT_FOUND", "Selected analysis module was not found.");
+  return calculateAnalysisModuleRecord(db, selectedModule, selectedModule.analysis);
+}
+
+async function calculateAnalysisModuleRecord(db: Db, selectedModule: ModuleRecord, analysis: AnalysisRecord): Promise<ServiceResult<CalculatedAnalysisModule>> {
   const moduleKey = parseModuleKey(selectedModule.moduleKey);
   if (!moduleKey) return err("MODULE_NOT_FOUND", "Value module was not found in the canonical registry.");
-  if (!isModuleAvailableForBusinessType(moduleKey, selectedModule.analysis.businessType)) return err("MODULE_NOT_AVAILABLE_FOR_BUSINESS_TYPE", "Value module is not available for this analysis business type.");
+  if (!isModuleAvailableForBusinessType(moduleKey, analysis.businessType)) return err("MODULE_NOT_AVAILABLE_FOR_BUSINESS_TYPE", "Value module is not available for this analysis business type.");
   const definition = getValueModule(moduleKey);
   const inputs = toPersistedInputs(selectedModule.inputs);
   const derived = deriveAnalysisModuleStatus(definition, inputs);
@@ -227,7 +232,7 @@ export async function getCalculatedAnalysisModule(args: { analysisModuleId: stri
     missingRequiredInputKeys: derived.missingRequiredInputKeys,
     calculationOutcome: outcome,
     validationIssues: outcome && !outcome.success ? outcome.issues : [],
-    category: categoryFor(moduleKey, selectedModule.analysis.businessType),
+    category: categoryFor(moduleKey, analysis.businessType),
     valueType: definition.valueType,
   });
 }
@@ -275,7 +280,7 @@ export async function calculateAnalysis(args: { analysisId: string; db?: Db }): 
   if (!analysis) return err("ANALYSIS_NOT_FOUND", "Analysis was not found.");
   const calculated: CalculatedAnalysisModule[] = [];
   for (const selectedAnalysisModule of analysis.modules) {
-    const result = await getCalculatedAnalysisModule({ analysisModuleId: selectedAnalysisModule.id, db });
+    const result = await calculateAnalysisModuleRecord(db, selectedAnalysisModule, analysis);
     if (result.ok) calculated.push(result.value);
   }
   const allModules = new Map(getAllValueModules().map((valueModule) => [valueModule.key, valueModule]));
@@ -286,4 +291,12 @@ export async function calculateAnalysis(args: { analysisId: string; db?: Db }): 
   });
   const summary = summarizeCalculatedModules(calculated);
   return ok({ analysis: { id: analysis.id, companyName: analysis.companyName, businessType: analysis.businessType, status: analysis.status }, calculatedModules: calculated, overlapNotices: getOverlapNoticesForSelectedModules(calculated.map((calculatedModule) => calculatedModule.moduleKey)), summary, workflowReadiness: deriveAnalysisWorkflowReadiness(summary) });
+}
+
+export async function createAnalysis(args: { input: CreateAnalysisInput; db?: Db }): Promise<ServiceResult<{ id: string }>> {
+  const db = args.db ?? defaultPrisma;
+  const parsed = createAnalysisSchema.safeParse(args.input);
+  if (!parsed.success) return err("INVALID_INPUT_KEY", parsed.error.issues.map((issue) => issue.message).join(" "));
+  const created = await db.analysis.create({ data: parsed.data });
+  return ok({ id: created.id });
 }
