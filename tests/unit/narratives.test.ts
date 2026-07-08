@@ -7,7 +7,7 @@ import { availableModuleBusinessTypePairs, getNarrativeVariant, narrativeVariant
 
 function moduleFor<K extends ValueModuleKey>(moduleKey: K, inputs: ModuleInputMap[K], status: CalculatedAnalysisModule["status"] = "COMPLETE", outcome?: CalculationOutcome<CalculationResult>): CalculatedAnalysisModule {
   const calculationOutcome = outcome ?? calculateValueModule(moduleKey, inputs);
-  return { analysisModuleId: `${moduleKey}-id`, analysisId: "analysis-id", moduleKey, status, displayOrder: 100, narrativeMode: "TEMPLATE", customNarrative: null, inputs: Object.entries(inputs).map(([inputKey, numericValue]) => ({ inputKey, numericValue })), reconstructedInputs: inputs, missingRequiredInputKeys: [], calculationOutcome, validationIssues: calculationOutcome.success ? [] : calculationOutcome.issues, category: "TL_BACK_OFFICE", valueType: getValueModule(moduleKey).valueType };
+  return { analysisModuleId: `${moduleKey}-id`, analysisId: "analysis-id", moduleKey, status, displayOrder: 100, narrativeMode: "TEMPLATE", customNarrative: null, customNarrativeSourceFingerprint: null, inputs: Object.entries(inputs).map(([inputKey, numericValue]) => ({ inputKey, numericValue })), reconstructedInputs: inputs, missingRequiredInputKeys: [], calculationOutcome, validationIssues: calculationOutcome.success ? [] : calculationOutcome.issues, category: "TL_BACK_OFFICE", valueType: getValueModule(moduleKey).valueType };
 }
 
 function render<K extends ValueModuleKey>(businessType: BusinessType, moduleKey: K, inputs: ModuleInputMap[K]) {
@@ -119,5 +119,18 @@ describe("custom narrative resolution", () => {
   it("requires non-empty custom narrative for CUSTOM mode", () => {
     expect(resolveEffectiveNarrative({ renderedDefaultNarrative, narrativeMode: "CUSTOM", customNarrative: " custom " })).toEqual({ ok: true, value: "custom" });
     expect(resolveEffectiveNarrative({ renderedDefaultNarrative, narrativeMode: "CUSTOM", customNarrative: " " }).ok).toBe(false);
+  });
+});
+
+describe("P1-7 narrative fingerprint helpers", () => {
+  it("normalizes outer whitespace and line endings only", async () => {
+    const { normalizeNarrativeForComparison } = await import("@/lib/narratives/fingerprint");
+    expect(normalizeNarrativeForComparison("  A\r\n\r\nB  ")).toBe("A\n\nB");
+  });
+
+  it("includes narrative registry version in fingerprint source", async () => {
+    const { createNarrativeSourceFingerprint } = await import("@/lib/narratives/fingerprint");
+    const calculatedModule = moduleFor("BROKER_PRODUCTIVITY", { current_loads_per_broker_day: 0, target_loads_per_broker_day: 3.5, broker_count: 5, working_days_month: 20, average_margin_per_load: 75 });
+    expect(createNarrativeSourceFingerprint({ module: calculatedModule, businessType: "BROKERAGE", narrativeRegistryVersion: "1.0.0" })).not.toBe(createNarrativeSourceFingerprint({ module: calculatedModule, businessType: "BROKERAGE", narrativeRegistryVersion: "1.0.1" }));
   });
 });

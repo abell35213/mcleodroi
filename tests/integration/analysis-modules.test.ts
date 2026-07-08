@@ -11,6 +11,9 @@ import {
   reconstructCalculationInputs,
   saveAnalysisModuleInputs,
   selectAnalysisModule,
+  saveCustomAnalysisNarrative,
+  resetAnalysisNarrativeToTemplate,
+  moveAnalysisModule,
 } from "@/lib/analyses";
 import { getValueModule } from "@/lib/modules";
 
@@ -217,5 +220,71 @@ describe("analysis aggregation", () => {
     } finally {
       findUnique.mockRestore();
     }
+  });
+});
+
+describe("P1-7 review workflow domain", () => {
+  it("matches West Side brokerage aggregate regression", async () => {
+    const analysis = await db.analysis.create({ data: { companyName: "West Side Transport", businessType: "BROKERAGE", preparedBy: "Tester", analysisDate: new Date("2026-07-08T00:00:00Z") } });
+    const broker = await selectOrThrow(analysis.id, "BROKER_PRODUCTIVITY");
+    const backOffice = await selectOrThrow(analysis.id, "STREAMLINE_BACK_OFFICE");
+    const nonOps = await selectOrThrow(analysis.id, "NON_OPS_PRODUCTIVITY");
+    const margin = await selectOrThrow(analysis.id, "PROFIT_MARGIN_INCREASE");
+    await saveOrThrow(broker.analysisModuleId, { current_loads_per_broker_day: 0, target_loads_per_broker_day: 3.5, broker_count: 5, working_days_month: 20, average_margin_per_load: 75 });
+    await saveOrThrow(backOffice.analysisModuleId, { non_ops_staff_count: 5, hourly_labor_rate: 14, working_days_month: 21, redundant_activity_pct: 0.5 });
+    await saveOrThrow(nonOps.analysisModuleId, { redundant_hours_month: 73.5, hourly_labor_rate: 20 });
+    await saveOrThrow(margin.analysisModuleId, { monthly_gross_revenue: 833333, current_margin_pct: 0.12, target_margin_pct: 0.13 });
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+    expect(calculated.value.summary.monthlyRecurringValueTotal).toBeCloseTo(41933.33, 1);
+    expect(calculated.value.summary.annualRecurringValueTotal).toBeCloseTo(503199.96, 1);
+  });
+});
+
+describe("P1-7 narrative persistence and reordering", () => {
+  it("saves custom narrative, resets defaults, detects fingerprint changes, and reorders within category", async () => {
+    const analysis = await db.analysis.create({ data: { companyName: "West Side Transport", businessType: "BROKERAGE", preparedBy: "Tester", analysisDate: new Date("2026-07-08T00:00:00Z") } });
+    const broker = await selectOrThrow(analysis.id, "BROKER_PRODUCTIVITY");
+    const ltl = await selectOrThrow(analysis.id, "BROKERAGE_LTL");
+    await saveOrThrow(broker.analysisModuleId, { current_loads_per_broker_day: 0, target_loads_per_broker_day: 3.5, broker_count: 5, working_days_month: 20, average_margin_per_load: 75 });
+    await saveOrThrow(ltl.analysisModuleId, { current_manual_hours_month: 100, hours_saved_month: 20, hourly_labor_rate: 30 });
+    const custom = await saveCustomAnalysisNarrative({ analysisModuleId: broker.analysisModuleId, narrative: "Custom West Side story.", db });
+    expect(custom.ok && custom.value.narrativeMode).toBe("CUSTOM");
+    expect(custom.ok && custom.value.customNarrativeSourceFingerprint).toBeTruthy();
+    const before = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(before.ok && before.value.calculatedModules.map((m) => m.moduleKey).slice(0, 2)).toEqual(["BROKER_PRODUCTIVITY", "BROKERAGE_LTL"]);
+    expect((await moveAnalysisModule({ analysisModuleId: broker.analysisModuleId, direction: "DOWN", db })).ok).toBe(true);
+    const after = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(after.ok && after.value.calculatedModules.map((m) => m.moduleKey).slice(0, 2)).toEqual(["BROKERAGE_LTL", "BROKER_PRODUCTIVITY"]);
+    expect((await moveAnalysisModule({ analysisModuleId: broker.analysisModuleId, direction: "DOWN", db })).ok).toBe(true);
+    await saveOrThrow(broker.analysisModuleId, { target_loads_per_broker_day: 4 });
+    const changed = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(changed.ok).toBe(true);
+    if (!changed.ok || !custom.ok) return;
+    const currentBroker = changed.value.calculatedModules.find((m) => m.analysisModuleId === broker.analysisModuleId)!;
+    const { createNarrativeSourceFingerprint } = await import("@/lib/narratives/fingerprint");
+    expect(createNarrativeSourceFingerprint({ module: currentBroker, businessType: "BROKERAGE" })).not.toBe(custom.value.customNarrativeSourceFingerprint);
+    const reset = await resetAnalysisNarrativeToTemplate({ analysisModuleId: broker.analysisModuleId, db });
+    expect(reset.ok && reset.value.narrativeMode).toBe("TEMPLATE");
+    expect(reset.ok && reset.value.customNarrative).toBeNull();
+    expect(reset.ok && reset.value.customNarrativeSourceFingerprint).toBeNull();
+  });
+
+  it("rejects blank custom narratives and treats default-equivalent saves as template", async () => {
+    const analysis = await createAnalysis("BROKERAGE");
+    const broker = await selectOrThrow(analysis.id, "BROKER_PRODUCTIVITY");
+    await saveOrThrow(broker.analysisModuleId, { current_loads_per_broker_day: 0, target_loads_per_broker_day: 3.5, broker_count: 5, working_days_month: 20, average_margin_per_load: 75 });
+    expect((await saveCustomAnalysisNarrative({ analysisModuleId: broker.analysisModuleId, narrative: "   ", db })).ok).toBe(false);
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+    const { renderCalculatedModuleNarrative } = await import("@/lib/narratives");
+    const rendered = renderCalculatedModuleNarrative({ analysis: calculated.value.analysis, calculatedModule: calculated.value.calculatedModules[0] });
+    expect(rendered.ok).toBe(true);
+    if (!rendered.ok) return;
+    const saved = await saveCustomAnalysisNarrative({ analysisModuleId: broker.analysisModuleId, narrative: `  ${rendered.value.customerAnalysis}\r\n`, db });
+    expect(saved.ok && saved.value.narrativeMode).toBe("TEMPLATE");
+    expect(saved.ok && saved.value.customNarrative).toBeNull();
   });
 });
