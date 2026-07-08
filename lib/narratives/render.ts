@@ -3,13 +3,13 @@ import type { CalculatedAnalysis, CalculatedAnalysisModule } from "@/lib/analyse
 import { getValueModule } from "@/lib/modules";
 import type { ValueModuleKey } from "@/lib/modules";
 import { getNarrativeVariant, productContextForBusinessType, renderVariant } from "./registry";
-import type { EffectiveNarrativeArgs, NarrativeResult, PresentationModuleNarrative, RenderCalculatedModuleNarrativeArgs, RenderedModuleNarrative } from "./types";
+import type { EffectiveNarrativeArgs, NarrativeError, NarrativeErrorCode, NarrativeResult, PresentationModuleNarrative, RenderCalculatedModuleNarrativeArgs, RenderedModuleNarrative } from "./types";
 
-function fail<T>(code: Parameters<typeof narrativeError>[0], message: string): NarrativeResult<T> {
+function fail<T>(code: NarrativeErrorCode, message: string): NarrativeResult<T> {
   return { ok: false, error: narrativeError(code, message) };
 }
 
-function narrativeError(code: "NARRATIVE_VARIANT_NOT_FOUND" | "MODULE_NOT_COMPLETE" | "CALCULATION_NOT_SUCCESSFUL" | "ANALYSIS_NOT_REVIEW_READY" | "CUSTOM_NARRATIVE_REQUIRED", message: string) {
+function narrativeError(code: NarrativeErrorCode, message: string): NarrativeError {
   return { code, message };
 }
 
