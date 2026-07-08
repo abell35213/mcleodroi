@@ -19,8 +19,8 @@ export function productContextForBusinessType(businessType: BusinessType): Produ
   return businessType === "TRUCKLOAD" ? "LOADMASTER" : "POWERBROKER";
 }
 
-function text(value: string | ((context: never) => string), context: NarrativeRenderContext) {
-  return typeof value === "function" ? value(context as never) : value;
+function text<K extends ValueModuleKey>(value: string | ((context: NarrativeRenderContext<K>) => string), context: NarrativeRenderContext<K>) {
+  return typeof value === "function" ? value(context) : value;
 }
 
 function variant<K extends ValueModuleKey>(entry: Omit<NarrativeVariantFor<K>, "status">): NarrativeVariantFor<K> {
@@ -53,25 +53,25 @@ variant({ moduleKey: "SHORT_HAUL_EFFICIENCY", productContext: "LOADMASTER", oppo
 
 export const narrativeVariants: readonly NarrativeVariant[] = variants;
 
-export function getNarrativeVariant(moduleKey: ValueModuleKey, businessType: BusinessType) {
+export function getNarrativeVariant<K extends ValueModuleKey>(moduleKey: K, businessType: BusinessType) {
   const productContext = productContextForBusinessType(businessType);
   if (!isModuleAvailableForBusinessType(moduleKey, businessType)) return { ok: false as const, error: { code: "NARRATIVE_VARIANT_NOT_FOUND" as const, message: `${moduleKey} is not available for ${businessType}.` } };
   const matches = narrativeVariants.filter((candidate) => candidate.moduleKey === moduleKey && candidate.productContext === productContext);
   if (matches.length !== 1) return { ok: false as const, error: { code: "NARRATIVE_VARIANT_NOT_FOUND" as const, message: `Expected exactly one narrative variant for ${moduleKey}/${productContext}; found ${matches.length}.` } };
-  return { ok: true as const, value: matches[0] };
+  return { ok: true as const, value: matches[0] as unknown as NarrativeVariantFor<K> };
 }
 
-export function renderVariant(context: NarrativeRenderContext, variantToRender: NarrativeVariant) {
+export function renderVariant<K extends ValueModuleKey>(context: NarrativeRenderContext<K>, variantToRender: NarrativeVariantFor<K>) {
   return {
     moduleKey: variantToRender.moduleKey,
     productContext: variantToRender.productContext,
     status: variantToRender.status,
     opportunityHeadline: text(variantToRender.opportunityHeadline, context),
     valueNarrative: text(variantToRender.valueNarrative, context),
-    customerAnalysis: variantToRender.customerAnalysis(context as never),
+    customerAnalysis: variantToRender.customerAnalysis(context),
     fullDisclaimer: text(variantToRender.fullDisclaimer, context),
     presentationDisclaimer: text(variantToRender.presentationDisclaimer, context),
-    presentationCallout: variantToRender.presentationCallout(context as never),
+    presentationCallout: variantToRender.presentationCallout(context),
   };
 }
 
