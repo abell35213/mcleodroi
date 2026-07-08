@@ -12,8 +12,18 @@ export async function saveInputsAction(analysisId: string, analysisModuleId: str
   const clears: string[] = [];
   for (const input of definition.inputDefinitions) {
     const raw = String(formData.get(input.key) ?? "").trim();
-    if (raw === "") clears.push(input.key);
-    else inputs[input.key] = toEngineInputValue(input, Number(raw));
+    if (raw === "") {
+      clears.push(input.key);
+      continue;
+    }
+
+    const numeric = Number(raw);
+    if (!Number.isFinite(numeric)) {
+      clears.push(input.key);
+      continue;
+    }
+
+    inputs[input.key] = toEngineInputValue(input, numeric);
   }
   if (Object.keys(inputs).length) await saveAnalysisModuleInputs({ analysisModuleId, inputs });
   for (const inputKey of clears) await clearAnalysisModuleInput({ analysisModuleId, inputKey });
