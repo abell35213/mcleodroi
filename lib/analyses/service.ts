@@ -214,9 +214,13 @@ export async function getCalculatedAnalysisModule(args: { analysisModuleId: stri
   const db = args.db ?? defaultPrisma;
   const selectedModule = await loadModule(db, args.analysisModuleId);
   if (!selectedModule?.analysis) return err("ANALYSIS_MODULE_NOT_FOUND", "Selected analysis module was not found.");
+  return calculateAnalysisModuleRecord(db, selectedModule, selectedModule.analysis);
+}
+
+async function calculateAnalysisModuleRecord(db: Db, selectedModule: ModuleRecord, analysis: AnalysisRecord): Promise<ServiceResult<CalculatedAnalysisModule>> {
   const moduleKey = parseModuleKey(selectedModule.moduleKey);
   if (!moduleKey) return err("MODULE_NOT_FOUND", "Value module was not found in the canonical registry.");
-  if (!isModuleAvailableForBusinessType(moduleKey, selectedModule.analysis.businessType)) return err("MODULE_NOT_AVAILABLE_FOR_BUSINESS_TYPE", "Value module is not available for this analysis business type.");
+  if (!isModuleAvailableForBusinessType(moduleKey, analysis.businessType)) return err("MODULE_NOT_AVAILABLE_FOR_BUSINESS_TYPE", "Value module is not available for this analysis business type.");
   const definition = getValueModule(moduleKey);
   const inputs = toPersistedInputs(selectedModule.inputs);
   const derived = deriveAnalysisModuleStatus(definition, inputs);
@@ -228,7 +232,7 @@ export async function getCalculatedAnalysisModule(args: { analysisModuleId: stri
     missingRequiredInputKeys: derived.missingRequiredInputKeys,
     calculationOutcome: outcome,
     validationIssues: outcome && !outcome.success ? outcome.issues : [],
-    category: categoryFor(moduleKey, selectedModule.analysis.businessType),
+    category: categoryFor(moduleKey, analysis.businessType),
     valueType: definition.valueType,
   });
 }
@@ -276,7 +280,7 @@ export async function calculateAnalysis(args: { analysisId: string; db?: Db }): 
   if (!analysis) return err("ANALYSIS_NOT_FOUND", "Analysis was not found.");
   const calculated: CalculatedAnalysisModule[] = [];
   for (const selectedAnalysisModule of analysis.modules) {
-    const result = await getCalculatedAnalysisModule({ analysisModuleId: selectedAnalysisModule.id, db });
+    const result = await calculateAnalysisModuleRecord(db, selectedAnalysisModule, analysis);
     if (result.ok) calculated.push(result.value);
   }
   const allModules = new Map(getAllValueModules().map((valueModule) => [valueModule.key, valueModule]));

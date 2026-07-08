@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   calculateAnalysis,
   clearAnalysisModuleInput,
@@ -203,5 +203,19 @@ describe("analysis aggregation", () => {
     await selectOrThrow(analysis.id, "RECURRING_ORDER_AUTOMATION");
     const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
     expect(calculated.ok && calculated.value.calculatedModules.map((calculatedModule) => calculatedModule.moduleKey)).toEqual(["RECURRING_ORDER_AUTOMATION", "REDUCE_DEADHEAD", "NON_OPS_PRODUCTIVITY"]);
+  });
+
+  it("calculates from the eagerly loaded modules without refetching each module", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await selectOrThrow(analysis.id, "DRIVER_TURNOVER");
+    const findUnique = vi.spyOn(db.analysisModule, "findUnique");
+    try {
+      const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+      expect(calculated.ok && calculated.value.summary.moduleCount).toBe(2);
+      expect(findUnique).not.toHaveBeenCalled();
+    } finally {
+      findUnique.mockRestore();
+    }
   });
 });
