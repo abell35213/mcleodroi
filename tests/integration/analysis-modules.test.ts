@@ -21,7 +21,7 @@ let tempDir: string;
 beforeAll(() => {
   tempDir = mkdtempSync(join(tmpdir(), "mcleod-roi-p1-4-"));
   dbUrl = `file:${join(tempDir, "test.db")}`;
-  execFileSync("npx", ["prisma", "migrate", "deploy"], { env: { ...process.env, DATABASE_URL: dbUrl }, stdio: "pipe" });
+  execFileSync("npx", ["--no-install", "prisma", "migrate", "deploy"], { env: { ...process.env, DATABASE_URL: dbUrl }, stdio: "pipe" });
   db = new PrismaClient({ datasourceUrl: dbUrl });
 });
 
