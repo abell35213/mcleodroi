@@ -59,26 +59,35 @@ export type AssessmentDisplayConfig = { metrics: readonly MetricDisplay[] };
 
 const standardMetrics = (definition: ValueModuleDefinition): MetricDisplay[] => definition.inputDefinitions.slice(0, 4).map((input) => ({ label: input.label, key: input.key, source: "input", currency: input.type === "CURRENCY", percent: input.type === "PERCENTAGE" }));
 
-export const assessmentDisplayConfig: Record<ValueModuleKey, AssessmentDisplayConfig> = Object.fromEntries(
+const baseAssessmentDisplayConfig = Object.fromEntries(
   getAllValueModules().map((definition) => [definition.key, { metrics: standardMetrics(definition) }]),
-) as unknown as Record<ValueModuleKey, AssessmentDisplayConfig>;
+) as Record<ValueModuleKey, AssessmentDisplayConfig>;
 
-assessmentDisplayConfig.BROKER_PRODUCTIVITY = { metrics: [
-  { label: "Current Productivity", key: "current_loads_per_broker_day", source: "input", suffix: " loads / broker / day" },
-  { label: "Target Productivity", key: "target_loads_per_broker_day", source: "input", suffix: " loads / broker / day" },
-  { label: "Additional Daily Capacity", key: "additional_loads_per_day", source: "derived", suffix: " loads" },
-  { label: "Monthly Load Capacity", key: "additional_loads_per_month", source: "derived", suffix: " additional monthly loads" },
-  { label: "Average Margin", key: "average_margin_per_load", source: "input", currency: true, suffix: " / load" },
-] };
-assessmentDisplayConfig.REDUCE_DEADHEAD = { metrics: [
-  { label: "Current Deadhead", key: "current_deadhead_pct", source: "input", percent: true },
-  { label: "Target Deadhead", key: "target_deadhead_pct", source: "input", percent: true },
-  { label: "Avoided Empty Miles", key: "avoided_empty_miles", source: "derived", suffix: " miles" },
-  { label: "Variable Cost", key: "variable_cost_per_mile", source: "input", currency: true, suffix: " / mile" },
-] };
-assessmentDisplayConfig.TRAILER_ASSET_UTILIZATION = { metrics: [
-  { label: "Current Trailer Ratio", key: "current_trailer_ratio", source: "derived", suffix: " trailers / tractor" },
-  { label: "Target Trailer Ratio", key: "target_trailer_ratio", source: "derived", suffix: " trailers / tractor" },
-  { label: "Modeled Trailer Requirement Reduction", key: "avoided_trailers", source: "derived", suffix: " trailers" },
-  { label: "Potential Avoided Asset Investment", key: "informationalCapitalValue", source: "financial", currency: true },
-] };
+export const assessmentDisplayConfig: Record<ValueModuleKey, AssessmentDisplayConfig> = {
+  ...baseAssessmentDisplayConfig,
+  BROKER_PRODUCTIVITY: {
+    metrics: [
+      { label: "Current Productivity", key: "current_loads_per_broker_day", source: "input", suffix: " loads / broker / day" },
+      { label: "Target Productivity", key: "target_loads_per_broker_day", source: "input", suffix: " loads / broker / day" },
+      { label: "Additional Daily Capacity", key: "additional_loads_per_day", source: "derived", suffix: " loads" },
+      { label: "Monthly Load Capacity", key: "additional_loads_per_month", source: "derived", suffix: " additional monthly loads" },
+      { label: "Average Margin", key: "average_margin_per_load", source: "input", currency: true, suffix: " / load" },
+    ],
+  },
+  REDUCE_DEADHEAD: {
+    metrics: [
+      { label: "Current Deadhead", key: "current_deadhead_pct", source: "input", percent: true },
+      { label: "Target Deadhead", key: "target_deadhead_pct", source: "input", percent: true },
+      { label: "Avoided Empty Miles", key: "avoided_empty_miles", source: "derived", suffix: " miles" },
+      { label: "Variable Cost", key: "variable_cost_per_mile", source: "input", currency: true, suffix: " / mile" },
+    ],
+  },
+  TRAILER_ASSET_UTILIZATION: {
+    metrics: [
+      { label: "Current Trailer Ratio", key: "current_trailer_ratio", source: "derived", suffix: " trailers / tractor" },
+      { label: "Target Trailer Ratio", key: "target_trailer_ratio", source: "derived", suffix: " trailers / tractor" },
+      { label: "Modeled Trailer Requirement Reduction", key: "avoided_trailers", source: "derived", suffix: " trailers" },
+      { label: "Potential Avoided Asset Investment", key: "informationalCapitalValue", source: "financial", currency: true },
+    ],
+  },
+};
