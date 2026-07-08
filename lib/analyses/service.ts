@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { createAnalysisSchema, type CreateAnalysisInput } from "@/lib/validation/analysis";
 import { prisma as defaultPrisma } from "@/lib/db";
 import { calculateValueModule } from "@/lib/calculations";
 import type { CalculationOutcome, CalculationResult } from "@/lib/calculations";
@@ -286,4 +287,12 @@ export async function calculateAnalysis(args: { analysisId: string; db?: Db }): 
   });
   const summary = summarizeCalculatedModules(calculated);
   return ok({ analysis: { id: analysis.id, companyName: analysis.companyName, businessType: analysis.businessType, status: analysis.status }, calculatedModules: calculated, overlapNotices: getOverlapNoticesForSelectedModules(calculated.map((calculatedModule) => calculatedModule.moduleKey)), summary, workflowReadiness: deriveAnalysisWorkflowReadiness(summary) });
+}
+
+export async function createAnalysis(args: { input: CreateAnalysisInput; db?: Db }): Promise<ServiceResult<{ id: string }>> {
+  const db = args.db ?? defaultPrisma;
+  const parsed = createAnalysisSchema.safeParse(args.input);
+  if (!parsed.success) return err("INVALID_INPUT_KEY", parsed.error.issues.map((issue) => issue.message).join(" "));
+  const created = await db.analysis.create({ data: parsed.data });
+  return ok({ id: created.id });
 }
