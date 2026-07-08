@@ -1,7 +1,21 @@
-import type { BusinessType, CategoryKey, OverlapNotice, ValueModuleKey, ValueType } from "@/lib/modules";
-import type { CalculationOutcome, CalculationResult, ValidationIssue } from "@/lib/calculations";
+import type {
+  BusinessType,
+  CategoryKey,
+  OverlapNotice,
+  ValueModuleKey,
+  ValueType,
+} from "@/lib/modules";
+import type {
+  CalculationOutcome,
+  CalculationResult,
+  ValidationIssue,
+} from "@/lib/calculations";
 
-export const analysisModuleStatuses = ["NOT_STARTED", "IN_PROGRESS", "COMPLETE"] as const;
+export const analysisModuleStatuses = [
+  "NOT_STARTED",
+  "IN_PROGRESS",
+  "COMPLETE",
+] as const;
 export type AnalysisModuleStatus = (typeof analysisModuleStatuses)[number];
 
 export const narrativeModes = ["TEMPLATE", "CUSTOM"] as const;
@@ -20,6 +34,7 @@ export type AnalysisModuleState = {
   readonly displayOrder: number;
   readonly narrativeMode: NarrativeMode;
   readonly customNarrative: string | null;
+  readonly customNarrativeSourceFingerprint: string | null;
   readonly inputs: readonly PersistedModuleInput[];
 };
 
@@ -87,12 +102,18 @@ export const analysisServiceErrorCodes = [
   "MODULE_ALREADY_SELECTED",
   "INVALID_INPUT_KEY",
   "INPUT_NOT_FOUND",
+  "MODULE_NOT_COMPLETE",
+  "CUSTOM_NARRATIVE_REQUIRED",
+  "NARRATIVE_RENDER_FAILED",
 ] as const;
-export type AnalysisServiceErrorCode = (typeof analysisServiceErrorCodes)[number];
+export type AnalysisServiceErrorCode =
+  (typeof analysisServiceErrorCodes)[number];
 
 export type AnalysisServiceError = {
   readonly code: AnalysisServiceErrorCode;
   readonly message: string;
 };
 
-export type ServiceResult<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: AnalysisServiceError };
+export type ServiceResult<T> =
+  | { readonly ok: true; readonly value: T }
+  | { readonly ok: false; readonly error: AnalysisServiceError };

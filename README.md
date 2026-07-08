@@ -148,3 +148,17 @@ Input forms are generated from canonical input definitions. Percentages are disp
 The MVP uses an explicit **Save & Calculate** action. It sends current form values with PATCH-style semantics, clears emptied fields instead of converting them to zero, recalculates through the domain calculation layer, and displays validation issues, financial outputs, derived metrics, and default customer-specific narrative output from the narrative renderer.
 
 Review remains a guarded handoff shell. Users can continue to Review only when all selected modules are complete; otherwise Review redirects back to the first incomplete assessment module.
+
+## P1-7 Review Value Story
+
+The Review Value Story workflow is the editorial checkpoint between calculated analysis and future customer presentation generation. The `/analyses/[id]/review` route is guarded by `calculateAnalysis`; it renders only when every selected module is complete and uses the same deterministic calculations and canonical module/category registry as Assessment.
+
+Review displays total identified annual economic opportunity, recurring monthly value from `monthlyRecurringValueTotal`, recurring annual value, and annual-only opportunity separately. Canonical `ValueType` breakdown remains authoritative: Revenue & Margin Opportunity, Operating Cost Reduction, Labor Capacity Value, Net Capacity Value, Cost Avoidance, and Capital Avoidance / Economic Equivalent are shown only when they have value. Informational capital values are shown as a separate strategic callout and are not added to annual economic opportunity because the recurring equivalent is already represented in the analysis total.
+
+Module review cards are grouped by canonical category and follow calculated analysis order. Users can reorder modules within their current category using Move Up / Move Down controls; category order and cross-category movement are not editable. Overlap notices from the existing calculation workflow appear in Assumption Review and do not block readiness.
+
+Customer Analysis text is rendered from the deterministic narrative engine in TEMPLATE mode and is not persisted. Editing Customer Analysis saves CUSTOM text only when it differs from the current rendered default after whitespace normalization; saving default-equivalent text returns the module to TEMPLATE. Reset to Updated Default clears the custom narrative and immediately uses the current deterministic default.
+
+CUSTOM narratives store a `customNarrativeSourceFingerprint`, a SHA-256 hash of deterministic source data: module key, business type, reconstructed calculation inputs, financial outputs, derived metrics, and `NARRATIVE_REGISTRY_VERSION` (`1.0.0`). If inputs or the narrative registry version source changes after editing, Review shows “Custom Narrative May Need Review” while preserving the custom narrative. CUSTOM rows with no fingerprint are treated as needing review.
+
+Presentation Readiness summarizes calculation completion, narrative review status, product-review narrative counts, and blocking errors. The Generate Presentation CTA hands off to `/analyses/[id]/presentation`, which remains a guarded shell and does not generate PowerPoint or PDF files.
