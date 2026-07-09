@@ -14,15 +14,27 @@ describe("presentation design system", () => {
     expect(presentationLayout.slide.width / presentationLayout.slide.height).toBeCloseTo(16 / 9, 2);
     expect(presentationTheme.typography.minBodyFontSize).toBeGreaterThanOrEqual(14);
     expect(presentationTheme.typography.minDisclaimerFontSize).toBeGreaterThanOrEqual(8);
+    expect(presentationTheme.typography.slideTitleFontSize).toBeGreaterThanOrEqual(24);
+    expect(presentationTheme.typography.coverTitleFontSize).toBeGreaterThanOrEqual(38);
   });
   it("validates length and template cardinality limits", () => {
-    expect(validatePresentationTextLength({ text: "x".repeat(900), kind: "singleModuleAnalysis" })).toHaveLength(1);
+    expect(validatePresentationTextLength({ text: "x".repeat(900), kind: "singleModuleAnalysis" })).toHaveLength(0);
+    expect(validatePresentationTextLength({ text: "x".repeat(1_000), kind: "singleModuleAnalysis" })).toHaveLength(1);
     const pptx = createPresentation();
     expect(() => buildExecutiveSummarySlide(pptx, { ...executiveModel, cards: [...executiveModel.cards, executiveModel.cards[0]] })).toThrow(/at most four/);
     expect(() => buildDualModuleSlide(pptx, { ...dualModel, modules: [dualModel.modules[0], dualModel.modules[1]] })).not.toThrow();
     expect(() => buildCategoryOverviewSlide(pptx, { companyName: "A", categoryName: "C", slideNumber: 1, categoryOpportunity: { value: "$1", label: "Value" }, cards: [...executiveModel.cards, executiveModel.cards[0]] })).toThrow(/at most four/);
     const slide = pptx.addSlide();
     expect(() => addAssumptionGrid(slide, { x: 0, y: 0, w: 5, items: [{ label: "1", value: "1" }, { label: "2", value: "2" }, { label: "3", value: "3" }, { label: "4", value: "4" }, { label: "5", value: "5" }] })).toThrow(/at most four/);
+  });
+  it("uses clearer module narrative headings and supports configurable cover logos", () => {
+    const templates = readFileSync("lib/presentation/slides/templates.ts", "utf8");
+    expect(templates).toContain("How McLeod Helps");
+    expect(templates).toContain("Customer Impact");
+    expect(templates).not.toContain('heading: "Analysis"');
+    expect(templates).toContain("coverLogoPath");
+    expect(dualModel.modules[0].howMcLeodHelps).toContain("McLeod");
+    expect(dualModel.modules[0].customerImpact).toContain("$5,880");
   });
   it("keeps generated paths safe", () => {
     expect(sanitizePresentationFileSegment("West Side Transport")).toBe("west-side-transport");

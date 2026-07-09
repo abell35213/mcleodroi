@@ -17,7 +17,9 @@ export const presentationTheme = {
     metricFont: "Arial",
     minBodyFontSize: 14,
     minDisclaimerFontSize: 8,
+    slideTitleFontSize: 24,
+    coverTitleFontSize: 38,
   },
-  assets: { themeImagePath: null as string | null, logoPath: null as string | null },
+  assets: { themeImagePath: null as string | null, logoPath: null as string | null, coverLogoPath: null as string | null },
 } as const;
 export type PresentationTheme = typeof presentationTheme;
