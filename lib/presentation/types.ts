@@ -19,12 +19,12 @@ export type PresentationGenerationMetadata = { id: string; analysisId: string; t
 export type PresentationServiceResult<T> = { ok: true; value: T } | { ok: false; error: { code: string; message: string } };
 
 export type MetricModel = { value: string; period?: string; label: string; supportingText?: string };
-export type CoverSlideModel = { companyName: string; analysisDate?: string; preparedBy?: string; themeImagePath?: string | null; slideNumber?: number };
+export type CoverSlideModel = { companyName: string; analysisDate?: string; preparedBy?: string; themeImagePath?: string | null; coverLogoPath?: string | null; slideNumber?: number };
 export type ValueCardModel = { title: string; value: string; period?: string; label: string; supportingMetric?: string; valueType?: ValueType };
 export type ExecutiveSummarySlideModel = { companyName: string; annualOpportunity: MetricModel; monthlyOpportunity?: MetricModel; cards: ValueCardModel[]; slideNumber: number };
 export type AssumptionItemModel = { label: string; value: string };
-export type SingleModuleSlideModel = { companyName: string; categoryLabel: string; moduleTitle: string; analysisText: string; heroMetric: MetricModel & { variant?: "standard" | "annual" | "capital" }; assumptions: AssumptionItemModel[]; disclaimer?: string; informationalCapitalCallout?: string; slideNumber: number };
-export type DualModuleItemModel = { title: string; primaryMetric: string; period?: string; label: string; supportingMetric?: string; analysisText: string; disclaimerMarker?: string };
+export type SingleModuleSlideModel = { companyName: string; categoryLabel: string; moduleTitle: string; analysisText: string; valueNarrative?: string; effectiveCustomerAnalysis?: string; presentationCallout?: string; heroMetric: MetricModel & { variant?: "standard" | "annual" | "capital" }; assumptions: AssumptionItemModel[]; disclaimer?: string; informationalCapitalCallout?: string; slideNumber: number };
+export type DualModuleItemModel = { title: string; primaryMetric: string; period?: string; label: string; supportingMetric?: string; analysisText: string; howMcLeodHelps?: string; customerImpact?: string; disclaimerMarker?: string };
 export type DualModuleSlideModel = { companyName: string; categoryLabel: string; title: string; modules: [DualModuleItemModel, DualModuleItemModel]; slideNumber: number };
 export type CategoryOverviewSlideModel = { companyName: string; categoryName: string; categoryOpportunity: MetricModel; cards: ValueCardModel[]; slideNumber: number };
 export type OpportunitySummarySlideModel = { companyName: string; classifications: ValueCardModel[]; monthlyOpportunity?: MetricModel; annualOpportunity: MetricModel; informationalCapital?: MetricModel; disclaimer: string; slideNumber: number };
