@@ -8,7 +8,7 @@ const c = T.colors;
 
 export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   const s = pptx.addSlide();
-  const logoPath = m.coverLogoPath ?? T.assets.coverLogoPath;
+  const logoPath = m.coverLogoPath === undefined ? T.assets.coverLogoPath : m.coverLogoPath;
   s.background = { color: c.midnight };
   if (m.themeImagePath) s.addImage({ path: m.themeImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height, transparency: 25 });
   s.addShape("rect", { x: 0, y: 0, w: L.slide.width, h: L.slide.height, fill: { color: c.midnight, transparency: 12 }, line: { color: c.midnight } });
