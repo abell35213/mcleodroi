@@ -16,7 +16,8 @@ export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string;
   if (o.themeImagePath) slide.addImage({ path: o.themeImagePath, x: 0, y: 0, w: L.slide.width, h: L.header.imageStripHeight, transparency: 22 });
   addCategoryHeader(slide, { label: o.categoryLabel });
   slide.addText(o.title, { x: L.content.left, y: 0.7, w: 9.35, h: 0.34, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: c.white, margin: 0, fit: "shrink" });
-  if (o.logoPath) slide.addImage({ path: o.logoPath, x: 10.65, y: 0.58, w: 1.95, h: 0.34, sizing: { type: "contain", w: 1.95, h: 0.34 } });
+  const logoPath = o.logoPath === undefined ? T.assets.logoPath : o.logoPath;
+  if (logoPath) slide.addImage({ path: logoPath, x: 10.65, y: 0.58, w: 1.95, h: 0.34, sizing: { type: "contain", w: 1.95, h: 0.34 } });
   else slide.addText("McLeod Software", { x: 10.65, y: 0.66, w: 1.95, h: 0.22, align: "right", fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.white });
   if (o.companyName) slide.addText(o.companyName, { x: 8.3, y: 0.22, w: 4.3, h: 0.16, align: "right", fontSize: 7, color: c.white, transparency: 20 });
 }
