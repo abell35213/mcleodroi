@@ -31,7 +31,10 @@ enum NarrativeMode {
 }
 
 enum PresentationGenerationStatus {
-  SNAPSHOT_CREATED
+  PENDING
+  GENERATING
+  COMPLETE
+  FAILED
 }
 
 model Analysis {
@@ -87,7 +90,7 @@ model PresentationGeneration {
   templateVersion String
   snapshotJson    String
   filePath        String?
-  status          PresentationGenerationStatus @default(SNAPSHOT_CREATED)
+  status          PresentationGenerationStatus @default(PENDING)
   generatedAt     DateTime @default(now())
 
   @@index([analysisId, generatedAt])
