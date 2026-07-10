@@ -64,9 +64,31 @@ function categoryOverview(snapshot: PresentationSnapshot, c: PresentationSnapsho
   return { companyName: snapshot.analysis.companyName, categoryName: c.name, categoryOpportunity: { value: formatPresentationCurrency(total), label: "Annual Identified Opportunity" }, cards, slideNumber };
 }
 function executive(snapshot: PresentationSnapshot, slideNumber: number): ExecutiveSummarySlideModel {
-  const cards = valueTypeOrder.flatMap((vt) => { const b = snapshot.summary.valueTypeBreakdown.find((x) => x.valueType === vt); return b && b.annualEconomicOpportunity > 0 ? [{ title: valueTypeLabels[vt], value: formatPresentationCurrency(b.annualEconomicOpportunity), label: "Annual Identified Opportunity", valueType: vt }] : []; }).slice(0, 4);
-  if (cards.length < 4 && snapshot.summary.informationalCapitalValueTotal > 0) cards.push({ title: "Informational Capital Avoidance", value: formatPresentationCurrency(snapshot.summary.informationalCapitalValueTotal), label: "Shown Separately", valueType: "CAPITAL_AVOIDANCE" });
-  return { companyName: snapshot.analysis.companyName, slideNumber, annualOpportunity: { value: formatPresentationCurrency(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity), label: "Annual Identified Economic Opportunity" }, monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined, cards: cards.slice(0, 4) };
+  const modules = snapshot.categories.flatMap((category) => category.modules);
+  const moduleNames = modules.map((m) => m.moduleName);
+  const categoryNames = [...new Set(snapshot.categories.filter((category) => category.modules.length > 0).map((category) => category.name))];
+  const productName = snapshot.analysis.productContext === "POWERBROKER" ? "PowerBroker" : "LoadMaster";
+  const businessTypeLabel = snapshot.analysis.businessType === "BROKERAGE" ? "freight brokerage" : "truckload carrier";
+  const selectedList = moduleNames.slice(0, 5).join(", ");
+  return {
+    companyName: snapshot.analysis.companyName,
+    businessTypeLabel,
+    productName,
+    categoryNames,
+    moduleNames,
+    discussionSummary: `${snapshot.analysis.companyName} is a ${businessTypeLabel} organization evaluating opportunities to improve operational performance, recover capacity, and strengthen financial outcomes. During discovery, the analysis focused on ${selectedList}${moduleNames.length > 5 ? ", and related opportunities" : ""}.`,
+    alignmentSummary: `McLeod’s fully integrated ${productName} platform aligns with these areas by connecting operational workflows, financial processes, documents, reporting, and automation in one operating environment.`,
+    needThemes: categoryNames.slice(0, 3).map((name) => {
+      const categoryModules = snapshot.categories.find((category) => category.name === name)?.modules ?? [];
+      return {
+        heading: name,
+        bullets: categoryModules.slice(0, 2).map((m) => `${m.moduleName}: ${m.opportunityHeadline}`),
+      };
+    }),
+    slideNumber,
+    annualOpportunity: { value: formatPresentationCurrency(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity), label: "Annual Identified Economic Opportunity" },
+    monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined,
+  };
 }
 function opportunity(snapshot: PresentationSnapshot, slideNumber: number): OpportunitySummarySlideModel {
   const classifications = valueTypeOrder.flatMap((vt) => { const b = snapshot.summary.valueTypeBreakdown.find((x) => x.valueType === vt); return b && b.annualEconomicOpportunity > 0 ? [{ title: valueTypeLabels[vt].toUpperCase(), value: formatPresentationCurrency(b.annualEconomicOpportunity), label: "Annual Identified Opportunity", valueType: vt }] : []; });

@@ -7,6 +7,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { calculateAnalysis, saveAnalysisModuleInputs, saveCustomAnalysisNarrative, selectAnalysisModule } from "@/lib/analyses";
 import { NARRATIVE_REGISTRY_VERSION } from "@/lib/narratives/fingerprint";
 import { createPresentationSnapshot, parsePresentationSnapshot, PRESENTATION_TEMPLATE_VERSION } from "@/lib/presentation";
+import { generatePresentationPptx } from "@/lib/presentation/generation";
 
 let db: PrismaClient; let tempDir: string;
 beforeAll(() => { tempDir = mkdtempSync(join(tmpdir(), "mcleod-roi-p1-8-")); const dbUrl = `file:${join(tempDir, "test.db")}`; execFileSync("npx", ["--no-install", "prisma", "migrate", "deploy"], { env: { ...process.env, DATABASE_URL: dbUrl }, stdio: "pipe" }); db = new PrismaClient({ datasourceUrl: dbUrl }); });
@@ -37,6 +38,29 @@ describe("presentation snapshots", () => {
     const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
     expect(calculated.ok && snapshot.summary.totalIdentifiedAnnualEconomicOpportunity).toBeCloseTo(calculated.ok ? calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity : 0);
   });
+
+  it("generates an openable themed PPTX with a written executive summary", async () => {
+    const { analysis } = await createReadyAnalysis();
+    const snapshotResult = await createPresentationSnapshot({ analysisId: analysis.id, db, now: new Date("2026-07-08T12:00:00Z") });
+    expect(snapshotResult.ok).toBe(true); if (!snapshotResult.ok) return;
+    const generated = await generatePresentationPptx({ presentationGenerationId: snapshotResult.value.generation.id, db });
+    expect(generated.ok).toBe(true); if (!generated.ok) return;
+    expect(generated.value.slideCount).toBeGreaterThan(2);
+    const zipDir = mkdtempSync(join(tmpdir(), "mcleod-roi-pptx-"));
+    try {
+      execFileSync("unzip", ["-q", generated.value.filePath, "-d", zipDir]);
+      const xml = execFileSync("sh", ["-c", `cat ${join(zipDir, "ppt/slides")}/*.xml`]).toString();
+      expect(xml).toContain("Snapshot Customer");
+      expect(xml).toContain("Reduce Deadhead Miles");
+      expect(xml).toContain("Trailer Asset Utilization");
+      expect(xml).toContain("McLeod");
+      expect(xml).toContain("platform addresses your key areas of need");
+      expect(xml).toContain("Proprietary &amp; Confidential");
+    } finally {
+      rmSync(zipDir, { recursive: true, force: true });
+    }
+  });
+
   it("rejects incomplete analyses", async () => {
     const analysis = await db.analysis.create({ data: { companyName: "Incomplete", businessType: "TRUCKLOAD", preparedBy: "Tester", analysisDate: new Date("2026-07-08T00:00:00Z") } });
     await selectAnalysisModule({ analysisId: analysis.id, moduleKey: "REDUCE_DEADHEAD", db });

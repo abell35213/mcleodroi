@@ -10,25 +10,34 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   const s = pptx.addSlide();
   const logoPath = m.coverLogoPath === undefined ? T.assets.coverLogoPath : m.coverLogoPath;
   s.background = { color: c.midnight };
-  if (m.themeImagePath) s.addImage({ path: m.themeImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height, transparency: 25 });
-  s.addShape("rect", { x: 0, y: 0, w: L.slide.width, h: L.slide.height, fill: { color: c.midnight, transparency: 12 }, line: { color: c.midnight } });
-  if (logoPath) s.addImage({ path: logoPath, x: 0.82, y: 0.62, w: 1.95, h: 0.62, sizing: { type: "contain", w: 1.95, h: 0.62 } });
-  s.addText("BUSINESS IMPACT ANALYSIS", { x: 0.8, y: 2.18, w: 8.3, h: 0.58, fontSize: T.typography.coverTitleFontSize, bold: true, color: c.white, fit: "shrink" });
-  s.addShape("line", { x: 0.82, y: 2.95, w: 1.35, h: 0, line: { color: c.sunriseGold, width: 3 } });
-  s.addText(`Prepared for:\n${m.companyName}`, { x: 0.82, y: 3.28, w: 6.2, h: 0.82, fontSize: 19, color: c.white, breakLine: false, fit: "shrink" });
-  if (!logoPath) s.addText("McLeod Software", { x: 0.82, y: 6.55, w: 3, h: 0.25, fontSize: 12, bold: true, color: c.white });
-  if (m.analysisDate) s.addText(m.analysisDate, { x: 9.8, y: 6.55, w: 2.5, h: 0.2, align: "right", fontSize: 9, color: c.white });
+  if (m.themeImagePath) s.addImage({ path: m.themeImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height, transparency: 18 });
+  s.addShape("rect", { x: 0, y: 0, w: L.slide.width, h: L.slide.height, fill: { color: c.midnight, transparency: 15 }, line: { color: c.midnight } });
+  s.addShape("rect", { x: 0, y: 0, w: 4.25, h: L.slide.height, fill: { color: c.midnight, transparency: 5 }, line: { color: c.midnight } });
+  s.addShape("line", { x: 4.25, y: 0.55, w: 0, h: 5.95, line: { color: c.sunriseGold, width: 1.4 } });
+  if (logoPath) s.addImage({ path: logoPath, x: 0.72, y: 5.82, w: 2.25, h: 0.65, sizing: { type: "contain", w: 2.25, h: 0.65 } });
+  s.addText("Business Impact Analysis", { x: 0.72, y: 1.68, w: 3.3, h: 1.1, fontSize: T.typography.coverTitleFontSize, bold: true, color: c.white, fit: "shrink", breakLine: false });
+  s.addShape("line", { x: 0.72, y: 2.98, w: 1.35, h: 0, line: { color: c.sunriseGold, width: 3 } });
+  s.addText(`Prepared for\n${m.companyName}`, { x: 0.72, y: 3.28, w: 3.2, h: 0.72, fontSize: 16, color: c.white, breakLine: false, fit: "shrink" });
+  s.addText("©2026 McLeod Software® | Proprietary & Confidential", { x: 0.72, y: 6.95, w: 3.7, h: 0.16, fontSize: 7, color: c.white, transparency: 10, fit: "shrink" });
+  if (m.analysisDate) s.addText(m.analysisDate, { x: 9.65, y: 6.9, w: 2.6, h: 0.2, align: "right", fontSize: 9, color: c.white });
   return s;
 }
 
 export function buildExecutiveSummarySlide(pptx: pptxgen, m: ExecutiveSummarySlideModel) {
-  if (m.cards.length > 4) throw new Error("Executive summary supports at most four cards.");
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Executive Summary", title: "Identified Economic Opportunity", companyName: m.companyName });
-  addSummaryBand(s, { x: L.content.left, y: 1.5, w: 12, h: 1.08, metrics: [m.annualOpportunity, ...(m.monthlyOpportunity ? [m.monthlyOpportunity] : [])] });
-  const gap = 0.2;
-  const cw = (12 - gap * (Math.max(m.cards.length, 1) - 1)) / Math.max(m.cards.length, 1);
-  m.cards.forEach((card, i) => addValueCard(s, { ...card, x: L.content.left + i * (cw + gap), y: 3.12, w: cw, h: 1.65 }));
+  addBrandHeader(s, { categoryLabel: "Executive Summary", title: "Executive Summary", companyName: m.companyName, themeImagePath: T.assets.themeImagePath });
+  s.addText(m.discussionSummary, { x: L.content.left, y: 1.35, w: 11.1, h: 0.62, fontSize: 12.5, color: c.charcoal, fit: "shrink", breakLine: false });
+  s.addText("During our discussions…", { x: L.content.left, y: 2.18, w: 5.35, h: 0.24, fontSize: 12.5, bold: true, underline: { style: "sng" }, color: "000000" });
+  s.addText(`The selected business-impact opportunities centered on ${m.moduleNames.slice(0, 6).join(", ")}${m.moduleNames.length > 6 ? ", and related areas" : ""}. These opportunities are grouped across ${m.categoryNames.join(", ")} for ${m.companyName}.`, { x: L.content.left, y: 2.5, w: 5.35, h: 0.88, fontSize: 11.3, color: c.charcoal, fit: "shrink" });
+  s.addText("McLeod’s platform addresses your key areas of need by…", { x: 6.85, y: 2.18, w: 5.25, h: 0.38, fontSize: 12.5, bold: true, underline: { style: "sng" }, color: "000000", fit: "shrink" });
+  s.addText(m.alignmentSummary, { x: 6.85, y: 2.62, w: 5.25, h: 0.76, fontSize: 11.3, color: c.charcoal, fit: "shrink" });
+  const themeY = 3.72;
+  m.needThemes.slice(0, 3).forEach((theme, i) => {
+    const y = themeY + i * 0.72;
+    s.addText(theme.heading, { x: L.content.left, y, w: 3.45, h: 0.18, fontSize: 10.3, bold: true, underline: { style: "sng" }, color: "000000", fit: "shrink" });
+    s.addText(theme.bullets.join("\n"), { x: 3.75, y: y - 0.02, w: 8.35, h: 0.46, fontSize: 8.8, color: c.charcoal, bullet: { type: "bullet" }, fit: "shrink" });
+  });
+  addSummaryBand(s, { x: L.content.left, y: 6.05, w: 11.55, h: 0.7, metrics: [m.annualOpportunity, ...(m.monthlyOpportunity ? [m.monthlyOpportunity] : [])] });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
   return s;
 }
