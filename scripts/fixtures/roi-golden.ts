@@ -6,6 +6,9 @@ import type { RoiScenarioInputs } from "@/lib/calculations";
  * These fixtures are the golden source for both the `roi:golden` inspection
  * script and the ROI unit tests. Expected values are computed by hand so the
  * tests fail if the deterministic engine ever drifts.
+ *
+ * ROI figures are decimal ratios, not percentage points: `3` means 300% and
+ * `-1.1` means -110%.
  */
 export type RoiGoldenScenario = {
   readonly name: string;

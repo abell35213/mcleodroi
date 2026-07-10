@@ -187,6 +187,7 @@ Methodology rules:
 - `paybackMonths` is simple (undiscounted) payback and is `null` when the net monthly value is not positive, i.e. the investment never recoups.
 - `firstYearRoiPct = (netAnnualValue - investment) / investment`.
 - `horizonRoiPct = (netAnnualValue * horizonYears - investment) / investment`.
+- ROI figures are decimal ratios, not percentage points: `3` means 300%.
 - `npv` discounts each horizon year's net annual value: `-investment + Σ netAnnualValue / (1 + discountRatePct)^year`.
 - Results preserve internal precision and are not display-rounded.
 

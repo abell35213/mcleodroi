@@ -42,9 +42,9 @@ export type RoiMetrics = {
    * is not positive, i.e. the investment never recoups.
    */
   readonly paybackMonths: number | null;
-  /** First-year ROI: `(netAnnualValue - investment) / investment`. */
+  /** First-year ROI as a decimal ratio (e.g. `3` means 300%): `(netAnnualValue - investment) / investment`. */
   readonly firstYearRoiPct: number;
-  /** Horizon ROI: `(netAnnualValue * horizonYears - investment) / investment`. */
+  /** Horizon ROI as a decimal ratio (e.g. `11` means 1100%): `(netAnnualValue * horizonYears - investment) / investment`. */
   readonly horizonRoiPct: number;
   /** Net present value of the horizon cash flows, discounted annually. */
   readonly npv: number;
