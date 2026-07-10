@@ -168,3 +168,26 @@ Presentation Readiness summarizes calculation completion, narrative review statu
 P1-8 adds immutable presentation snapshots and the reusable PowerPoint design system. A presentation snapshot is created only from a review-ready analysis, stores both the presentation template version and narrative registry version, and remains historical state even if the analysis later changes. Slide components consume typed view models rather than Prisma records or live calculations; full automatic deck composition is deferred to P1-9.
 
 See `docs/presentation-architecture.md` for snapshot persistence, 16:9 theme/layout constants, reusable PptxGenJS components, slide template primitives, generated-file path strategy, and the development-only golden fixture (`npm run presentation:golden`).
+
+## ROI, payback, and NPV engine
+
+`lib/calculations/roi.ts` adds a deterministic, purely additive ROI engine that turns an identified annual economic opportunity into investment-relative credibility metrics. It is independent of the existing module calculators and leaves all existing behavior unchanged when it is not called.
+
+`calculateRoi(...)` returns a `CalculationOutcome<RoiMetrics>` using the same validation-issue pattern as the module calculators. Inputs:
+
+- `annualValue` — gross identified annual economic opportunity (benefit).
+- `investment` — one-time upfront investment; must be greater than zero.
+- `annualRecurringCost` — optional ongoing yearly cost; defaults to `0`.
+- `horizonYears` — optional whole-year horizon; defaults to `3`.
+- `discountRatePct` — optional annual discount rate as a decimal (pass 10% as `0.1`); defaults to `0`.
+
+Methodology rules:
+
+- `netAnnualValue = annualValue - annualRecurringCost`.
+- `paybackMonths` is simple (undiscounted) payback and is `null` when the net monthly value is not positive, i.e. the investment never recoups.
+- `firstYearRoiPct = (netAnnualValue - investment) / investment`.
+- `horizonRoiPct = (netAnnualValue * horizonYears - investment) / investment`.
+- `npv` discounts each horizon year's net annual value: `-investment + Σ netAnnualValue / (1 + discountRatePct)^year`.
+- Results preserve internal precision and are not display-rounded.
+
+The engine is covered by hand-verified golden scenarios in `scripts/fixtures/roi-golden.ts`, asserted in `tests/unit/roi.test.ts` and printable for inspection with `npm run roi:golden`.
