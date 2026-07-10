@@ -169,6 +169,40 @@ opt-in: an input with no benchmark renders exactly as before.
   a real input, is an ordered range within the input's declared bounds, and
   carries a non-empty citation.
 
+## Overlap notices (warn-only)
+
+When two or more selected modules belong to the same overlap group
+(`lib/modules/overlap-groups.ts`), the analysis surfaces an **overlap notice** in
+the Review "Assumption Overlap Review" panel. Notices are **warn-only by
+default**: they prompt the seller to reconcile shared assumptions (for example,
+labor hours counted by more than one module), but the engine **never
+automatically discounts** double-counted value. This preserves the existing,
+transparent calculation behavior — every displayed figure is the sum of the
+per-module outputs the seller entered.
+
+- **Types:** `REVIEW` notices are styled as warnings and call for reconciliation;
+  `INFORMATION` notices explain that modules measure genuinely different value.
+- **Methodology decision:** switching to automatic discounting of overlapping
+  value would be a deliberate change to the calculation contract and is
+  intentionally out of scope here. It would require new golden fixtures.
+
+## Charts on Review
+
+The Review page renders three static, dependency-free (inline SVG) charts built
+purely from the already-calculated analysis, so visuals always agree with the
+headline figures and no calculation is re-run:
+
+- **Value waterfall** — each contributing module stacked to the annual
+  identified opportunity, in the seller's display order.
+- **Value-type / category breakdowns** — 100%-stacked shares of the opportunity.
+- **Cumulative benefit & payback** — the ROI cumulative net cash-flow curve with
+  a payback marker (omitted until a seller enters an investment).
+
+Data builders live in `lib/analyses/charts.ts` (unit-tested in
+`tests/unit/review-charts.test.ts`) and the accessible SVG components in
+`components/review/charts/`. Each chart exposes an `aria-label`, `<title>`/
+`<desc>`, and a visually hidden data table for assistive technology.
+
 ## Changing a formula
 
 1. Update the calculation module in `lib/calculations/modules/`.

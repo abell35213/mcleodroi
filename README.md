@@ -209,3 +209,12 @@ Module inputs can carry an optional, sourced **benchmark** — an industry-typic
 - **Review:** an "Assumptions & Sources" table lists each benchmarked assumption's entered value against its typical range, with a sources legend (`components/review/assumptions-appendix.tsx`).
 - **Presentation:** an assumptions-appendix slide is appended to the deck when any selected module has benchmark data (`buildAssumptionsAppendixSlide`); it is omitted otherwise.
 - The shared builder `lib/analyses/assumptions.ts` feeds both the Review table and the deck slide. Covered by `tests/unit/benchmarks.test.ts` and `tests/unit/assumptions-appendix.test.ts`.
+
+## Review value-story visualizations
+
+The Review page renders the value story visually so it is instantly consumable on screen. All charts are **static, server-rendered inline SVG** — no external chart library, no client JavaScript, and no network calls — and are built purely from the already-calculated analysis, so they always agree with the headline figures and never re-run the calculation engine.
+
+- **Charts:** a value **waterfall** (each module stacked to the total in display order), **value-type** and **category** 100%-stacked breakdowns, and a multi-year **cumulative benefit & payback** line (from the ROI curve; omitted until an investment is entered).
+- **Data builders:** `lib/analyses/charts.ts` (pure, unit-tested in `tests/unit/review-charts.test.ts`). Accessible SVG components live in `components/review/charts/`, each exposing an `aria-label`, `<title>`/`<desc>`, and a visually hidden data table for assistive technology (`tests/unit/review-visualizations.test.tsx`).
+- **Overlap clarity:** the Review "Assumption Overlap Review" panel (`components/review/overlap-notices.tsx`) surfaces overlapping modules explicitly. Overlaps are **warn-only** — values are never automatically discounted — preserving the existing calculation behavior. See `docs/methodology/README.md` for the methodology decision.
+
