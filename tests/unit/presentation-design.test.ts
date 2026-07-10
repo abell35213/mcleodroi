@@ -30,15 +30,37 @@ const testDualModel = {
   ],
 };
 
+let approvedThemeImageBackup: Buffer | null = null;
+let approvedCoverLogoBackup: Buffer | null = null;
+
 function writeTemporaryGoldenAssets() {
   mkdirSync(PRESENTATION_ASSET_DIR, { recursive: true });
-  writeFileSync(APPROVED_THEME_IMAGE_PATH, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64"));
-  writeFileSync(APPROVED_COVER_LOGO_PATH, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64"));
+  try {
+    approvedThemeImageBackup = readFileSync(APPROVED_THEME_IMAGE_PATH);
+  } catch {
+    approvedThemeImageBackup = null;
+  }
+  try {
+    approvedCoverLogoBackup = readFileSync(APPROVED_COVER_LOGO_PATH);
+  } catch {
+    approvedCoverLogoBackup = null;
+  }
+
+  const onePixelWebpBase64 = "UklGRhoAAABXRUJQVlA4ICgAAAAwAQCdASoBAAEALwA=";
+  const onePixelPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+  writeFileSync(APPROVED_THEME_IMAGE_PATH, Buffer.from(onePixelWebpBase64, "base64"));
+  writeFileSync(APPROVED_COVER_LOGO_PATH, Buffer.from(onePixelPngBase64, "base64"));
 }
 
 function removeTemporaryGoldenAssets() {
-  rmSync(APPROVED_THEME_IMAGE_PATH, { force: true });
-  rmSync(APPROVED_COVER_LOGO_PATH, { force: true });
+  if (approvedThemeImageBackup) writeFileSync(APPROVED_THEME_IMAGE_PATH, approvedThemeImageBackup);
+  else rmSync(APPROVED_THEME_IMAGE_PATH, { force: true });
+
+  if (approvedCoverLogoBackup) writeFileSync(APPROVED_COVER_LOGO_PATH, approvedCoverLogoBackup);
+  else rmSync(APPROVED_COVER_LOGO_PATH, { force: true });
+
+  approvedThemeImageBackup = null;
+  approvedCoverLogoBackup = null;
 }
 
 describe("presentation design system", () => {
