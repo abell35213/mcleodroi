@@ -60,8 +60,9 @@ export async function generatePresentationPptx(args: { presentationGenerationId:
           buildOpportunitySummarySlide(pptx, plan.model);
           break;
         default: {
+          const unexpectedKind = (plan as { kind?: unknown }).kind;
           plan satisfies never;
-          throw new Error("Unhandled slide plan kind.");
+          throw new Error(`Unhandled slide plan kind: ${String(unexpectedKind)}.`);
         }
       }
     }
