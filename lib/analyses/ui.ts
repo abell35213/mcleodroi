@@ -1,5 +1,5 @@
 import type { CalculatedAnalysis, CalculatedAnalysisModule } from "@/lib/analyses/types";
-import type { ValueModuleDefinition, ValueModuleInputDefinition, ValueModuleKey } from "@/lib/modules";
+import type { InputBenchmark, ValueModuleDefinition, ValueModuleInputDefinition, ValueModuleKey } from "@/lib/modules";
 import { getAllValueModules } from "@/lib/modules";
 
 export function toEngineInputValue(input: ValueModuleInputDefinition, value: number): number {
@@ -8,6 +8,25 @@ export function toEngineInputValue(input: ValueModuleInputDefinition, value: num
 
 export function toDisplayInputValue(input: ValueModuleInputDefinition, value: number): number {
   return input.type === "PERCENTAGE" ? value * 100 : value;
+}
+
+function formatBenchmarkNumber(input: ValueModuleInputDefinition, value: number): string {
+  const display = toDisplayInputValue(input, value);
+  const maximumFractionDigits = input.type === "INTEGER" ? 0 : Number.isInteger(display) ? 0 : 2;
+  const formatted = new Intl.NumberFormat("en-US", { maximumFractionDigits }).format(display);
+  if (input.type === "CURRENCY") return `$${formatted}`;
+  if (input.type === "PERCENTAGE") return `${formatted}%`;
+  return formatted;
+}
+
+/** Formats a single entered/input value for display, honoring the input's unit convention. */
+export function formatInputDisplayValue(input: ValueModuleInputDefinition, value: number): string {
+  return formatBenchmarkNumber(input, value);
+}
+
+/** Formats a benchmark's typical range for display, honoring the input's unit convention. */
+export function formatBenchmarkRange(input: ValueModuleInputDefinition, benchmark: InputBenchmark): string {
+  return `${formatBenchmarkNumber(input, benchmark.typicalMin)}–${formatBenchmarkNumber(input, benchmark.typicalMax)}`;
 }
 
 export function resolveDisplayValue(input: ValueModuleInputDefinition, persistedValue: number | undefined): { value: number | undefined; isDefault: boolean } {

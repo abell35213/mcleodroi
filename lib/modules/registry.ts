@@ -1,4 +1,10 @@
 import type { BusinessType, ProductContext, ValueModuleDefinition, ValueModuleInputDefinition, ValueModuleKey } from "./types";
+import { getInputBenchmark } from "./benchmarks";
+
+function withBenchmark(moduleKey: ValueModuleKey, inputDefinition: ValueModuleInputDefinition): ValueModuleInputDefinition {
+  const benchmark = getInputBenchmark(moduleKey, inputDefinition.key);
+  return benchmark ? { ...inputDefinition, benchmark } : { ...inputDefinition };
+}
 
 function productContextsFor(businessTypes: readonly BusinessType[]): ProductContext[] {
   return businessTypes.map((businessType) => businessType === "TRUCKLOAD" ? "LOADMASTER" : "POWERBROKER");
@@ -372,7 +378,7 @@ const valueModules = [
 ] as const satisfies readonly ValueModuleDefinition[];
 
 export function getAllValueModules(): ValueModuleDefinition[] {
-  return valueModules.map((module) => ({ ...module, businessTypes: [...module.businessTypes], productContexts: [...module.productContexts], inputDefinitions: module.inputDefinitions.map((inputDefinition) => ({ ...inputDefinition })), overlapGroups: [...module.overlapGroups] }));
+  return valueModules.map((module) => ({ ...module, businessTypes: [...module.businessTypes], productContexts: [...module.productContexts], inputDefinitions: module.inputDefinitions.map((inputDefinition) => withBenchmark(module.key, inputDefinition)), overlapGroups: [...module.overlapGroups] }));
 }
 
 export function getValueModule(moduleKey: ValueModuleKey): ValueModuleDefinition {
@@ -380,7 +386,7 @@ export function getValueModule(moduleKey: ValueModuleKey): ValueModuleDefinition
   if (!valueModule) {
     throw new Error(`Unknown value module: ${moduleKey}`);
   }
-  return { ...valueModule, businessTypes: [...valueModule.businessTypes], productContexts: [...valueModule.productContexts], inputDefinitions: valueModule.inputDefinitions.map((inputDefinition) => ({ ...inputDefinition })), overlapGroups: [...valueModule.overlapGroups] };
+  return { ...valueModule, businessTypes: [...valueModule.businessTypes], productContexts: [...valueModule.productContexts], inputDefinitions: valueModule.inputDefinitions.map((inputDefinition) => withBenchmark(valueModule.key, inputDefinition)), overlapGroups: [...valueModule.overlapGroups] };
 }
 
 export function getModulesForBusinessType(businessType: BusinessType): ValueModuleDefinition[] {

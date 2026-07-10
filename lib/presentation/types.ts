@@ -28,3 +28,7 @@ export type DualModuleItemModel = { title: string; primaryMetric: string; period
 export type DualModuleSlideModel = { companyName: string; categoryLabel: string; title: string; modules: [DualModuleItemModel, DualModuleItemModel]; slideNumber: number };
 export type CategoryOverviewSlideModel = { companyName: string; categoryName: string; categoryOpportunity: MetricModel; cards: ValueCardModel[]; slideNumber: number };
 export type OpportunitySummarySlideModel = { companyName: string; classifications: ValueCardModel[]; monthlyOpportunity?: MetricModel; annualOpportunity: MetricModel; informationalCapital?: MetricModel; disclaimer: string; slideNumber: number };
+export type AssumptionsAppendixRowModel = { label: string; enteredValue: string; typicalRange: string; sourceLabel: string };
+export type AssumptionsAppendixModuleModel = { moduleName: string; categoryName: string; rows: readonly AssumptionsAppendixRowModel[] };
+export type AssumptionsAppendixSourceModel = { label: string; citation: string };
+export type AssumptionsAppendixSlideModel = { companyName: string; modules: readonly AssumptionsAppendixModuleModel[]; sources: readonly AssumptionsAppendixSourceModel[]; slideNumber: number };

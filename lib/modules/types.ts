@@ -96,6 +96,27 @@ export type OverlapGroupKey = (typeof overlapGroupKeys)[number];
 export const overlapNoticeTypes = ["INFORMATION", "REVIEW"] as const;
 export type OverlapNoticeType = (typeof overlapNoticeTypes)[number];
 
+/** A sourced benchmark reference for building buyer trust in an assumption. */
+export interface BenchmarkSource {
+  /** Short label surfaced next to the input (e.g. "ATRI"). */
+  readonly label: string;
+  /** Full citation surfaced in tooltips and the assumptions/sources appendix. */
+  readonly citation: string;
+}
+
+/**
+ * Optional industry-typical range and citation for an input. Values use the same
+ * convention as the input itself (percentages as decimals, currency in dollars),
+ * so they can be formatted with the same display helpers as entered values.
+ */
+export interface InputBenchmark {
+  /** Inclusive lower end of the industry-typical range. */
+  readonly typicalMin: number;
+  /** Inclusive upper end of the industry-typical range. */
+  readonly typicalMax: number;
+  readonly source: BenchmarkSource;
+}
+
 export interface ValueModuleInputDefinition {
   readonly key: string;
   readonly label: string;
@@ -109,6 +130,8 @@ export interface ValueModuleInputDefinition {
   readonly min?: number;
   /** Optional inclusive upper bound enforced by the calculation validation layer. */
   readonly max?: number;
+  /** Optional sourced industry-typical range surfaced as credibility metadata. */
+  readonly benchmark?: InputBenchmark;
 }
 
 export interface ValueModuleDefinition {

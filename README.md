@@ -199,3 +199,13 @@ Methodology rules:
 The analysis layer (`lib/analyses/service.ts`) persists seller-entered investment inputs on the `Analysis` record (`investmentOneTimeCost`, `investmentAnnualRecurringCost`, `investmentChangeManagementCost`, `roiHorizonYears`, `roiDiscountRatePct`, `adoptionSchedulePctJson` — all nullable) via `saveAnalysisInvestment(...)`. `calculateAnalysis(...)` then derives `roi` from `totalIdentifiedAnnualEconomicOpportunity` and the total investment (one-time + change-management). ROI stays `null` — and identified-opportunity analyses are unaffected — until a positive one-time investment is entered.
 
 The engine is covered by hand-verified golden scenarios in `scripts/fixtures/roi-golden.ts`, asserted in `tests/unit/roi.test.ts` and printable for inspection with `npm run roi:golden`. Persistence and wiring are covered by `tests/integration/analysis-investment.test.ts`.
+
+## Benchmark defaults and credibility
+
+Module inputs can carry an optional, sourced **benchmark** — an industry-typical range plus a citation — surfaced to build buyer trust without changing any math. Benchmarks are additive metadata: an input with no benchmark is unaffected.
+
+- **Registry:** `ValueModuleInputDefinition.benchmark?` (`{ typicalMin, typicalMax, source }`) uses the input's own convention (percentages as decimals, currency in dollars). Data and the named `benchmarkSources` (ATRI, ATA, EIA, BLS, McLeod) live in `lib/modules/benchmarks.ts` and are merged onto definitions by `getValueModule`/`getAllValueModules`.
+- **Assessment:** each field shows `Industry typical: X–Y · Source: <label>`, with the full citation as a tooltip.
+- **Review:** an "Assumptions & Sources" table lists each benchmarked assumption's entered value against its typical range, with a sources legend (`components/review/assumptions-appendix.tsx`).
+- **Presentation:** an assumptions-appendix slide is appended to the deck when any selected module has benchmark data (`buildAssumptionsAppendixSlide`); it is omitted otherwise.
+- The shared builder `lib/analyses/assumptions.ts` feeds both the Review table and the deck slide. Covered by `tests/unit/benchmarks.test.ts` and `tests/unit/assumptions-appendix.test.ts`.

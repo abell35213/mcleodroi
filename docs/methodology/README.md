@@ -150,6 +150,25 @@ investment inputs are persisted on the `Analysis` record and wired into
 `calculateAnalysis`, covered by `tests/integration/analysis-investment.test.ts`.
 It is additive: analyses without seller-entered investment are unaffected.
 
+## Benchmark defaults & sources
+
+Module inputs can carry an optional **benchmark**: a sourced industry-typical
+range surfaced next to the field in Assessment, in the Review "Assumptions &
+Sources" table, and in the presentation's assumptions appendix slide. Benchmarks
+are metadata only — they never change any calculation — and are entirely
+opt-in: an input with no benchmark renders exactly as before.
+
+- **Definition:** `benchmark?: { typicalMin; typicalMax; source }` on
+  `ValueModuleInputDefinition`. Range values use the same convention as the
+  input itself (percentages as decimals, currency in dollars).
+- **Data:** `lib/modules/benchmarks.ts` holds the per-input ranges and the named
+  `benchmarkSources`. Ranges attributed to a public source (ATRI, ATA, EIA, BLS)
+  are directional planning figures aligned with that source; ranges labelled
+  `McLeod` are internal planning defaults from this workbook.
+- **Integrity:** `tests/unit/benchmarks.test.ts` asserts every benchmark targets
+  a real input, is an ordered range within the input's declared bounds, and
+  carries a non-empty citation.
+
 ## Changing a formula
 
 1. Update the calculation module in `lib/calculations/modules/`.
