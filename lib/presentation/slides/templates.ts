@@ -13,6 +13,7 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   if (m.themeImagePath) s.addImage({ path: m.themeImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height, transparency: 25 });
   s.addShape("rect", { x: 0, y: 0, w: L.slide.width, h: L.slide.height, fill: { color: c.midnight, transparency: 12 }, line: { color: c.midnight } });
   if (logoPath) s.addImage({ path: logoPath, x: 0.82, y: 0.62, w: 1.95, h: 0.62, sizing: { type: "contain", w: 1.95, h: 0.62 } });
+  if (m.customerLogoDataUri) s.addImage({ data: m.customerLogoDataUri, x: 9.9, y: 0.6, w: 2.4, h: 0.72, sizing: { type: "contain", w: 2.4, h: 0.72 } });
   s.addText("BUSINESS IMPACT ANALYSIS", { x: 0.8, y: 2.18, w: 8.3, h: 0.58, fontSize: T.typography.coverTitleFontSize, bold: true, color: c.white, fit: "shrink" });
   s.addShape("line", { x: 0.82, y: 2.95, w: 1.35, h: 0, line: { color: c.sunriseGold, width: 3 } });
   s.addText(`Prepared for:\n${m.companyName}`, { x: 0.82, y: 3.28, w: 6.2, h: 0.82, fontSize: 19, color: c.white, breakLine: false, fit: "shrink" });

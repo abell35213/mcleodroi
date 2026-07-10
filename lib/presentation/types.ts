@@ -35,7 +35,7 @@ export type PresentationGenerationMetadata = { id: string; analysisId: string; t
 export type PresentationServiceResult<T> = { ok: true; value: T } | { ok: false; error: { code: string; message: string } };
 
 export type MetricModel = { value: string; period?: string; label: string; supportingText?: string };
-export type CoverSlideModel = { companyName: string; analysisDate?: string; preparedBy?: string; themeImagePath?: string | null; coverLogoPath?: string | null; slideNumber?: number };
+export type CoverSlideModel = { companyName: string; analysisDate?: string; preparedBy?: string; themeImagePath?: string | null; coverLogoPath?: string | null; customerLogoDataUri?: string | null; slideNumber?: number };
 export type ValueCardModel = { title: string; value: string; period?: string; label: string; supportingMetric?: string; valueType?: ValueType };
 export type ExecutiveSummarySlideModel = { companyName: string; annualOpportunity: MetricModel; monthlyOpportunity?: MetricModel; cards: ValueCardModel[]; slideNumber: number };
 export type AssumptionItemModel = { label: string; value: string };

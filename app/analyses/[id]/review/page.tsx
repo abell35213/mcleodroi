@@ -6,27 +6,33 @@ import { InvestmentPanel } from "@/components/review/investment-panel";
 import { AssumptionsAppendix } from "@/components/review/assumptions-appendix";
 import { ReviewCharts } from "@/components/review/review-charts";
 import { ScenarioComparison } from "@/components/review/scenario-comparison";
+import { BrandingPanel } from "@/components/review/branding-panel";
 import { OverlapNotices } from "@/components/review/overlap-notices";
 import { calculateAnalysis } from "@/lib/analyses/service";
 import { buildScenarioComparison } from "@/lib/analyses/scenarios";
 import { buildAssumptionsAppendix } from "@/lib/analyses/assumptions";
 import { assessmentDisplayConfig, primaryFinancialLabels } from "@/lib/analyses/ui";
+import { prisma } from "@/lib/db";
+import { readCustomerLogoDataUri } from "@/lib/presentation/logo";
 import { createNarrativeSourceFingerprint } from "@/lib/narratives/fingerprint";
 import { renderAnalysisNarratives, resolveEffectiveNarrative, productContextForBusinessType } from "@/lib/narratives";
 import { getCategoryByKey, getValueModule, valueTypes, type ValueType } from "@/lib/modules";
-import { moveModuleAction, resetNarrativeAction, saveNarrativeAction, saveInvestmentAction } from "./actions";
+import { moveModuleAction, resetNarrativeAction, saveNarrativeAction, saveInvestmentAction, saveLogoAction, removeLogoAction } from "./actions";
 
-type PageProps = { params: Promise<{ id: string }> };
+type PageProps = { params: Promise<{ id: string }>; searchParams: Promise<{ logoError?: string }> };
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 const valueTypeLabels: Record<ValueType, string> = { REVENUE_MARGIN_OPPORTUNITY: "Revenue & Margin Opportunity", COST_REDUCTION: "Operating Cost Reduction", CAPACITY_VALUE: "Labor Capacity Value", NET_CAPACITY_VALUE: "Net Capacity Value", COST_AVOIDANCE: "Cost Avoidance", CAPITAL_AVOIDANCE: "Capital Avoidance / Economic Equivalent" };
 function fmt(raw: number, metric: { currency?: boolean; percent?: boolean; suffix?: string }) { if (metric.currency) return `${money.format(raw)}${metric.suffix ?? ""}`; if (metric.percent) return `${(raw * 100).toLocaleString()}%`; return `${raw.toLocaleString()}${metric.suffix ?? ""}`; }
 function firstIncomplete(id: string, modules: readonly { moduleKey: string; status: string }[]) { const incomplete = modules.find(m => m.status !== "COMPLETE"); return `/analyses/${id}/assessment${incomplete ? `?module=${incomplete.moduleKey}` : ""}`; }
 
-export default async function ReviewPage({ params }: PageProps) {
+export default async function ReviewPage({ params, searchParams }: PageProps) {
   const { id } = await params;
+  const { logoError } = await searchParams;
   const calculated = await calculateAnalysis({ analysisId: id });
   if (!calculated.ok) notFound();
   if (!calculated.value.workflowReadiness.canReview) redirect(firstIncomplete(id, calculated.value.calculatedModules));
+  const analysisRecord = await prisma.analysis.findUnique({ where: { id }, select: { customerLogoPath: true } });
+  const logoDataUri = readCustomerLogoDataUri(analysisRecord?.customerLogoPath);
   const narratives = renderAnalysisNarratives(calculated.value);
   if (!narratives.ok) notFound();
   const renderedById = new Map(calculated.value.calculatedModules.map((m, i) => [m.analysisModuleId, narratives.value[i]]));
@@ -46,6 +52,7 @@ export default async function ReviewPage({ params }: PageProps) {
     <ReviewCharts calculated={calculated.value} />
     <InvestmentPanel investment={calculated.value.investment} roi={calculated.value.roi} identifiedAnnualOpportunity={calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity} saveAction={saveInvestmentAction.bind(null, id)} />
     <ScenarioComparison comparison={buildScenarioComparison(calculated.value)} />
+    <BrandingPanel logoDataUri={logoDataUri} logoError={logoError} saveAction={saveLogoAction.bind(null, id)} removeAction={removeLogoAction.bind(null, id)} />
     {calculated.value.summary.informationalCapitalValueTotal > 0 && <section className="rounded-3xl border border-[#d89b2b] bg-[#fff6df] p-8"><h2 className="text-2xl font-bold text-[#0b1d33]">Potential Avoided Capital Investment</h2><p className="mt-2 text-4xl font-bold text-[#0b1d33]">{money.format(calculated.value.summary.informationalCapitalValueTotal)}</p><p className="mt-3 text-[#35465c]">Informational capital values are shown separately from the annual economic opportunity because the recurring equivalent value is already represented in the analysis total.</p><ul className="mt-4 list-disc pl-5">{calculated.value.summary.informationalCapitalValues.map(i => <li key={i.analysisModuleId}>{getValueModule(i.moduleKey).name}: {money.format(i.value)}</li>)}</ul></section>}
     <OverlapNotices notices={calculated.value.overlapNotices} />
     {[...byCategory.entries()].map(([category, modules]) => <section key={category} className="space-y-5"><h2 className="text-2xl font-black uppercase tracking-[0.12em] text-[#0b1d33]">{getCategoryByKey(category as never)?.name}</h2>{modules.map((m, idx) => { const rendered = renderedById.get(m.analysisModuleId)!; const effective = resolveEffectiveNarrative({ renderedDefaultNarrative: rendered, narrativeMode: m.narrativeMode, customNarrative: m.customNarrative }); const currentFp = createNarrativeSourceFingerprint({ module: m, businessType: calculated.value.analysis.businessType }); const stale = m.narrativeMode === "CUSTOM" && m.customNarrativeSourceFingerprint !== currentFp; const outputs = m.calculationOutcome?.success ? m.calculationOutcome.result.financialOutputs : {}; const metric = outputs.monthlyRecurringValue ?? outputs.annualOnlyValue ?? 0; const cadence = outputs.monthlyRecurringValue !== undefined ? "/ MONTH" : "/ YEAR"; const cfg = assessmentDisplayConfig[m.moduleKey]; const derived = m.calculationOutcome?.success ? m.calculationOutcome.result.derivedMetrics : {}; return <ReviewModuleCard key={m.analysisModuleId} analysisModuleId={m.analysisModuleId} moduleName={getValueModule(m.moduleKey).name} valueTypeLabel={valueTypeLabels[m.valueType]} financialLabel={primaryFinancialLabels[m.moduleKey]} financialValue={money.format(metric)} financialCadence={cadence} assumptionItems={cfg.metrics.map(mm => { const raw = mm.source === "derived" ? derived[mm.key] : mm.source === "financial" ? outputs[mm.key as keyof typeof outputs] : m.reconstructedInputs[mm.key]; return { label: mm.label, value: raw === undefined ? "—" : fmt(Number(raw), mm) }; })} narrative={effective.ok ? effective.value : rendered.customerAnalysis} narrativeMode={m.narrativeMode} stale={stale} needsProductReview={getValueModule(m.moduleKey).narrativeStatus === "NEEDS_PRODUCT_REVIEW"} canMoveUp={idx > 0} canMoveDown={idx < modules.length - 1} saveAction={saveNarrativeAction.bind(null, id, m.analysisModuleId)} resetAction={resetNarrativeAction.bind(null, id, m.analysisModuleId)} moveUpAction={moveModuleAction.bind(null, id, m.analysisModuleId, "UP")} moveDownAction={moveModuleAction.bind(null, id, m.analysisModuleId, "DOWN")} />; })}</section>)}
