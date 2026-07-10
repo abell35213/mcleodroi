@@ -5,6 +5,7 @@ import { workflowStages, type WorkflowStage } from "./workflow-stages";
 type WorkflowProgressProps = {
   activeStage: WorkflowStage;
   analysisId?: string;
+  hasSelectedModules?: boolean;
   canReview?: boolean;
   canGeneratePresentation?: boolean;
 };
@@ -23,7 +24,7 @@ function isStageClickable(stage: WorkflowStage, props: WorkflowProgressProps): b
   if (stage === "company") return true;
   if (!props.analysisId) return false;
   if (stage === "opportunities") return true;
-  if (stage === "assessment") return props.activeStage !== "company";
+  if (stage === "assessment") return props.hasSelectedModules === true || props.activeStage === "review" || props.activeStage === "presentation";
   if (stage === "review") return props.canReview === true;
   if (stage === "presentation") return props.canGeneratePresentation === true;
   return false;
