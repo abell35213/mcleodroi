@@ -36,8 +36,7 @@ function optionalPercentAsDecimal(value: FormDataEntryValue | null): number | un
 
 function optionalAdoptionSchedule(value: FormDataEntryValue | null): number[] | undefined {
   if (typeof value !== "string" || value.trim() === "") return undefined;
-  const entries = value.split(",").map((part) => Number(part.trim()) / 100);
-  return entries.every((entry) => Number.isFinite(entry)) ? entries : undefined;
+  return value.split(",").map((part) => Number(part.trim()) / 100);
 }
 
 export async function saveInvestmentAction(analysisId: string, formData: FormData) {
