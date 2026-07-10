@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { statSync } from "node:fs";
 import path from "node:path";
 
 export const PRESENTATION_ASSET_DIR = "public/presentation-assets";
@@ -14,7 +14,13 @@ export function resolvePresentationAssetPath(assetPath: string): string {
 
 export function requireGoldenPresentationAsset(assetPath: string): string {
   const resolved = resolvePresentationAssetPath(assetPath);
-  if (!existsSync(resolved)) throw new Error(`Golden presentation asset missing: ${assetPath}`);
+  let stat;
+  try {
+    stat = statSync(resolved);
+  } catch {
+    throw new Error(`Golden presentation asset missing: ${assetPath}`);
+  }
+  if (!stat.isFile()) throw new Error(`Golden presentation asset is not a file: ${assetPath}`);
   return resolved;
 }
 
