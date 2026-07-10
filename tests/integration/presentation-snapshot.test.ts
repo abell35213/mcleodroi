@@ -36,6 +36,11 @@ describe("presentation snapshots", () => {
     expect(brokerModule.defaultCustomerAnalysis).not.toBe(brokerModule.effectiveCustomerAnalysis);
     const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
     expect(calculated.ok && snapshot.summary.totalIdentifiedAnnualEconomicOpportunity).toBeCloseTo(calculated.ok ? calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity : 0);
+    expect(snapshot.snapshotVersion).toBe("1.1.0");
+    expect(snapshot.charts?.waterfall.steps.length).toBeGreaterThan(0);
+    expect(snapshot.charts?.valueTypeBreakdown.total).toBeCloseTo(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity);
+    expect(snapshot.branding).toEqual({ customerLogoPath: null, customerLogoDataUri: null });
+    expect(snapshot.roi).toBeNull();
   });
   it("rejects incomplete analyses", async () => {
     const analysis = await db.analysis.create({ data: { companyName: "Incomplete", businessType: "TRUCKLOAD", preparedBy: "Tester", analysisDate: new Date("2026-07-08T00:00:00Z") } });
