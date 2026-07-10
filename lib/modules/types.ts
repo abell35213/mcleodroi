@@ -105,6 +105,10 @@ export interface ValueModuleInputDefinition {
   readonly helpText: string;
   readonly defaultValue?: number;
   readonly displayOrder: number;
+  /** Optional inclusive lower bound enforced by the calculation validation layer. */
+  readonly min?: number;
+  /** Optional inclusive upper bound enforced by the calculation validation layer. */
+  readonly max?: number;
 }
 
 export interface ValueModuleDefinition {

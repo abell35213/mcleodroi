@@ -26,6 +26,12 @@ export function validateNumericField(definition: ValueModuleInputDefinition, val
   } else if (value < 0) {
     issues.push({ code: validationCodes.NON_NEGATIVE_REQUIRED, field: definition.key, message: `${definition.label} cannot be negative.` });
   }
+  if (definition.min !== undefined && value < definition.min) {
+    issues.push({ code: validationCodes.BELOW_MINIMUM, field: definition.key, message: `${definition.label} must be at least ${definition.min}.` });
+  }
+  if (definition.max !== undefined && value > definition.max) {
+    issues.push({ code: validationCodes.ABOVE_MAXIMUM, field: definition.key, message: `${definition.label} must be no more than ${definition.max}.` });
+  }
   return issues;
 }
 

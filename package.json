@@ -16,7 +16,8 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "presentation:golden": "tsx scripts/presentation-golden.ts",
-    "roi:golden": "tsx scripts/roi-golden.ts"
+    "roi:golden": "tsx scripts/roi-golden.ts",
+    "methodology:workbook": "tsx scripts/methodology-workbook.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

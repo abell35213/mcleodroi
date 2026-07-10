@@ -4,8 +4,19 @@ function productContextsFor(businessTypes: readonly BusinessType[]): ProductCont
   return businessTypes.map((businessType) => businessType === "TRUCKLOAD" ? "LOADMASTER" : "POWERBROKER");
 }
 
-function input(key: string, label: string, type: ValueModuleInputDefinition["type"], unit: ValueModuleInputDefinition["unit"], displayOrder: number, helpText: string, defaultValue?: number): ValueModuleInputDefinition {
-  return { key, label, type, unit, required: true, helpText, ...(defaultValue === undefined ? {} : { defaultValue }), displayOrder };
+function input(key: string, label: string, type: ValueModuleInputDefinition["type"], unit: ValueModuleInputDefinition["unit"], displayOrder: number, helpText: string, defaultValue?: number, bounds?: { min?: number; max?: number }): ValueModuleInputDefinition {
+  return {
+    key,
+    label,
+    type,
+    unit,
+    required: true,
+    helpText,
+    ...(defaultValue === undefined ? {} : { defaultValue }),
+    ...(bounds?.min === undefined ? {} : { min: bounds.min }),
+    ...(bounds?.max === undefined ? {} : { max: bounds.max }),
+    displayOrder,
+  };
 }
 
 const valueModules = [
@@ -106,7 +117,7 @@ const valueModules = [
     inputDefinitions: [
       input("non_ops_staff_count", "Number of non-operations employees", "INTEGER", "COUNT", 1, "Gather the customer value for number of non-operations employees."),
       input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 2, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
-      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 3, "Typical working days used in the monthly productivity assumption."),
+      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 3, "Typical working days used in the monthly productivity assumption.", undefined, { min: 1, max: 31 }),
       input("redundant_activity_pct", "Estimated time spent on redundant manual activity", "PERCENTAGE", "PERCENT", 4, "Gather the customer value for estimated time spent on redundant manual activity."),
     ],
     overlapGroups: ["BACK_OFFICE_REDUNDANT_LABOR"],
@@ -123,7 +134,7 @@ const valueModules = [
     inputDefinitions: [
       input("operations_staff_count", "Number of operations employees", "INTEGER", "COUNT", 1, "Gather the customer value for number of operations employees."),
       input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 2, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
-      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 3, "Typical working days used in the monthly productivity assumption."),
+      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 3, "Typical working days used in the monthly productivity assumption.", undefined, { min: 1, max: 31 }),
       input("redundant_activity_pct", "Estimated time spent on redundant activity", "PERCENTAGE", "PERCENT", 4, "Gather the customer value for estimated time spent on redundant activity."),
     ],
     overlapGroups: ["OPERATIONS_REDUNDANT_LABOR"],
@@ -160,7 +171,7 @@ const valueModules = [
       input("current_loads_per_broker_day", "Current average loads per broker per day", "NUMBER", "LOADS_PER_DAY", 1, "Gather the customer value for current average loads per broker per day."),
       input("target_loads_per_broker_day", "Target average loads per broker per day", "NUMBER", "LOADS_PER_DAY", 2, "Gather the customer value for target average loads per broker per day."),
       input("broker_count", "Number of brokers", "INTEGER", "COUNT", 3, "Gather the customer value for number of brokers."),
-      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 4, "Typical working days used in the monthly productivity assumption."),
+      input("working_days_month", "Working days per month", "INTEGER", "WORKING_DAYS_PER_MONTH", 4, "Typical working days used in the monthly productivity assumption.", undefined, { min: 1, max: 31 }),
       input("average_margin_per_load", "Average gross margin per brokered load", "CURRENCY", "CURRENCY_PER_LOAD", 5, "Use the customer's average contribution or gross margin per load, depending on business type."),
     ],
     overlapGroups: [],

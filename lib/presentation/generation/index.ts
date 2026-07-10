@@ -61,7 +61,7 @@ export async function generatePresentationPptx(args: { presentationGenerationId:
           break;
         default: {
           const _exhaustive: never = plan;
-          throw new Error(`Unhandled slide plan kind: ${(plan as { kind: string }).kind}`);
+          throw new Error(`Unhandled slide plan kind: ${(_exhaustive as { kind: string }).kind}`);
         }
       }
     }
