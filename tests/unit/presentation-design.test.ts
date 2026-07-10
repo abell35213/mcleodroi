@@ -5,19 +5,8 @@ import { describe, expect, it } from "vitest";
 import { APPROVED_COVER_LOGO_PATH, APPROVED_THEME_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
 import { addAssumptionGrid } from "@/lib/presentation/pptx/components";
-import { buildCategoryOverviewSlide, buildDualModuleSlide, buildExecutiveSummarySlide } from "@/lib/presentation/slides";
+import { buildCategoryOverviewSlide, buildDualModuleSlide } from "@/lib/presentation/slides";
 
-const testExecutiveModel = {
-  companyName: "Test Carrier",
-  slideNumber: 2,
-  annualOpportunity: { value: "$10,000", label: "Annual Opportunity" },
-  cards: [
-    { title: "Broker Productivity", value: "$1", label: "Estimated Opportunity" },
-    { title: "Back Office", value: "$2", label: "Estimated Opportunity" },
-    { title: "Non-Ops", value: "$3", label: "Estimated Opportunity" },
-    { title: "Margin", value: "$4", label: "Estimated Opportunity" },
-  ],
-};
 
 const testDualModel = {
   companyName: "Test Carrier",
@@ -113,9 +102,8 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     expect(validatePresentationTextLength({ text: "x".repeat(900), kind: "singleModuleAnalysis" })).toHaveLength(0);
     expect(validatePresentationTextLength({ text: "x".repeat(1_000), kind: "singleModuleAnalysis" })).toHaveLength(1);
     const pptx = createPresentation();
-    expect(() => buildExecutiveSummarySlide(pptx, { ...testExecutiveModel, cards: [...testExecutiveModel.cards, testExecutiveModel.cards[0]] })).toThrow(/at most four/);
     expect(() => buildDualModuleSlide(pptx, { ...testDualModel, modules: [testDualModel.modules[0], testDualModel.modules[1]] })).not.toThrow();
-    expect(() => buildCategoryOverviewSlide(pptx, { companyName: "A", categoryName: "C", slideNumber: 1, categoryOpportunity: { value: "$1", label: "Value" }, cards: [...testExecutiveModel.cards, testExecutiveModel.cards[0]] })).toThrow(/at most four/);
+    expect(() => buildCategoryOverviewSlide(pptx, { companyName: "A", categoryName: "C", slideNumber: 1, categoryOpportunity: { value: "$1", label: "Value" }, cards: [{ title: "1", value: "$1", label: "A" }, { title: "2", value: "$1", label: "A" }, { title: "3", value: "$1", label: "A" }, { title: "4", value: "$1", label: "A" }, { title: "5", value: "$1", label: "A" }] })).toThrow(/at most four/);
     const slide = pptx.addSlide();
     expect(() => addAssumptionGrid(slide, { x: 0, y: 0, w: 5, items: [{ label: "1", value: "1" }, { label: "2", value: "2" }, { label: "3", value: "3" }, { label: "4", value: "4" }, { label: "5", value: "5" }] })).toThrow(/at most four/);
   });

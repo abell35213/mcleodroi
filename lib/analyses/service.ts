@@ -907,3 +907,18 @@ export async function createAnalysis(args: {
   const created = await db.analysis.create({ data: parsed.data });
   return ok({ id: created.id });
 }
+
+
+export async function updateAnalysisDetails(args: {
+  analysisId: string;
+  input: CreateAnalysisInput;
+  db?: Db;
+}): Promise<ServiceResult<{ id: string }>> {
+  const db = args.db ?? defaultPrisma;
+  const parsed = createAnalysisSchema.safeParse(args.input);
+  if (!parsed.success) return err("INVALID_INPUT_KEY", parsed.error.issues.map((issue) => issue.message).join(" "));
+  const existing = await db.analysis.findUnique({ where: { id: args.analysisId }, select: { id: true } });
+  if (!existing) return err("ANALYSIS_NOT_FOUND", "Analysis not found.");
+  await db.analysis.update({ where: { id: args.analysisId }, data: parsed.data });
+  return ok({ id: args.analysisId });
+}

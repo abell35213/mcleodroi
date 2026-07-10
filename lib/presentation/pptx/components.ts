@@ -1,6 +1,6 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
-import { presentationTheme as T } from "@/lib/presentation/theme";
+import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T } from "@/lib/presentation/theme";
 import type { AssumptionItemModel, AssumptionsAppendixModuleModel, AssumptionsAppendixSourceModel, MetricModel, ValueCardModel } from "@/lib/presentation/types";
 
 const c = T.colors;
@@ -11,20 +11,23 @@ export function addCategoryHeader(slide: pptxgen.Slide, o: { label: string; x?: 
 }
 
 export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; themeImagePath?: string | null; logoPath?: string | null }) {
-  slide.background = { color: c.warmCanvas };
-  slide.addShape("rect", { x: 0, y: 0, w: L.slide.width, h: L.header.height, fill: { color: c.midnight }, line: { color: c.midnight } });
-  if (o.themeImagePath) slide.addImage({ path: o.themeImagePath, x: 0, y: 0, w: L.slide.width, h: L.header.imageStripHeight, transparency: 22 });
-  addCategoryHeader(slide, { label: o.categoryLabel });
-  slide.addText(o.title, { x: L.content.left, y: 0.7, w: 9.35, h: 0.34, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: c.white, margin: 0, fit: "shrink" });
+  slide.background = { color: c.white };
+  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.midnight }, line: { color: c.midnight } });
+  if (o.themeImagePath) slide.addImage({ path: o.themeImagePath, x: 0, y: 0, w: L.rail.width, h: L.slide.height, transparency: 45 });
+  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.midnight, transparency: 20 }, line: { color: c.midnight } });
+  slide.addShape("line", { x: L.rail.width, y: 0.35, w: 0, h: 6.55, line: { color: c.sunriseGold, width: 1.2 } });
+  addCategoryHeader(slide, { label: o.categoryLabel, x: L.content.left, y: 0.33, w: 4.8 });
+  slide.addText(o.title, { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
+  slide.addShape("line", { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
   const logoPath = o.logoPath === undefined ? T.assets.logoPath : o.logoPath;
-  if (logoPath) slide.addImage({ path: logoPath, x: 10.65, y: 0.58, w: 1.95, h: 0.34, sizing: { type: "contain", w: 1.95, h: 0.34 } });
-  else slide.addText("McLeod Software", { x: 10.65, y: 0.66, w: 1.95, h: 0.22, align: "right", fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.white });
-  if (o.companyName) slide.addText(o.companyName, { x: 8.3, y: 0.22, w: 4.3, h: 0.16, align: "right", fontSize: 7, color: c.white, transparency: 20 });
+  if (logoPath) slide.addImage({ path: logoPath, x: 10.65, y: 0.45, w: 1.8, h: 0.34, sizing: { type: "contain", w: 1.8, h: 0.34 } });
+  else slide.addText("McLeod Software", { x: 10.45, y: 0.48, w: 1.95, h: 0.22, align: "right", fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.charcoal });
+  if (o.companyName) slide.addText(o.companyName, { x: 9.0, y: 0.82, w: 3.4, h: 0.16, align: "right", fontSize: 7, color: c.mutedText });
 }
 
 export function addFooter(slide: pptxgen.Slide, o: { companyName: string; slideNumber?: number; hideSlideNumber?: boolean }) {
-  slide.addShape("line", { x: L.content.left, y: 7.08, w: 12.0, h: 0, line: { color: c.softBorder, width: 0.7 } });
-  slide.addText(`McLeod Software  |  ${o.companyName}  |  Confidential Business Impact Analysis`, { x: L.content.left, y: 7.17, w: 8, h: 0.12, fontSize: 7, color: c.mutedText });
+  slide.addShape("line", { x: L.content.left, y: 7.08, w: 11.6, h: 0, line: { color: c.softBorder, width: 0.7 } });
+  slide.addText(PROPRIETARY_FOOTER_TEXT, { x: L.content.left, y: 7.17, w: 6, h: 0.12, fontSize: 7, color: c.mutedText });
   if (!o.hideSlideNumber && o.slideNumber) slide.addText(String(o.slideNumber), { x: 12.22, y: 7.16, w: 0.35, h: 0.12, fontSize: 7, color: c.mutedText, align: "right" });
 }
 

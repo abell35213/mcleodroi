@@ -63,8 +63,9 @@ export async function generatePresentationPptx(args: { presentationGenerationId:
           buildAssumptionsAppendixSlide(pptx, plan.model);
           break;
         default: {
-          const _exhaustive: never = plan;
-          throw new Error(`Unhandled slide plan kind: ${(_exhaustive as { kind: string }).kind}`);
+          const unexpectedKind = (plan as { kind?: unknown }).kind;
+          plan satisfies never;
+          throw new Error(`Unhandled slide plan kind: ${String(unexpectedKind)}.`);
         }
       }
     }

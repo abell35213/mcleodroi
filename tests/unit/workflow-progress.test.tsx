@@ -12,6 +12,33 @@ describe("WorkflowProgress", () => {
 
   it("marks the active stage as the current step", () => {
     render(<WorkflowProgress activeStage="review" />);
-    expect(screen.getByText("Review")).toHaveAttribute("aria-current", "step");
+    expect(screen.getByText("Review").closest("li")).toHaveAttribute("aria-current", "step");
+  });
+
+  it("links backward stages and gates forward stages", () => {
+    render(<WorkflowProgress activeStage="assessment" analysisId="analysis-1" canReview={false} canGeneratePresentation={false} />);
+    expect(screen.getByRole("link", { name: "Company" })).toHaveAttribute("href", "/analyses/analysis-1/company");
+    expect(screen.getByRole("link", { name: "Opportunities" })).toHaveAttribute("href", "/analyses/analysis-1/opportunities");
+    expect(screen.queryByRole("link", { name: "Review" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "Presentation" })).toBeNull();
+  });
+
+  it("allows review and presentation only when readiness allows them", () => {
+    render(<WorkflowProgress activeStage="opportunities" analysisId="analysis-1" hasSelectedModules canReview canGeneratePresentation />);
+    expect(screen.getByRole("link", { name: "Review" })).toHaveAttribute("href", "/analyses/analysis-1/review");
+    expect(screen.getByRole("link", { name: "Presentation" })).toHaveAttribute("href", "/analyses/analysis-1/presentation");
+  });
+
+  it("gates forward navigation to assessment until modules are selected", () => {
+    const { rerender } = render(<WorkflowProgress activeStage="opportunities" analysisId="analysis-1" hasSelectedModules={false} />);
+    expect(screen.queryByRole("link", { name: "Assessment" })).toBeNull();
+
+    rerender(<WorkflowProgress activeStage="opportunities" analysisId="analysis-1" hasSelectedModules />);
+    expect(screen.getByRole("link", { name: "Assessment" })).toHaveAttribute("href", "/analyses/analysis-1/assessment");
+  });
+
+  it("allows later stages to navigate back to assessment", () => {
+    render(<WorkflowProgress activeStage="review" analysisId="analysis-1" hasSelectedModules={false} />);
+    expect(screen.getByRole("link", { name: "Assessment" })).toHaveAttribute("href", "/analyses/analysis-1/assessment");
   });
 });

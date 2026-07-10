@@ -3,6 +3,7 @@ import path from "node:path";
 
 export const PRESENTATION_ASSET_DIR = "public/presentation-assets";
 export const APPROVED_THEME_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/highway-sunrise.webp`;
+export const PROPRIETARY_FOOTER_TEXT = "©2026 McLeod Software® | Proprietary & Confidential";
 export const APPROVED_COVER_LOGO_PATH = `${PRESENTATION_ASSET_DIR}/mcleod-logo.png`;
 
 export function resolvePresentationAssetPath(assetPath: string): string {
@@ -26,15 +27,16 @@ export function requireGoldenPresentationAsset(assetPath: string): string {
 
 export const presentationTheme = {
   colors: {
-    midnight: "0B1D33",
-    navy: "12314F",
+    midnight: "05070B",
+    navy: "101820",
     sunriseGold: "D89B2B",
-    warmCanvas: "F8F1E4",
+    mcleodGold: "FC9527",
+    warmCanvas: "FFFFFF",
     charcoal: "243142",
-    mutedBlue: "54708F",
+    mutedBlue: "4E5F73",
     forest: "3F5E4A",
     white: "FFFFFF",
-    softBorder: "E8DCC6",
+    softBorder: "D8DDE3",
     mutedText: "627085",
   },
   typography: {
@@ -43,7 +45,7 @@ export const presentationTheme = {
     metricFont: "Arial",
     minBodyFontSize: 14,
     minDisclaimerFontSize: 8,
-    slideTitleFontSize: 24,
+    slideTitleFontSize: 27,
     coverTitleFontSize: 38,
   },
   assets: {
