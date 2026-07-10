@@ -165,16 +165,16 @@ export async function renderPresentationPdf(snapshot: PresentationSnapshot): Pro
   writer.gap(6);
   for (const category of model.categories) {
     writer.heading(category.name, 15);
-    for (const module of category.modules) {
-      writer.heading(module.moduleName, 13);
-      writer.labelledMetric({ label: module.metricLabel, value: module.metricValue });
+    for (const mod of category.modules) {
+      writer.heading(mod.moduleName, 13);
+      writer.labelledMetric({ label: mod.metricLabel, value: mod.metricValue });
       writer.gap(4);
-      if (module.narrative) writer.paragraph(module.narrative);
-      if (module.valueNarrative) {
+      if (mod.narrative) writer.paragraph(mod.narrative);
+      if (mod.valueNarrative) {
         writer.gap(4);
-        writer.paragraph(module.valueNarrative);
+        writer.paragraph(mod.valueNarrative);
       }
-      if (module.disclaimer) writer.paragraph(module.disclaimer, 8, MUTED);
+      if (mod.disclaimer) writer.paragraph(mod.disclaimer, 8, MUTED);
       writer.gap(12);
     }
   }
