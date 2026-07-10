@@ -86,10 +86,28 @@ describe("presentation design system", () => {
     expect(() => resolvePresentationAssetPath("../outside.png")).toThrow(/escaped the project root/);
   });
 
-  it("fails the golden fixture clearly when an approved asset is missing", () => {
-    removeTemporaryGoldenAssets();
+it("fails the golden fixture clearly when an approved asset is missing", () => {
+  let themeBackup: Buffer | null = null;
+  let logoBackup: Buffer | null = null;
+  try {
+    themeBackup = readFileSync(APPROVED_THEME_IMAGE_PATH);
+  } catch {
+    themeBackup = null;
+  }
+  try {
+    logoBackup = readFileSync(APPROVED_COVER_LOGO_PATH);
+  } catch {
+    logoBackup = null;
+  }
+
+  removeTemporaryGoldenAssets();
+  try {
     expect(() => execFileSync("npm", ["run", "presentation:golden"], { stdio: "pipe" })).toThrow(/Golden presentation asset missing: public\/presentation-assets\/highway-sunrise\.webp/);
-  });
+  } finally {
+    if (themeBackup) writeFileSync(APPROVED_THEME_IMAGE_PATH, themeBackup);
+    if (logoBackup) writeFileSync(APPROVED_COVER_LOGO_PATH, logoBackup);
+  }
+});
 
   it("validates length and template cardinality limits", () => {
     expect(validatePresentationTextLength({ text: "x".repeat(900), kind: "singleModuleAnalysis" })).toHaveLength(0);
