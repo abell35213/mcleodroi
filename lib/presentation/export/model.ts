@@ -67,10 +67,7 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
   const roi = snapshot.roi ?? null;
   const roiMetrics: ExportMetric[] = roi
     ? [
-        { label: "Total investment", value: formatPresentationCurrency(roi.investment) },
-        { label: "Net annual value", value: formatPresentationCurrency(roi.netAnnualValue) },
-        { label: "Payback", value: roi.paybackMonths === null ? "Not recovered in horizon" : `${roi.paybackMonths.toFixed(1)} months` },
-        { label: "First-year ROI", value: formatPresentationPercentage(roi.firstYearRoiPct) },
+        { label: "Payback", value: roi.paybackMonths === null ? "Does not recoup" : `${roi.paybackMonths.toFixed(1)} months` },
         { label: `${roi.horizonYears}-year ROI`, value: formatPresentationPercentage(roi.horizonRoiPct) },
         { label: "Net present value", value: formatPresentationCurrency(roi.npv) },
       ]
