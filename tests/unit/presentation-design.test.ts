@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:f
 import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { APPROVED_COVER_LOGO_PATH, APPROVED_THEME_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
+import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
 import { addAssumptionGrid } from "@/lib/presentation/pptx/components";
 import { buildCategoryOverviewSlide, buildDualModuleSlide } from "@/lib/presentation/slides";
@@ -66,8 +66,10 @@ describe("presentation design system", () => {
     expect(PRESENTATION_ASSET_DIR).toBe("public/presentation-assets");
     expect(presentationTheme.assets.themeImagePath).toBe(APPROVED_THEME_IMAGE_PATH);
     expect(presentationTheme.assets.coverLogoPath).toBe(APPROVED_COVER_LOGO_PATH);
+    expect(presentationTheme.assets.titleSlideImagePath).toBe(APPROVED_TITLE_SLIDE_IMAGE_PATH);
+    expect(presentationTheme.assets.powerpointTemplatePath).toBe(APPROVED_POWERPOINT_TEMPLATE_PATH);
     expect(presentationTheme.assets.logoPath).toBeNull();
-    for (const assetPath of [presentationTheme.assets.themeImagePath, presentationTheme.assets.coverLogoPath]) {
+    for (const assetPath of [presentationTheme.assets.themeImagePath, presentationTheme.assets.coverLogoPath, presentationTheme.assets.titleSlideImagePath, presentationTheme.assets.powerpointTemplatePath]) {
       const resolved = resolvePresentationAssetPath(assetPath);
       expect(resolved).toContain(process.cwd());
       expect(resolved).toContain(assetPath);
@@ -98,6 +100,18 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
   }
 });
 
+
+  it("uses the approved title image and template-backed executive summary structure", () => {
+    const templates = readFileSync("lib/presentation/slides/templates.ts", "utf8");
+    const composition = readFileSync("lib/presentation/composition/index.ts", "utf8");
+    expect(templates).toContain("titleSlideImagePath");
+    expect(composition).toContain("APPROVED_TITLE_SLIDE_IMAGE_PATH");
+    expect(composition).toContain("APPROVED_POWERPOINT_TEMPLATE_PATH");
+    expect(composition).toContain("keyAreasLeadIn");
+    expect(composition).toContain("addresses your key areas of need by");
+    expect(composition).toContain("DocumentPower");
+  });
+
   it("validates length and template cardinality limits", () => {
     expect(validatePresentationTextLength({ text: "x".repeat(900), kind: "singleModuleAnalysis" })).toHaveLength(0);
     expect(validatePresentationTextLength({ text: "x".repeat(1_000), kind: "singleModuleAnalysis" })).toHaveLength(1);
@@ -112,7 +126,7 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     expect(templates).toContain("How McLeod Helps");
     expect(templates).toContain("Customer Impact");
     expect(templates).not.toContain('heading: "Analysis"');
-    expect(templates).toContain("coverLogoPath");
+    expect(readFileSync("lib/presentation/types.ts", "utf8")).toContain("coverLogoPath");
     expect(testDualModel.modules[0].howMcLeodHelps).toContain("McLeod");
     expect(testDualModel.modules[0].customerImpact).toContain("$5,880");
   });
@@ -125,7 +139,7 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
   it("keeps production presentation code free of sample-only hard-coding and data access", () => {
     const files = ["lib/presentation/snapshot.ts", "lib/presentation/pptx/components.ts", "lib/presentation/slides/templates.ts"];
     const production = files.map((f) => readFileSync(f, "utf8")).join("\n");
-    expect(production).not.toMatch(/West Side Transport|\$503,196|\$503,200/);
+    expect(production).not.toMatch(/West Side Transport|Shermar Transportation|\$503,196|\$503,200/);
     expect(readFileSync("lib/presentation/slides/templates.ts", "utf8")).not.toMatch(/prisma|calculateAnalysis|calculateValueModule/);
   });
   it("generates a valid golden pptx package", async () => {
@@ -143,5 +157,6 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     const slideText = await zip.file("ppt/slides/slide2.xml")?.async("text");
     expect(slideText).toContain("West Side Transport");
     expect(slideText).toContain("$503,200");
+    expect(slideText).toContain("addresses your key areas of need by");
   });
 });

@@ -7,14 +7,14 @@ const c = T.colors;
 const font = T.typography;
 
 export function addCategoryHeader(slide: pptxgen.Slide, o: { label: string; x?: number; y?: number; w?: number }) {
-  slide.addText(o.label.toUpperCase(), { x: o.x ?? L.content.left, y: o.y ?? 0.48, w: o.w ?? 5, h: 0.18, fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.sunriseGold });
+  slide.addText(o.label.toUpperCase(), { x: o.x ?? L.content.left, y: o.y ?? 0.48, w: o.w ?? 5, h: 0.18, fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.templateBlue });
 }
 
 export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; themeImagePath?: string | null; logoPath?: string | null }) {
   slide.background = { color: c.white };
-  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.midnight }, line: { color: c.midnight } });
-  if (o.themeImagePath) slide.addImage({ path: o.themeImagePath, x: 0, y: 0, w: L.rail.width, h: L.slide.height, transparency: 45 });
-  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.midnight, transparency: 20 }, line: { color: c.midnight } });
+  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.templateBlue }, line: { color: c.templateBlue } });
+  if (o.themeImagePath) slide.addImage({ path: o.themeImagePath, x: 0, y: 0, w: L.rail.width, h: L.slide.height, transparency: 55 });
+  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.midnight, transparency: 18 }, line: { color: c.midnight, transparency: 100 } });
   slide.addShape("line", { x: L.rail.width, y: 0.35, w: 0, h: 6.55, line: { color: c.sunriseGold, width: 1.2 } });
   addCategoryHeader(slide, { label: o.categoryLabel, x: L.content.left, y: 0.33, w: 4.8 });
   slide.addText(o.title, { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
