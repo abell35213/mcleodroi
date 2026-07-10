@@ -37,8 +37,8 @@ describe("narrative registry integrity", () => {
       expect(variant.fullDisclaimer).toBeTruthy();
       expect(variant.presentationDisclaimer).toBeTruthy();
     }
-    expect(getValueModule("BROKERAGE_LTL").narrativeStatus).toBe("NEEDS_PRODUCT_REVIEW");
-    expect(getValueModule("SHORT_HAUL_EFFICIENCY").narrativeStatus).toBe("NEEDS_PRODUCT_REVIEW");
+    expect(getValueModule("BROKERAGE_LTL").narrativeStatus).toBe("DRAFT_APPROVED");
+    expect(getValueModule("SHORT_HAUL_EFFICIENCY").narrativeStatus).toBe("DRAFT_APPROVED");
   });
 
   it("rejects unavailable business type variants", () => {

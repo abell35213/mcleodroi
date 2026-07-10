@@ -609,13 +609,14 @@ export function toAnalysisInvestment(
 }
 
 /**
- * Derive finance-grade ROI from the identified opportunity and the seller-entered
- * investment. Returns `null` when there is no positive one-time investment, so
- * identified-opportunity-only analyses are unaffected.
+ * Derive finance-grade ROI for an explicit gross annual benefit and the
+ * seller-entered investment. Returns `null` when there is no positive one-time
+ * investment. Shared by the base ROI derivation and the scenario engine so
+ * conservative/expected/aggressive cases stay consistent with the headline ROI.
  */
-export function deriveAnalysisRoi(
+export function deriveRoiForAnnualValue(
   investment: AnalysisInvestment,
-  summary: AnalysisCalculationSummary,
+  annualValue: number,
 ): RoiMetrics | null {
   const oneTime = investment.investmentOneTimeCost ?? 0;
   const changeManagement = investment.investmentChangeManagementCost ?? 0;
@@ -628,7 +629,7 @@ export function deriveAnalysisRoi(
       ? investment.adoptionSchedulePct
       : undefined;
   const outcome = calculateRoi({
-    annualValue: summary.totalIdentifiedAnnualEconomicOpportunity,
+    annualValue,
     investment: totalInvestment,
     annualRecurringCost: investment.investmentAnnualRecurringCost ?? 0,
     horizonYears,
@@ -636,6 +637,21 @@ export function deriveAnalysisRoi(
     adoptionSchedulePct,
   });
   return outcome.success ? outcome.result : null;
+}
+
+/**
+ * Derive finance-grade ROI from the identified opportunity and the seller-entered
+ * investment. Returns `null` when there is no positive one-time investment, so
+ * identified-opportunity-only analyses are unaffected.
+ */
+export function deriveAnalysisRoi(
+  investment: AnalysisInvestment,
+  summary: AnalysisCalculationSummary,
+): RoiMetrics | null {
+  return deriveRoiForAnnualValue(
+    investment,
+    summary.totalIdentifiedAnnualEconomicOpportunity,
+  );
 }
 
 /**
