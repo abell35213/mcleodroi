@@ -49,7 +49,7 @@ describe("presentation snapshots", () => {
     const zipDir = mkdtempSync(join(tmpdir(), "mcleod-roi-pptx-"));
     try {
       execFileSync("unzip", ["-q", generated.value.filePath, "-d", zipDir]);
-      const xml = execFileSync("sh", ["-c", `cat ${join(zipDir, "ppt/slides")}/*.xml`]).toString();
+      const xml = execFileSync("sh", ["-c", `cat "${join(zipDir, "ppt/slides")}"/*.xml`]).toString();
       expect(xml).toContain("Snapshot Customer");
       expect(xml).toContain("Reduce Deadhead Miles");
       expect(xml).toContain("Trailer Asset Utilization");
