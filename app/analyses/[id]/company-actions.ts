@@ -10,7 +10,7 @@ export type UpdateAnalysisDetailsState = { errors?: Record<string, string>; mess
 export async function updateAnalysisDetailsAction(analysisId: string, _state: UpdateAnalysisDetailsState, formData: FormData): Promise<UpdateAnalysisDetailsState> {
   const raw = {
     companyName: formData.get("companyName"),
-    customerContact: formData.get("customerContact") || undefined,
+    customerContact: formData.get("customerContact") ?? undefined,
     businessType: formData.get("businessType"),
     preparedBy: formData.get("preparedBy"),
     analysisDate: formData.get("analysisDate"),
