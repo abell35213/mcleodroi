@@ -69,7 +69,8 @@ export async function generatePresentationPptx(args: { presentationGenerationId:
     if (!(await validatePptx(filePath))) throw new Error("PPTX package validation failed.");
     await db.presentationGeneration.update({ where: { id: generation.id }, data: { status: "COMPLETE", filePath } });
     return { ok: true, value: { generationId: generation.id, filePath, slideCount: slidePlan.length } };
-  } catch {
+  } catch (err) {
+    console.error("PowerPoint generation failed", { generationId: generation.id, err });
     await db.presentationGeneration.update({ where: { id: generation.id }, data: { status: "FAILED", filePath: null } });
     return fail("PRESENTATION_GENERATION_FAILED", "PowerPoint generation failed. Please review the analysis and try again.");
   }
