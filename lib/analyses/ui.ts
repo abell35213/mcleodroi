@@ -35,6 +35,43 @@ export function resolveDisplayValue(input: ValueModuleInputDefinition, persisted
   return { value: undefined, isDefault: false };
 }
 
+/** Result of validating a single assessment field in its display units. */
+export type DisplayFieldValidation = {
+  /** `empty` inputs are permitted (they clear the stored value on save). */
+  readonly state: "empty" | "valid" | "error";
+  readonly message?: string;
+};
+
+/**
+ * Validate a single assessment input as typed, in display units, mirroring the
+ * authoritative engine rules in {@link file:lib/calculations/validate.ts}. Pure
+ * and framework-free so the client form and unit tests share one source of
+ * truth; the server still re-validates on save.
+ */
+export function validateDisplayInput(input: ValueModuleInputDefinition, raw: string): DisplayFieldValidation {
+  const trimmed = raw.trim();
+  if (trimmed === "") return { state: "empty" };
+  const numeric = Number(trimmed);
+  if (!Number.isFinite(numeric)) return { state: "error", message: `${input.label} must be a valid number.` };
+  if (input.type === "INTEGER" && !Number.isInteger(numeric)) {
+    return { state: "error", message: `${input.label} must be a whole number.` };
+  }
+  const engineValue = toEngineInputValue(input, numeric);
+  if (input.type === "PERCENTAGE" && (engineValue < 0 || engineValue > 1)) {
+    return { state: "error", message: `${input.label} must be between 0% and 100%.` };
+  }
+  if (input.type !== "PERCENTAGE" && engineValue < 0) {
+    return { state: "error", message: `${input.label} cannot be negative.` };
+  }
+  if (input.min !== undefined && engineValue < input.min) {
+    return { state: "error", message: `${input.label} must be at least ${formatInputDisplayValue(input, input.min)}.` };
+  }
+  if (input.max !== undefined && engineValue > input.max) {
+    return { state: "error", message: `${input.label} must be no more than ${formatInputDisplayValue(input, input.max)}.` };
+  }
+  return { state: "valid" };
+}
+
 export function getPreferredResumeRoute(analysisId: string, calculated: Pick<CalculatedAnalysis, "workflowReadiness" | "summary">): string {
   if (!calculated.workflowReadiness.hasSelectedModules) return `/analyses/${analysisId}/opportunities`;
   if (calculated.workflowReadiness.canReview) return `/analyses/${analysisId}/review`;
