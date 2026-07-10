@@ -15,10 +15,17 @@ type Db = PrismaClient;
 type GeneratedPresentation = { generationId: string; filePath: string; slideCount: number };
 function fail<T>(code: string, message: string): PresentationServiceResult<T> { return { ok: false, error: { code, message } }; }
 
-async function validatePptx(path: string): Promise<boolean> {
-  if (!existsSync(path) || statSync(path).size <= 0) return false;
-  const zip = await JSZip.loadAsync(readFileSync(path));
-  return zip.file("[Content_Types].xml") !== null && zip.folder("ppt/slides") !== null;
+async function validatePptx(filePath: string): Promise<boolean> {
+  try {
+    if (!existsSync(filePath) || statSync(filePath).size <= 0) return false;
+    const zip = await JSZip.loadAsync(readFileSync(filePath));
+    const hasContentTypes = zip.file("[Content_Types].xml") !== null;
+    const hasPresentation = zip.file("ppt/presentation.xml") !== null;
+    const slideCount = Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name)).length;
+    return hasContentTypes && hasPresentation && slideCount > 0;
+  } catch {
+    return false;
+  }
 }
 
 export async function generatePresentationPptx(args: { presentationGenerationId: string; db?: Db }): Promise<PresentationServiceResult<GeneratedPresentation>> {
