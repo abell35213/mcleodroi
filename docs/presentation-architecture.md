@@ -18,7 +18,16 @@ Slide template primitives accept explicit typed view models. They do not query P
 
 ## Visual system
 
-The canonical design system uses a 16:9 widescreen layout, deep midnight/navy anchors, warm canvas content backgrounds, selective sunrise-gold accents, muted blue/forest secondary accents, strong metric hierarchy, generous whitespace, and Office-safe fonts. The approved highway/mountain/sunrise image is supported through a configured theme image path. If that asset is missing, cover and header components fall back to clean navy treatments.
+The canonical design system uses a 16:9 widescreen layout, deep midnight/navy anchors, warm canvas content backgrounds, selective sunrise-gold accents, muted blue/forest secondary accents, strong metric hierarchy, generous whitespace, and Office-safe fonts. The approved highway/mountain/sunrise image is supported through the centralized theme asset path and is used for the cover visual and restrained panoramic brand/header treatment where configured. Content slides should not become full-image backgrounds.
+
+## Approved presentation assets
+
+Approved presentation assets live in `public/presentation-assets/` and are referenced through `presentationTheme.assets` rather than duplicated across templates.
+
+- `public/presentation-assets/highway-sunrise.webp` is the approved highway/mountain/sunrise theme image.
+- `public/presentation-assets/mcleod-logo.png` is the approved McLeod logo for the cover treatment.
+
+The golden fixture requires both approved assets and fails clearly if either file is missing. Production presentation components still support graceful missing-image behavior where appropriate, so generic component usage can render clean navy/text fallbacks. Approved brand imagery must not be replaced with externally sourced, generated, redrawn, or substitute logo artwork without product-owner approval.
 
 ## Reusable PowerPoint foundation
 
@@ -30,4 +39,4 @@ Future production PPTX files should be written beneath `generated-presentations/
 
 ## Golden fixture
 
-`npm run presentation:golden` writes `test-results/presentation-golden.pptx` from fixture-only West Side-style data. This validates reusable components and package generation but is not a production analysis-to-deck composer and does not query Prisma.
+`npm run presentation:golden` writes `test-results/presentation-golden.pptx` from fixture-only West Side-style data. This validates reusable components, approved presentation assets, and package generation but is not a production analysis-to-deck composer and does not query Prisma.

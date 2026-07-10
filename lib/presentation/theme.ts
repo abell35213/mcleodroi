@@ -1,3 +1,29 @@
+import { statSync } from "node:fs";
+import path from "node:path";
+
+export const PRESENTATION_ASSET_DIR = "public/presentation-assets";
+export const APPROVED_THEME_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/highway-sunrise.webp`;
+export const APPROVED_COVER_LOGO_PATH = `${PRESENTATION_ASSET_DIR}/mcleod-logo.png`;
+
+export function resolvePresentationAssetPath(assetPath: string): string {
+  const projectRoot = process.cwd();
+  const resolved = path.resolve(projectRoot, assetPath);
+  if (!resolved.startsWith(projectRoot + path.sep)) throw new Error(`Presentation asset path escaped the project root: ${assetPath}`);
+  return resolved;
+}
+
+export function requireGoldenPresentationAsset(assetPath: string): string {
+  const resolved = resolvePresentationAssetPath(assetPath);
+  let stat;
+  try {
+    stat = statSync(resolved);
+  } catch {
+    throw new Error(`Golden presentation asset missing: ${assetPath}`);
+  }
+  if (!stat.isFile()) throw new Error(`Golden presentation asset is not a file: ${assetPath}`);
+  return resolved;
+}
+
 export const presentationTheme = {
   colors: {
     midnight: "0B1D33",
@@ -20,6 +46,10 @@ export const presentationTheme = {
     slideTitleFontSize: 24,
     coverTitleFontSize: 38,
   },
-  assets: { themeImagePath: null as string | null, logoPath: null as string | null, coverLogoPath: null as string | null },
+  assets: {
+    themeImagePath: APPROVED_THEME_IMAGE_PATH,
+    logoPath: null as string | null,
+    coverLogoPath: APPROVED_COVER_LOGO_PATH,
+  },
 } as const;
 export type PresentationTheme = typeof presentationTheme;
