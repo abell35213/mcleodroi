@@ -40,12 +40,30 @@ export async function generatePresentationPptx(args: { presentationGenerationId:
     mkdirSync(dirname(filePath), { recursive: true });
     const pptx = createPresentation({ title: `${snapshot.analysis.companyName} Business Impact Analysis`, company: "McLeod Software" });
     for (const plan of slidePlan) {
-      if (plan.kind === "cover") buildCoverSlide(pptx, plan.model);
-      else if (plan.kind === "executiveSummary") buildExecutiveSummarySlide(pptx, plan.model);
-      else if (plan.kind === "singleModule") buildSingleModuleSlide(pptx, plan.model);
-      else if (plan.kind === "dualModule") buildDualModuleSlide(pptx, plan.model);
-      else if (plan.kind === "categoryOverview") buildCategoryOverviewSlide(pptx, plan.model);
-      else buildOpportunitySummarySlide(pptx, plan.model);
+      switch (plan.kind) {
+        case "cover":
+          buildCoverSlide(pptx, plan.model);
+          break;
+        case "executiveSummary":
+          buildExecutiveSummarySlide(pptx, plan.model);
+          break;
+        case "singleModule":
+          buildSingleModuleSlide(pptx, plan.model);
+          break;
+        case "dualModule":
+          buildDualModuleSlide(pptx, plan.model);
+          break;
+        case "categoryOverview":
+          buildCategoryOverviewSlide(pptx, plan.model);
+          break;
+        case "opportunitySummary":
+          buildOpportunitySummarySlide(pptx, plan.model);
+          break;
+        default: {
+          const _exhaustive: never = plan;
+          throw new Error(`Unhandled slide plan kind: ${(plan as { kind: string }).kind}`);
+        }
+      }
     }
     await pptx.writeFile({ fileName: filePath });
     if (!(await validatePptx(filePath))) throw new Error("PPTX package validation failed.");
