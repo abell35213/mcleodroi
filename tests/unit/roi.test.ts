@@ -23,6 +23,24 @@ describe("ROI / payback / NPV engine", () => {
       expect(metrics.firstYearRoiPct).toBeCloseTo(scenario.expected.firstYearRoiPct, 6);
       expect(metrics.horizonRoiPct).toBeCloseTo(scenario.expected.horizonRoiPct, 6);
       expect(metrics.npv).toBeCloseTo(scenario.expected.npv, 4);
+      if (scenario.expected.irr === null) {
+        expect(metrics.irr).toBeNull();
+      } else {
+        expect(metrics.irr).not.toBeNull();
+        expect(metrics.irr as number).toBeCloseTo(scenario.expected.irr, 6);
+      }
+      expect(metrics.cumulativeBenefitCurve).toHaveLength(scenario.expected.cumulativeBenefitCurve.length);
+      metrics.cumulativeBenefitCurve.forEach((point, index) => {
+        const expectedPoint = scenario.expected.cumulativeBenefitCurve[index];
+        expect(point.year).toBe(expectedPoint.year);
+        expect(point.adoptionPct).toBeCloseTo(expectedPoint.adoptionPct, 6);
+        expect(point.grossBenefit).toBeCloseTo(expectedPoint.grossBenefit, 4);
+        expect(point.netBenefit).toBeCloseTo(expectedPoint.netBenefit, 4);
+        expect(point.cumulativeNetBenefit).toBeCloseTo(expectedPoint.cumulativeNetBenefit, 4);
+        expect(point.cumulativeNetCashFlow).toBeCloseTo(expectedPoint.cumulativeNetCashFlow, 4);
+        expect(point.discountedNetBenefit).toBeCloseTo(expectedPoint.discountedNetBenefit, 4);
+        expect(point.cumulativeNpv).toBeCloseTo(expectedPoint.cumulativeNpv, 4);
+      });
     }
   });
 
@@ -34,6 +52,9 @@ describe("ROI / payback / NPV engine", () => {
     // No discount: NPV = netAnnualValue * horizonYears - investment.
     expect(metrics.npv).toBeCloseTo(120000 * DEFAULT_ROI_HORIZON_YEARS - 60000, 6);
     expect(metrics.paybackMonths).toBeCloseTo(6, 6);
+    expect(metrics.adoptionSchedulePct).toEqual([1, 1, 1]);
+    expect(metrics.cumulativeBenefitCurve).toHaveLength(DEFAULT_ROI_HORIZON_YEARS);
+    expect(metrics.cumulativeBenefitCurve.every((point) => point.adoptionPct === 1)).toBe(true);
   });
 
   it("returns null payback when the net monthly value is not positive", () => {
@@ -60,6 +81,20 @@ describe("ROI / payback / NPV engine", () => {
   it("rejects a non-integer or non-positive horizon", () => {
     expect(calculateRoi({ annualValue: 100, investment: 100, horizonYears: 2.5 }).success).toBe(false);
     expect(calculateRoi({ annualValue: 100, investment: 100, horizonYears: 0 }).success).toBe(false);
+  });
+
+  it("rejects an adoption schedule whose length does not match the horizon", () => {
+    const result = calculateRoi({ annualValue: 100000, investment: 50000, horizonYears: 3, adoptionSchedulePct: [1, 1] });
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error("expected failure");
+    expect(result.issues.some((issue) => issue.field === "adoptionSchedulePct" && issue.code === "ADOPTION_SCHEDULE_LENGTH")).toBe(true);
+  });
+
+  it("rejects adoption percentages outside the 0–1 range", () => {
+    const result = calculateRoi({ annualValue: 100000, investment: 50000, horizonYears: 2, adoptionSchedulePct: [0.5, 1.5] });
+    expect(result.success).toBe(false);
+    if (result.success) throw new Error("expected failure");
+    expect(result.issues.some((issue) => issue.code === "PERCENTAGE_OUT_OF_RANGE")).toBe(true);
   });
 
   it("does not mutate the caller's input object", () => {

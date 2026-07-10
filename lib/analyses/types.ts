@@ -8,6 +8,7 @@ import type {
 import type {
   CalculationOutcome,
   CalculationResult,
+  RoiMetrics,
   ValidationIssue,
 } from "@/lib/calculations";
 
@@ -81,6 +82,20 @@ export type AnalysisWorkflowReadiness = {
   readonly canGeneratePresentation: boolean;
 };
 
+/**
+ * Seller-entered, per-deal investment inputs and ROI assumptions persisted on
+ * the analysis. Values are `null` until a seller supplies them, keeping ROI
+ * outputs opt-in.
+ */
+export type AnalysisInvestment = {
+  readonly investmentOneTimeCost: number | null;
+  readonly investmentAnnualRecurringCost: number | null;
+  readonly investmentChangeManagementCost: number | null;
+  readonly roiHorizonYears: number | null;
+  readonly roiDiscountRatePct: number | null;
+  readonly adoptionSchedulePct: readonly number[] | null;
+};
+
 export type CalculatedAnalysis = {
   readonly analysis: {
     readonly id: string;
@@ -92,6 +107,14 @@ export type CalculatedAnalysis = {
   readonly overlapNotices: readonly OverlapNotice[];
   readonly summary: AnalysisCalculationSummary;
   readonly workflowReadiness: AnalysisWorkflowReadiness;
+  /** Persisted, seller-entered investment inputs (values may all be `null`). */
+  readonly investment: AnalysisInvestment;
+  /**
+   * Finance-grade ROI outputs derived from the identified opportunity and the
+   * seller-entered investment. `null` when no one-time investment is present,
+   * so identified-opportunity-only analyses are unaffected.
+   */
+  readonly roi: RoiMetrics | null;
 };
 
 export const analysisServiceErrorCodes = [
@@ -105,6 +128,7 @@ export const analysisServiceErrorCodes = [
   "MODULE_NOT_COMPLETE",
   "CUSTOM_NARRATIVE_REQUIRED",
   "NARRATIVE_RENDER_FAILED",
+  "INVALID_INVESTMENT_INPUT",
 ] as const;
 export type AnalysisServiceErrorCode =
   (typeof analysisServiceErrorCodes)[number];

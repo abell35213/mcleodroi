@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { moveAnalysisModule, resetAnalysisNarrativeToTemplate, saveCustomAnalysisNarrative } from "@/lib/analyses/service";
+import { moveAnalysisModule, resetAnalysisNarrativeToTemplate, saveCustomAnalysisNarrative, saveAnalysisInvestment } from "@/lib/analyses/service";
+import type { AnalysisInvestmentInput } from "@/lib/validation/analysis";
 
 export async function saveNarrativeAction(analysisId: string, analysisModuleId: string, formData: FormData) {
   await saveCustomAnalysisNarrative({ analysisModuleId, narrative: String(formData.get("narrative") ?? "") });
@@ -16,6 +17,37 @@ export async function resetNarrativeAction(analysisId: string, analysisModuleId:
 
 export async function moveModuleAction(analysisId: string, analysisModuleId: string, direction: "UP" | "DOWN") {
   await moveAnalysisModule({ analysisModuleId, direction });
+  revalidatePath(`/analyses/${analysisId}/review`);
+  redirect(`/analyses/${analysisId}/review`);
+}
+
+function optionalNumber(value: FormDataEntryValue | null): number | undefined {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function optionalPercentAsDecimal(value: FormDataEntryValue | null): number | undefined {
+  const percent = optionalNumber(value);
+  return percent === undefined ? undefined : percent / 100;
+}
+
+function optionalAdoptionSchedule(value: FormDataEntryValue | null): number[] | undefined {
+  if (typeof value !== "string" || value.trim() === "") return undefined;
+  const entries = value.split(",").map((part) => Number(part.trim()) / 100);
+  return entries.every((entry) => Number.isFinite(entry)) ? entries : undefined;
+}
+
+export async function saveInvestmentAction(analysisId: string, formData: FormData) {
+  const input: AnalysisInvestmentInput = {
+    investmentOneTimeCost: optionalNumber(formData.get("investmentOneTimeCost")),
+    investmentAnnualRecurringCost: optionalNumber(formData.get("investmentAnnualRecurringCost")),
+    investmentChangeManagementCost: optionalNumber(formData.get("investmentChangeManagementCost")),
+    roiHorizonYears: optionalNumber(formData.get("roiHorizonYears")),
+    roiDiscountRatePct: optionalPercentAsDecimal(formData.get("roiDiscountRatePct")),
+    adoptionSchedulePct: optionalAdoptionSchedule(formData.get("adoptionSchedulePct")),
+  };
+  await saveAnalysisInvestment({ analysisId, input });
   revalidatePath(`/analyses/${analysisId}/review`);
   redirect(`/analyses/${analysisId}/review`);
 }

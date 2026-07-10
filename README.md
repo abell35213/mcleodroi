@@ -169,7 +169,7 @@ P1-8 adds immutable presentation snapshots and the reusable PowerPoint design sy
 
 See `docs/presentation-architecture.md` for snapshot persistence, 16:9 theme/layout constants, reusable PptxGenJS components, slide template primitives, generated-file path strategy, and the development-only golden fixture (`npm run presentation:golden`).
 
-## ROI, payback, and NPV engine
+## ROI, payback, NPV, and IRR engine
 
 `lib/calculations/roi.ts` adds a deterministic, purely additive ROI engine that turns an identified annual economic opportunity into investment-relative credibility metrics. It is independent of the existing module calculators and leaves all existing behavior unchanged when it is not called.
 
@@ -179,16 +179,23 @@ See `docs/presentation-architecture.md` for snapshot persistence, 16:9 theme/lay
 - `investment` — one-time upfront investment; must be greater than zero.
 - `annualRecurringCost` — optional ongoing yearly cost; defaults to `0`.
 - `horizonYears` — optional whole-year horizon; defaults to `3`.
-- `discountRatePct` — optional annual discount rate as a decimal (pass 10% as `0.1`); defaults to `0`.
+- `discountRatePct` — optional annual discount rate as a decimal (pass 10% as `0.1`); defaults to `0` in the pure engine. The analysis layer applies a seller-editable `DEFAULT_ANALYSIS_DISCOUNT_RATE` of `0.1` when a deal opts into ROI without specifying one.
+- `adoptionSchedulePct` — optional per-year adoption ramp as decimal fractions (e.g. `[0.5, 0.8, 1]`). When present its length must equal `horizonYears`; each entry scales that year's gross benefit. Defaults to full (`1`) adoption every year, so omitting it leaves every scalar metric identical to a flat model.
 
 Methodology rules:
 
-- `netAnnualValue = annualValue - annualRecurringCost`.
-- `paybackMonths` is simple (undiscounted) payback and is `null` when the net monthly value is not positive, i.e. the investment never recoups.
+- `netAnnualValue = annualValue - annualRecurringCost` (steady-state, full adoption).
+- `paybackMonths` is simple (undiscounted, steady-state) payback and is `null` when the net monthly value is not positive, i.e. the investment never recoups.
 - `firstYearRoiPct = (netAnnualValue - investment) / investment`.
 - `horizonRoiPct = (netAnnualValue * horizonYears - investment) / investment`.
 - ROI figures are decimal ratios, not percentage points: `3` means 300%.
-- `npv` discounts each horizon year's net annual value: `-investment + Σ netAnnualValue / (1 + discountRatePct)^year`.
+- The scalar payback and ROI ratios use the steady-state net value; the adoption ramp is honored by NPV, IRR, and the cumulative benefit curve.
+- Per horizon year `y`: `grossBenefit = annualValue * adoptionPct_y`, `netBenefit = grossBenefit - annualRecurringCost`, `discountedNetBenefit = netBenefit / (1 + discountRatePct)^y`.
+- `npv = -investment + Σ discountedNetBenefit` across the horizon.
+- `irr` is the decimal rate solving `NPV = 0` over the cash flows `[-investment, netBenefit_1, …, netBenefit_H]`, found by bisection. It is `null` when no rate brackets a sign change (e.g. every net annual benefit is non-positive).
+- `cumulativeBenefitCurve` reports, per year, the adoption fraction, gross/net benefit, running net benefit, running net cash flow (including the upfront investment), discounted net benefit, and running NPV.
 - Results preserve internal precision and are not display-rounded.
 
-The engine is covered by hand-verified golden scenarios in `scripts/fixtures/roi-golden.ts`, asserted in `tests/unit/roi.test.ts` and printable for inspection with `npm run roi:golden`.
+The analysis layer (`lib/analyses/service.ts`) persists seller-entered investment inputs on the `Analysis` record (`investmentOneTimeCost`, `investmentAnnualRecurringCost`, `investmentChangeManagementCost`, `roiHorizonYears`, `roiDiscountRatePct`, `adoptionSchedulePctJson` — all nullable) via `saveAnalysisInvestment(...)`. `calculateAnalysis(...)` then derives `roi` from `totalIdentifiedAnnualEconomicOpportunity` and the total investment (one-time + change-management). ROI stays `null` — and identified-opportunity analyses are unaffected — until a positive one-time investment is entered.
+
+The engine is covered by hand-verified golden scenarios in `scripts/fixtures/roi-golden.ts`, asserted in `tests/unit/roi.test.ts` and printable for inspection with `npm run roi:golden`. Persistence and wiring are covered by `tests/integration/analysis-investment.test.ts`.

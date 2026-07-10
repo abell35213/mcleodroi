@@ -1,16 +1,18 @@
 import type { PrismaClient } from "@prisma/client";
 import {
   createAnalysisSchema,
+  analysisInvestmentSchema,
   type CreateAnalysisInput,
+  type AnalysisInvestmentInput,
 } from "@/lib/validation/analysis";
 import { prisma as defaultPrisma } from "@/lib/db";
-import { calculateValueModule } from "@/lib/calculations";
+import { calculateValueModule, calculateRoi, DEFAULT_ANALYSIS_DISCOUNT_RATE, DEFAULT_ROI_HORIZON_YEARS } from "@/lib/calculations";
 import { renderCalculatedModuleNarrative } from "@/lib/narratives";
 import {
   createNarrativeSourceFingerprint,
   normalizeNarrativeForComparison,
 } from "@/lib/narratives/fingerprint";
-import type { CalculationOutcome, CalculationResult } from "@/lib/calculations";
+import type { CalculationOutcome, CalculationResult, RoiMetrics } from "@/lib/calculations";
 import {
   getAllValueModules,
   getCategoryByKey,
@@ -30,6 +32,7 @@ import type {
 } from "@/lib/modules";
 import type {
   AnalysisCalculationSummary,
+  AnalysisInvestment,
   AnalysisModuleState,
   AnalysisModuleStatus,
   CalculatedAnalysis,
@@ -567,6 +570,122 @@ export function deriveAnalysisWorkflowReadiness(
   };
 }
 
+type InvestmentRecordFields = {
+  investmentOneTimeCost: number | null;
+  investmentAnnualRecurringCost: number | null;
+  investmentChangeManagementCost: number | null;
+  roiHorizonYears: number | null;
+  roiDiscountRatePct: number | null;
+  adoptionSchedulePctJson: string | null;
+};
+
+function parseAdoptionSchedule(json: string | null): number[] | null {
+  if (!json) return null;
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (
+      Array.isArray(parsed) &&
+      parsed.every((value) => typeof value === "number" && Number.isFinite(value))
+    ) {
+      return parsed as number[];
+    }
+  } catch {
+    // Ignore malformed persisted JSON and treat the schedule as absent.
+  }
+  return null;
+}
+
+export function toAnalysisInvestment(
+  record: InvestmentRecordFields,
+): AnalysisInvestment {
+  return {
+    investmentOneTimeCost: record.investmentOneTimeCost,
+    investmentAnnualRecurringCost: record.investmentAnnualRecurringCost,
+    investmentChangeManagementCost: record.investmentChangeManagementCost,
+    roiHorizonYears: record.roiHorizonYears,
+    roiDiscountRatePct: record.roiDiscountRatePct,
+    adoptionSchedulePct: parseAdoptionSchedule(record.adoptionSchedulePctJson),
+  };
+}
+
+/**
+ * Derive finance-grade ROI from the identified opportunity and the seller-entered
+ * investment. Returns `null` when there is no positive one-time investment, so
+ * identified-opportunity-only analyses are unaffected.
+ */
+export function deriveAnalysisRoi(
+  investment: AnalysisInvestment,
+  summary: AnalysisCalculationSummary,
+): RoiMetrics | null {
+  const oneTime = investment.investmentOneTimeCost ?? 0;
+  const changeManagement = investment.investmentChangeManagementCost ?? 0;
+  const totalInvestment = oneTime + changeManagement;
+  if (!(totalInvestment > 0)) return null;
+  const horizonYears = investment.roiHorizonYears ?? DEFAULT_ROI_HORIZON_YEARS;
+  const adoptionSchedulePct =
+    investment.adoptionSchedulePct &&
+    investment.adoptionSchedulePct.length === horizonYears
+      ? investment.adoptionSchedulePct
+      : undefined;
+  const outcome = calculateRoi({
+    annualValue: summary.totalIdentifiedAnnualEconomicOpportunity,
+    investment: totalInvestment,
+    annualRecurringCost: investment.investmentAnnualRecurringCost ?? 0,
+    horizonYears,
+    discountRatePct: investment.roiDiscountRatePct ?? DEFAULT_ANALYSIS_DISCOUNT_RATE,
+    adoptionSchedulePct,
+  });
+  return outcome.success ? outcome.result : null;
+}
+
+/**
+ * Persist seller-entered investment inputs and ROI assumptions on the analysis.
+ * A save replaces the entire investment block, so omitting a field clears it.
+ */
+export async function saveAnalysisInvestment(args: {
+  analysisId: string;
+  input: AnalysisInvestmentInput;
+  db?: Db;
+}): Promise<ServiceResult<AnalysisInvestment>> {
+  const db = args.db ?? defaultPrisma;
+  const parsed = analysisInvestmentSchema.safeParse(args.input);
+  if (!parsed.success) {
+    return err(
+      "INVALID_INVESTMENT_INPUT",
+      parsed.error.issues.map((issue) => issue.message).join(" "),
+    );
+  }
+  const existing = await db.analysis.findUnique({
+    where: { id: args.analysisId },
+  });
+  if (!existing) return err("ANALYSIS_NOT_FOUND", "Analysis was not found.");
+
+  const data = parsed.data;
+  const horizonYears =
+    data.roiHorizonYears ?? existing.roiHorizonYears ?? DEFAULT_ROI_HORIZON_YEARS;
+  if (data.adoptionSchedulePct && data.adoptionSchedulePct.length !== horizonYears) {
+    return err(
+      "INVALID_INVESTMENT_INPUT",
+      "Adoption schedule must provide exactly one value per horizon year.",
+    );
+  }
+
+  const updated = await db.analysis.update({
+    where: { id: args.analysisId },
+    data: {
+      investmentOneTimeCost: data.investmentOneTimeCost ?? null,
+      investmentAnnualRecurringCost: data.investmentAnnualRecurringCost ?? null,
+      investmentChangeManagementCost: data.investmentChangeManagementCost ?? null,
+      roiHorizonYears: data.roiHorizonYears ?? null,
+      roiDiscountRatePct: data.roiDiscountRatePct ?? null,
+      adoptionSchedulePctJson: data.adoptionSchedulePct
+        ? JSON.stringify(data.adoptionSchedulePct)
+        : null,
+    },
+  });
+  return ok(toAnalysisInvestment(updated));
+}
+
 export async function calculateAnalysis(args: {
   analysisId: string;
   db?: Db;
@@ -602,6 +721,8 @@ export async function calculateAnalysis(args: {
     );
   });
   const summary = summarizeCalculatedModules(calculated);
+  const investment = toAnalysisInvestment(analysis);
+  const roi = deriveAnalysisRoi(investment, summary);
   return ok({
     analysis: {
       id: analysis.id,
@@ -615,6 +736,8 @@ export async function calculateAnalysis(args: {
     ),
     summary,
     workflowReadiness: deriveAnalysisWorkflowReadiness(summary),
+    investment,
+    roi,
   });
 }
 

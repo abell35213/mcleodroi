@@ -140,12 +140,15 @@ expected output) is enumerated in the CSV and fixtures.
 - **NON_OPS_PRODUCTIVITY** (`CAPACITY_VALUE`)
   - `monthlyRecurringValue = redundant_hours_month * hourly_labor_rate`
 
-## ROI, payback, and NPV layer
+## ROI, payback, NPV, and IRR layer
 
-The finance-grade ROI layer (net annual benefit, ROI %, payback, NPV) is
-documented in the root `README.md` and pinned by `scripts/fixtures/roi-golden.ts`
-plus `tests/unit/roi.test.ts`. It is additive: analyses without seller-entered
-investment are unaffected.
+The finance-grade ROI layer (net annual benefit, ROI %, simple payback, NPV,
+IRR, and the multi-year cumulative benefit curve, with an optional adoption
+ramp) is documented in the root `README.md` and pinned by
+`scripts/fixtures/roi-golden.ts` plus `tests/unit/roi.test.ts`. Seller-entered
+investment inputs are persisted on the `Analysis` record and wired into
+`calculateAnalysis`, covered by `tests/integration/analysis-investment.test.ts`.
+It is additive: analyses without seller-entered investment are unaffected.
 
 ## Changing a formula
 

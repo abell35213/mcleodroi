@@ -46,6 +46,12 @@ model Analysis {
   analysisDate     DateTime
   customerLogoPath String?
   status           AnalysisStatus @default(DRAFT)
+  investmentOneTimeCost           Float?
+  investmentAnnualRecurringCost   Float?
+  investmentChangeManagementCost  Float?
+  roiHorizonYears                 Int?
+  roiDiscountRatePct              Float?
+  adoptionSchedulePctJson         String?
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
   modules          AnalysisModule[]

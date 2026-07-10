@@ -10,6 +10,7 @@ export const validationCodes = {
   TARGET_MUST_BE_HIGHER: "TARGET_MUST_BE_HIGHER",
   VALUE_EXCEEDS_CURRENT: "VALUE_EXCEEDS_CURRENT",
   INVALID_MODULE_INPUT: "INVALID_MODULE_INPUT",
+  ADOPTION_SCHEDULE_LENGTH: "ADOPTION_SCHEDULE_LENGTH",
 } as const;
 
 export type ValidationCode = (typeof validationCodes)[keyof typeof validationCodes];
