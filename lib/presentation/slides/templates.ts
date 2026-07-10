@@ -1,6 +1,6 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
-import { presentationTheme as T } from "@/lib/presentation/theme";
+import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T } from "@/lib/presentation/theme";
 import type { CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
 import { addAssumptionGrid, addBrandHeader, addDisclaimer, addFooter, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
 
@@ -18,7 +18,7 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   s.addText("Business Impact Analysis", { x: 0.72, y: 1.68, w: 3.3, h: 1.1, fontSize: T.typography.coverTitleFontSize, bold: true, color: c.white, fit: "shrink", breakLine: false });
   s.addShape("line", { x: 0.72, y: 2.98, w: 1.35, h: 0, line: { color: c.sunriseGold, width: 3 } });
   s.addText(`Prepared for\n${m.companyName}`, { x: 0.72, y: 3.28, w: 3.2, h: 0.72, fontSize: 16, color: c.white, breakLine: false, fit: "shrink" });
-  s.addText("©2026 McLeod Software® | Proprietary & Confidential", { x: 0.72, y: 6.95, w: 3.7, h: 0.16, fontSize: 7, color: c.white, transparency: 10, fit: "shrink" });
+  s.addText(PROPRIETARY_FOOTER_TEXT, { x: 0.72, y: 6.95, w: 3.7, h: 0.16, fontSize: 7, color: c.white, transparency: 10, fit: "shrink" });
   if (m.analysisDate) s.addText(m.analysisDate, { x: 9.65, y: 6.9, w: 2.6, h: 0.2, align: "right", fontSize: 9, color: c.white });
   return s;
 }
