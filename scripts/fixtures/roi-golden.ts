@@ -94,12 +94,12 @@ export const roiGoldenScenarios: readonly RoiGoldenScenario[] = [
       adoptionSchedulePct: [0.5, 0.8, 1],
     },
     expected: {
-      // Scalar payback/ROI use the steady-state (full-adoption) net value.
+      // Adoption-aware ROI/payback use the same net benefits as NPV/IRR: 250k, 430k, 550k.
       netAnnualValue: 550000,
-      netMonthlyValue: 550000 / 12,
-      paybackMonths: 150000 / (550000 / 12),
-      firstYearRoiPct: (550000 - 150000) / 150000,
-      horizonRoiPct: (550000 * 3 - 150000) / 150000,
+      netMonthlyValue: 250000 / 12,
+      paybackMonths: 8,
+      firstYearRoiPct: (250000 - 150000) / 150000,
+      horizonRoiPct: (1230000 - 150000) / 150000,
       // NPV/IRR honor the ramp: net benefits are 250k, 430k, 550k.
       npv: 845867.7685950412,
       irr: 2.01868628597359,

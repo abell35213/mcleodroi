@@ -579,32 +579,31 @@ type InvestmentRecordFields = {
   adoptionSchedulePctJson: string | null;
 };
 
-function parseAdoptionSchedule(json: string | null): number[] | null {
-  if (!json) return null;
+function parseAdoptionSchedule(json: string | null): { schedule: number[] | null; integrityError: boolean } {
+  if (json === null) return { schedule: null, integrityError: false };
   try {
     const parsed: unknown = JSON.parse(json);
-    if (
-      Array.isArray(parsed) &&
-      parsed.every((value) => typeof value === "number" && Number.isFinite(value))
-    ) {
-      return parsed as number[];
+    if (Array.isArray(parsed)) {
+      return { schedule: parsed as number[], integrityError: false };
     }
   } catch {
-    // Ignore malformed persisted JSON and treat the schedule as absent.
+    // A persisted but malformed schedule is an integrity error; do not silently default it.
   }
-  return null;
+  return { schedule: null, integrityError: true };
 }
 
 export function toAnalysisInvestment(
   record: InvestmentRecordFields,
 ): AnalysisInvestment {
+  const parsedSchedule = parseAdoptionSchedule(record.adoptionSchedulePctJson);
   return {
     investmentOneTimeCost: record.investmentOneTimeCost,
     investmentAnnualRecurringCost: record.investmentAnnualRecurringCost,
     investmentChangeManagementCost: record.investmentChangeManagementCost,
     roiHorizonYears: record.roiHorizonYears,
     roiDiscountRatePct: record.roiDiscountRatePct,
-    adoptionSchedulePct: parseAdoptionSchedule(record.adoptionSchedulePctJson),
+    adoptionSchedulePct: parsedSchedule.schedule,
+    adoptionScheduleIntegrityError: parsedSchedule.integrityError,
   };
 }
 
@@ -623,11 +622,7 @@ export function deriveRoiForAnnualValue(
   const totalInvestment = oneTime + changeManagement;
   if (!(totalInvestment > 0)) return null;
   const horizonYears = investment.roiHorizonYears ?? DEFAULT_ROI_HORIZON_YEARS;
-  const adoptionSchedulePct =
-    investment.adoptionSchedulePct &&
-    investment.adoptionSchedulePct.length === horizonYears
-      ? investment.adoptionSchedulePct
-      : undefined;
+  const adoptionSchedulePct = investment.adoptionSchedulePct ?? undefined;
   const outcome = calculateRoi({
     annualValue,
     investment: totalInvestment,
@@ -753,7 +748,13 @@ export async function calculateAnalysis(args: {
   });
   const summary = summarizeCalculatedModules(calculated);
   const investment = toAnalysisInvestment(analysis);
+  if (investment.adoptionScheduleIntegrityError) {
+    return err("ADOPTION_SCHEDULE_INTEGRITY_ERROR", "Persisted adoption schedule is malformed and must be corrected before ROI can be calculated.");
+  }
   const roi = deriveAnalysisRoi(investment, summary);
+  if (investment.adoptionSchedulePct && roi === null && (investment.investmentOneTimeCost ?? 0) + (investment.investmentChangeManagementCost ?? 0) > 0) {
+    return err("ADOPTION_SCHEDULE_INTEGRITY_ERROR", "Persisted adoption schedule is invalid for the configured ROI horizon and must be corrected before ROI can be calculated.");
+  }
   return ok({
     analysis: {
       id: analysis.id,

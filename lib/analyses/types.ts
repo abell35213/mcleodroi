@@ -94,6 +94,7 @@ export type AnalysisInvestment = {
   readonly roiHorizonYears: number | null;
   readonly roiDiscountRatePct: number | null;
   readonly adoptionSchedulePct: readonly number[] | null;
+  readonly adoptionScheduleIntegrityError?: boolean;
 };
 
 export type CalculatedAnalysis = {
@@ -131,6 +132,7 @@ export const analysisServiceErrorCodes = [
   "BUSINESS_TYPE_CHANGE_REQUIRES_NEW_ANALYSIS",
   "ANALYSIS_MODULE_INTEGRITY_ERROR",
   "INVALID_INVESTMENT_INPUT",
+  "ADOPTION_SCHEDULE_INTEGRITY_ERROR",
 ] as const;
 export type AnalysisServiceErrorCode =
   (typeof analysisServiceErrorCodes)[number];

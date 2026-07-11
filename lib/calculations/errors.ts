@@ -11,6 +11,7 @@ export const validationCodes = {
   VALUE_EXCEEDS_CURRENT: "VALUE_EXCEEDS_CURRENT",
   INVALID_MODULE_INPUT: "INVALID_MODULE_INPUT",
   ADOPTION_SCHEDULE_LENGTH: "ADOPTION_SCHEDULE_LENGTH",
+  ADOPTION_SCHEDULE_DECLINES: "ADOPTION_SCHEDULE_DECLINES",
 } as const;
 
 export type ValidationCode = (typeof validationCodes)[keyof typeof validationCodes];

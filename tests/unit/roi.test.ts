@@ -63,11 +63,12 @@ describe("ROI / payback / NPV engine", () => {
     expect(zero.paybackMonths).toBeNull();
   });
 
-  it("rejects a non-positive investment", () => {
-    const result = calculateRoi({ annualValue: 100000, investment: 0 });
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error("expected failure");
-    expect(result.issues.some((issue) => issue.field === "investment" && issue.code === "POSITIVE_REQUIRED")).toBe(true);
+  it("returns not-applicable ROI metrics for zero initial investment", () => {
+    const metrics = expectSuccess(calculateRoi({ annualValue: 100000, investment: 0 }));
+    expect(metrics.firstYearRoiPct).toBeNull();
+    expect(metrics.horizonRoiPct).toBeNull();
+    expect(metrics.paybackMonths).toBeNull();
+    expect(metrics.irr).toBeNull();
   });
 
   it("rejects negative and non-finite inputs", () => {
@@ -95,6 +96,14 @@ describe("ROI / payback / NPV engine", () => {
     expect(result.success).toBe(false);
     if (result.success) throw new Error("expected failure");
     expect(result.issues.some((issue) => issue.code === "PERCENTAGE_OUT_OF_RANGE")).toBe(true);
+  });
+
+  it("rejects non-finite and declining adoption schedules", () => {
+    expect(calculateRoi({ annualValue: 100000, investment: 50000, horizonYears: 2, adoptionSchedulePct: [0.5, Number.NaN] }).success).toBe(false);
+    const declining = calculateRoi({ annualValue: 100000, investment: 50000, horizonYears: 3, adoptionSchedulePct: [1, 0.7, 0.9] });
+    expect(declining.success).toBe(false);
+    if (declining.success) throw new Error("expected failure");
+    expect(declining.issues.some((issue) => issue.code === "ADOPTION_SCHEDULE_DECLINES")).toBe(true);
   });
 
   it("does not mutate the caller's input object", () => {
