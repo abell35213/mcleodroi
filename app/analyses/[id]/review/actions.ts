@@ -45,8 +45,12 @@ function numberOrUndefined(value: string): number | undefined {
 }
 
 function adoptionScheduleOrUndefined(value: string): number[] | undefined {
-  if (value.trim() === "") return undefined;
-  return value.split(",").map((part) => Number(part.trim()) / 100);
+  const trimmed = value.trim();
+  if (trimmed === "") return undefined;
+  return trimmed.split(",").map((part) => {
+    const token = part.trim();
+    return token === "" ? Number.NaN : Number(token) / 100;
+  });
 }
 
 function investmentInput(values: InvestmentFormValues): AnalysisInvestmentInput {
