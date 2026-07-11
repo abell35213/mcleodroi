@@ -752,8 +752,7 @@ export async function calculateAnalysis(args: {
     return err("ADOPTION_SCHEDULE_INTEGRITY_ERROR", "Persisted adoption schedule is malformed and must be corrected before ROI can be calculated.");
   }
   const roi = deriveAnalysisRoi(investment, summary);
-  if (investment.adoptionSchedulePct && roi === null && (investment.investmentOneTimeCost ?? 0) + (investment.investmentChangeManagementCost ?? 0) > 0) {
-    return err("ADOPTION_SCHEDULE_INTEGRITY_ERROR", "Persisted adoption schedule is invalid for the configured ROI horizon and must be corrected before ROI can be calculated.");
+    return err("ADOPTION_SCHEDULE_INTEGRITY_ERROR", "Persisted adoption schedule is invalid (must match the ROI horizon, contain finite values in [0, 1], and be non-decreasing) and must be corrected before ROI can be calculated.");
   }
   return ok({
     analysis: {
