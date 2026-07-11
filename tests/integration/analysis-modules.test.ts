@@ -14,6 +14,7 @@ import {
   saveCustomAnalysisNarrative,
   resetAnalysisNarrativeToTemplate,
   moveAnalysisModule,
+  updateAnalysisDetails,
 } from "@/lib/analyses";
 import { getValueModule } from "@/lib/modules";
 
@@ -128,6 +129,125 @@ describe("defaults and status derivation", () => {
       expect(calculated.value.calculationOutcome.result.derivedMetrics.avoided_deadhead_miles).toBeCloseTo(25000);
       expect(calculated.value.calculationOutcome.result.financialOutputs.monthlyRecurringValue).toBeCloseTo(11250);
     }
+  });
+});
+
+
+describe("P1-Audit-1 business type and analysis integrity invariants", () => {
+  it("allows changing business type before any opportunities are selected", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const result = await updateAnalysisDetails({
+      analysisId: analysis.id,
+      db,
+      input: {
+        companyName: "Updated Customer",
+        customerContact: "Pat Pilot",
+        businessType: "BROKERAGE",
+        preparedBy: "Tester",
+        analysisDate: new Date("2026-07-09T00:00:00Z"),
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    const updated = await db.analysis.findUniqueOrThrow({ where: { id: analysis.id } });
+    expect(updated.businessType).toBe("BROKERAGE");
+    expect(updated.companyName).toBe("Updated Customer");
+  });
+
+  it("rejects a different business type after an opportunity is selected", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+
+    const result = await updateAnalysisDetails({
+      analysisId: analysis.id,
+      db,
+      input: {
+        companyName: "Blocked Change",
+        businessType: "BROKERAGE",
+        preparedBy: "Tester",
+        analysisDate: new Date("2026-07-09T00:00:00Z"),
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe("BUSINESS_TYPE_CHANGE_REQUIRES_NEW_ANALYSIS");
+      expect(result.error.message).toContain("Business type cannot be changed after opportunities have been selected");
+    }
+  });
+
+  it("allows saving the same business type after opportunities are selected", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+
+    const result = await updateAnalysisDetails({
+      analysisId: analysis.id,
+      db,
+      input: {
+        companyName: "Same Type Saved",
+        businessType: "TRUCKLOAD",
+        preparedBy: "Tester Two",
+        analysisDate: new Date("2026-07-10T00:00:00Z"),
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    const updated = await db.analysis.findUniqueOrThrow({ where: { id: analysis.id } });
+    expect(updated.businessType).toBe("TRUCKLOAD");
+    expect(updated.companyName).toBe("Same Type Saved");
+  });
+
+  it("preserves business type, modules, inputs, and narratives when a business type change is rejected", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const selected = await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await saveOrThrow(selected.analysisModuleId, { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 });
+    await saveCustomAnalysisNarrative({ analysisModuleId: selected.analysisModuleId, narrative: "Keep this customer narrative.", db });
+
+    const result = await updateAnalysisDetails({
+      analysisId: analysis.id,
+      db,
+      input: {
+        companyName: "Should Not Save",
+        businessType: "BROKERAGE",
+        preparedBy: "Should Not Save",
+        analysisDate: new Date("2026-07-10T00:00:00Z"),
+      },
+    });
+
+    expect(result.ok).toBe(false);
+    const preserved = await db.analysis.findUniqueOrThrow({ where: { id: analysis.id }, include: { modules: { include: { inputs: true } } } });
+    expect(preserved.businessType).toBe("TRUCKLOAD");
+    expect(preserved.companyName).toBe("TRUCKLOAD Customer");
+    expect(preserved.modules).toHaveLength(1);
+    expect(preserved.modules[0].moduleKey).toBe("REDUCE_DEADHEAD");
+    expect(preserved.modules[0].customNarrative).toBe("Keep this customer narrative.");
+    expect(preserved.modules[0].inputs.map((input) => input.inputKey).sort()).toEqual(["current_deadhead_pct", "monthly_miles", "target_deadhead_pct", "variable_cost_per_mile"]);
+  });
+
+  it("blocks calculateAnalysis when a persisted module is incompatible with the analysis business type", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await db.analysis.update({ where: { id: analysis.id }, data: { businessType: "BROKERAGE" } });
+
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+
+    expect(calculated.ok).toBe(false);
+    if (!calculated.ok) {
+      expect(calculated.error.code).toBe("ANALYSIS_MODULE_INTEGRITY_ERROR");
+      expect(calculated.error.message).toContain("REDUCE_DEADHEAD");
+    }
+  });
+
+  it("does not become review-ready by silently skipping an invalid persisted module", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const selected = await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    await saveOrThrow(selected.analysisModuleId, { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 });
+    await db.analysisModule.update({ where: { id: selected.analysisModuleId }, data: { moduleKey: "NOT_IN_REGISTRY" } });
+
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+
+    expect(calculated.ok).toBe(false);
+    if (!calculated.ok) expect(calculated.error.code).toBe("ANALYSIS_MODULE_INTEGRITY_ERROR");
   });
 });
 

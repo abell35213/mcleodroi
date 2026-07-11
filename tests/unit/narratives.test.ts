@@ -37,8 +37,22 @@ describe("narrative registry integrity", () => {
       expect(variant.fullDisclaimer).toBeTruthy();
       expect(variant.presentationDisclaimer).toBeTruthy();
     }
-    expect(getValueModule("BROKERAGE_LTL").narrativeStatus).toBe("DRAFT_APPROVED");
-    expect(getValueModule("SHORT_HAUL_EFFICIENCY").narrativeStatus).toBe("DRAFT_APPROVED");
+    expect(getValueModule("BROKERAGE_LTL").narrativeStatus).toBe("NEEDS_PRODUCT_REVIEW");
+    expect(getValueModule("SHORT_HAUL_EFFICIENCY").narrativeStatus).toBe("NEEDS_PRODUCT_REVIEW");
+    expect(getNarrativeVariant("BROKERAGE_LTL", "BROKERAGE")).toMatchObject({ ok: true, value: { status: "NEEDS_PRODUCT_REVIEW" } });
+    expect(getNarrativeVariant("SHORT_HAUL_EFFICIENCY", "TRUCKLOAD")).toMatchObject({ ok: true, value: { status: "NEEDS_PRODUCT_REVIEW" } });
+  });
+
+
+  it("surfaces product-review modules in review readiness status counts", () => {
+    const calculatedModules = [
+      moduleFor("BROKERAGE_LTL", { current_manual_hours_month: 100, hours_saved_month: 40, hourly_labor_rate: 30 }),
+      moduleFor("SHORT_HAUL_EFFICIENCY", { tickets_per_week: 525, current_minutes_per_ticket: 5, target_minutes_per_ticket: 2, hourly_labor_rate: 30, transaction_cost_per_ticket: 0.25 }),
+    ];
+
+    const needsReviewCount = calculatedModules.filter((module) => getValueModule(module.moduleKey).narrativeStatus === "NEEDS_PRODUCT_REVIEW").length;
+
+    expect(needsReviewCount).toBe(2);
   });
 
   it("rejects unavailable business type variants", () => {
