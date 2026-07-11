@@ -75,7 +75,15 @@ function parseModuleKeys(json: string | null): ValueModuleKey[] {
   try {
     const parsed: unknown = JSON.parse(json);
     if (!Array.isArray(parsed)) return [];
-    return parsed.filter((value): value is ValueModuleKey => typeof value === "string");
+    return parsed.flatMap((value) => {
+      if (typeof value !== "string") return [];
+      try {
+        getValueModule(value as ValueModuleKey);
+        return [value as ValueModuleKey];
+      } catch {
+        return [];
+      }
+    });
   } catch {
     return [];
   }
