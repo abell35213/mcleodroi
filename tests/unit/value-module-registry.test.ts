@@ -132,11 +132,9 @@ describe("canonical value module registry", () => {
     }
   });
 
-  it("limits product-review narrative status to the specified modules", () => {
-    expect(getAllValueModules().filter((valueModule) => valueModule.narrativeStatus === "NEEDS_PRODUCT_REVIEW").map((valueModule) => valueModule.key)).toEqual([
-      "BROKERAGE_LTL",
-      "SHORT_HAUL_EFFICIENCY",
-    ]);
+  it("has every module narrative approved with no outstanding product review", () => {
+    expect(getAllValueModules().filter((valueModule) => valueModule.narrativeStatus === "NEEDS_PRODUCT_REVIEW").map((valueModule) => valueModule.key)).toEqual([]);
+    expect(getAllValueModules().every((valueModule) => valueModule.narrativeStatus === "DRAFT_APPROVED")).toBe(true);
   });
 
   it("returns safe copies instead of mutable registry arrays", () => {

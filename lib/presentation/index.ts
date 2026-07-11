@@ -5,6 +5,7 @@ export * from "./layout";
 export * from "./format";
 export * from "./text";
 export * from "./paths";
+export * from "./logo";
 export * from "./snapshot";
 export * from "./composition";
 export * from "./generation";

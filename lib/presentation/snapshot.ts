@@ -1,9 +1,11 @@
 import type { PrismaClient } from "@prisma/client";
 import { calculateAnalysis } from "@/lib/analyses/service";
+import { buildCategoryBreakdown, buildCumulativeBenefitSeries, buildValueTypeBreakdown, buildValueWaterfall } from "@/lib/analyses/charts";
 import { prisma as defaultPrisma } from "@/lib/db";
 import { NARRATIVE_REGISTRY_VERSION, stableSerialize } from "@/lib/narratives/fingerprint";
 import { renderAnalysisNarratives, resolveEffectiveNarrative, productContextForBusinessType } from "@/lib/narratives";
 import { getCategoryByKey, getValueModule } from "@/lib/modules";
+import { readCustomerLogoDataUri } from "./logo";
 import { PRESENTATION_SNAPSHOT_VERSION, PRESENTATION_TEMPLATE_VERSION } from "./version";
 import type { PresentationGenerationMetadata, PresentationServiceResult, PresentationSnapshot, PresentationSnapshotCategory, SnapshotScalarMap } from "./types";
 
@@ -42,6 +44,17 @@ export async function createPresentationSnapshot(args: { analysisId: string; db?
     analysis: { id: analysisRecord.id, companyName: analysisRecord.companyName, customerContact: analysisRecord.customerContact, businessType: analysisRecord.businessType, productContext: productContextForBusinessType(analysisRecord.businessType), preparedBy: analysisRecord.preparedBy, analysisDate: analysisRecord.analysisDate.toISOString() },
     summary: { monthlyRecurringValueTotal: calculated.value.summary.monthlyRecurringValueTotal, annualRecurringValueTotal: calculated.value.summary.annualRecurringValueTotal, annualOnlyValueTotal: calculated.value.summary.annualOnlyValueTotal, totalIdentifiedAnnualEconomicOpportunity: calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity, informationalCapitalValueTotal: calculated.value.summary.informationalCapitalValueTotal, valueTypeBreakdown: calculated.value.summary.valueTypeBreakdown, informationalCapitalValues: calculated.value.summary.informationalCapitalValues },
     overlapNotices: calculated.value.overlapNotices, categories: [...categories.values()],
+    roi: calculated.value.roi ?? null,
+    charts: {
+      waterfall: buildValueWaterfall(calculated.value),
+      valueTypeBreakdown: buildValueTypeBreakdown(calculated.value),
+      categoryBreakdown: buildCategoryBreakdown(calculated.value),
+      cumulativeBenefit: buildCumulativeBenefitSeries(calculated.value),
+    },
+    branding: {
+      customerLogoPath: analysisRecord.customerLogoPath ?? null,
+      customerLogoDataUri: readCustomerLogoDataUri(analysisRecord.customerLogoPath),
+    },
   };
   const generation = await db.presentationGeneration.create({ data: { analysisId: args.analysisId, templateVersion: PRESENTATION_TEMPLATE_VERSION, snapshotJson: stableSerialize(snapshot), filePath: null } });
   return { ok: true, value: { generation: { id: generation.id, analysisId: generation.analysisId, templateVersion: generation.templateVersion, filePath: generation.filePath, status: generation.status, generatedAt: generation.generatedAt }, snapshot } };

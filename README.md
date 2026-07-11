@@ -168,3 +168,53 @@ Presentation Readiness summarizes calculation completion, narrative review statu
 P1-8 adds immutable presentation snapshots and the reusable PowerPoint design system. A presentation snapshot is created only from a review-ready analysis, stores both the presentation template version and narrative registry version, and remains historical state even if the analysis later changes. Slide components consume typed view models rather than Prisma records or live calculations; full automatic deck composition is deferred to P1-9.
 
 See `docs/presentation-architecture.md` for snapshot persistence, 16:9 theme/layout constants, reusable PptxGenJS components, slide template primitives, generated-file path strategy, and the development-only golden fixture (`npm run presentation:golden`).
+
+## ROI, payback, NPV, and IRR engine
+
+`lib/calculations/roi.ts` adds a deterministic, purely additive ROI engine that turns an identified annual economic opportunity into investment-relative credibility metrics. It is independent of the existing module calculators and leaves all existing behavior unchanged when it is not called.
+
+`calculateRoi(...)` returns a `CalculationOutcome<RoiMetrics>` using the same validation-issue pattern as the module calculators. Inputs:
+
+- `annualValue` — gross identified annual economic opportunity (benefit).
+- `investment` — one-time upfront investment; must be greater than zero.
+- `annualRecurringCost` — optional ongoing yearly cost; defaults to `0`.
+- `horizonYears` — optional whole-year horizon; defaults to `3`.
+- `discountRatePct` — optional annual discount rate as a decimal (pass 10% as `0.1`); defaults to `0` in the pure engine. The analysis layer applies a seller-editable `DEFAULT_ANALYSIS_DISCOUNT_RATE` of `0.1` when a deal opts into ROI without specifying one.
+- `adoptionSchedulePct` — optional per-year adoption ramp as decimal fractions (e.g. `[0.5, 0.8, 1]`). When present its length must equal `horizonYears`; each entry scales that year's gross benefit. Defaults to full (`1`) adoption every year, so omitting it leaves every scalar metric identical to a flat model.
+
+Methodology rules:
+
+- `netAnnualValue = annualValue - annualRecurringCost` (steady-state, full adoption).
+- `paybackMonths` is simple (undiscounted, steady-state) payback and is `null` when the net monthly value is not positive, i.e. the investment never recoups.
+- `firstYearRoiPct = (netAnnualValue - investment) / investment`.
+- `horizonRoiPct = (netAnnualValue * horizonYears - investment) / investment`.
+- ROI figures are decimal ratios, not percentage points: `3` means 300%.
+- The scalar payback and ROI ratios use the steady-state net value; the adoption ramp is honored by NPV, IRR, and the cumulative benefit curve.
+- Per horizon year `y`: `grossBenefit = annualValue * adoptionPct_y`, `netBenefit = grossBenefit - annualRecurringCost`, `discountedNetBenefit = netBenefit / (1 + discountRatePct)^y`.
+- `npv = -investment + Σ discountedNetBenefit` across the horizon.
+- `irr` is the decimal rate solving `NPV = 0` over the cash flows `[-investment, netBenefit_1, …, netBenefit_H]`, found by bisection. It is `null` when no rate brackets a sign change (e.g. every net annual benefit is non-positive).
+- `cumulativeBenefitCurve` reports, per year, the adoption fraction, gross/net benefit, running net benefit, running net cash flow (including the upfront investment), discounted net benefit, and running NPV.
+- Results preserve internal precision and are not display-rounded.
+
+The analysis layer (`lib/analyses/service.ts`) persists seller-entered investment inputs on the `Analysis` record (`investmentOneTimeCost`, `investmentAnnualRecurringCost`, `investmentChangeManagementCost`, `roiHorizonYears`, `roiDiscountRatePct`, `adoptionSchedulePctJson` — all nullable) via `saveAnalysisInvestment(...)`. `calculateAnalysis(...)` then derives `roi` from `totalIdentifiedAnnualEconomicOpportunity` and the total investment (one-time + change-management). ROI stays `null` — and identified-opportunity analyses are unaffected — until a positive one-time investment is entered.
+
+The engine is covered by hand-verified golden scenarios in `scripts/fixtures/roi-golden.ts`, asserted in `tests/unit/roi.test.ts` and printable for inspection with `npm run roi:golden`. Persistence and wiring are covered by `tests/integration/analysis-investment.test.ts`.
+
+## Benchmark defaults and credibility
+
+Module inputs can carry an optional, sourced **benchmark** — an industry-typical range plus a citation — surfaced to build buyer trust without changing any math. Benchmarks are additive metadata: an input with no benchmark is unaffected.
+
+- **Registry:** `ValueModuleInputDefinition.benchmark?` (`{ typicalMin, typicalMax, source }`) uses the input's own convention (percentages as decimals, currency in dollars). Data and the named `benchmarkSources` (ATRI, ATA, EIA, BLS, McLeod) live in `lib/modules/benchmarks.ts` and are merged onto definitions by `getValueModule`/`getAllValueModules`.
+- **Assessment:** each field shows `Industry typical: X–Y · Source: <label>`, with the full citation as a tooltip.
+- **Review:** an "Assumptions & Sources" table lists each benchmarked assumption's entered value against its typical range, with a sources legend (`components/review/assumptions-appendix.tsx`).
+- **Presentation:** an assumptions-appendix slide is appended to the deck when any selected module has benchmark data (`buildAssumptionsAppendixSlide`); it is omitted otherwise.
+- The shared builder `lib/analyses/assumptions.ts` feeds both the Review table and the deck slide. Covered by `tests/unit/benchmarks.test.ts` and `tests/unit/assumptions-appendix.test.ts`.
+
+## Review value-story visualizations
+
+The Review page renders the value story visually so it is instantly consumable on screen. All charts are **static, server-rendered inline SVG** — no external chart library, no client JavaScript, and no network calls — and are built purely from the already-calculated analysis, so they always agree with the headline figures and never re-run the calculation engine.
+
+- **Charts:** a value **waterfall** (each module stacked to the total in display order), **value-type** and **category** 100%-stacked breakdowns, and a multi-year **cumulative benefit & payback** line (from the ROI curve; omitted until an investment is entered).
+- **Data builders:** `lib/analyses/charts.ts` (pure, unit-tested in `tests/unit/review-charts.test.ts`). Accessible SVG components live in `components/review/charts/`, each exposing an `aria-label`, `<title>`/`<desc>`, and a visually hidden data table for assistive technology (`tests/unit/review-visualizations.test.tsx`).
+- **Overlap clarity:** the Review "Assumption Overlap Review" panel (`components/review/overlap-notices.tsx`) surfaces overlapping modules explicitly. Overlaps are **warn-only** — values are never automatically discounted — preserving the existing calculation behavior. See `docs/methodology/README.md` for the methodology decision.
+

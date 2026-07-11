@@ -15,7 +15,7 @@ test("West Side broker productivity workflow", async ({ page }) => {
   await page.getByLabel("Target average loads per broker per day").fill("3");
   await page.getByLabel("Number of brokers").fill("5");
   await page.getByLabel("Working days per month").fill("21");
-  await page.getByLabel("Average gross margin per brokered load").fill("50");
+  await page.getByRole("spinbutton", { name: "Average gross margin per brokered load" }).fill("50");
   await page.getByRole("button", { name: "Save & Calculate" }).click();
   await expect(page.getByText("Estimated Gross-Margin Opportunity")).toBeVisible();
   await expect(page.getByText("$5,250").first()).toBeVisible();
@@ -29,7 +29,7 @@ test("West Side broker productivity workflow", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Review Value Story" })).toBeVisible();
   await expect(page.getByText("$63,000").first()).toBeVisible();
   await expect(page.getByText("Revenue & Margin Opportunity").first()).toBeVisible();
-  await expect(page.getByText("Increase Broker Productivity")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Increase Broker Productivity" })).toBeVisible();
 });
 
 test("West Side review narrative edit stale reset handoff", async ({ page }) => {
@@ -46,7 +46,7 @@ test("West Side review narrative edit stale reset handoff", async ({ page }) => 
   await page.getByLabel("Target average loads per broker per day").fill("3.5");
   await page.getByLabel("Number of brokers").fill("5");
   await page.getByLabel("Working days per month").fill("20");
-  await page.getByLabel("Average gross margin per brokered load").fill("75");
+  await page.getByRole("spinbutton", { name: "Average gross margin per brokered load" }).fill("75");
   await page.getByRole("button", { name: "Save & Calculate" }).click();
   await expect(page.getByText("$26,250").first()).toBeVisible();
   await expect(page.getByText("COMPLETE")).toBeVisible();
@@ -55,7 +55,7 @@ test("West Side review narrative edit stale reset handoff", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Review Value Story" })).toBeVisible();
   await expect(page.getByText("$315,000").first()).toBeVisible();
   await expect(page.getByText("Revenue & Margin Opportunity").first()).toBeVisible();
-  await expect(page.getByText("Increase Broker Productivity")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Increase Broker Productivity" })).toBeVisible();
   await expect(page.getByText(/West Side Transport currently averages/)).toBeVisible();
 
   await page.getByRole("button", { name: "Edit Analysis" }).click();
