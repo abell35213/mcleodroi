@@ -748,17 +748,14 @@ export async function calculateAnalysis(args: {
   });
   const summary = summarizeCalculatedModules(calculated);
   const investment = toAnalysisInvestment(analysis);
+  const totalInvestment =
+    (investment.investmentOneTimeCost ?? 0) +
+    (investment.investmentChangeManagementCost ?? 0);
   if (investment.adoptionScheduleIntegrityError) {
     return err("ADOPTION_SCHEDULE_INTEGRITY_ERROR", "Persisted adoption schedule is malformed and must be corrected before ROI can be calculated.");
   }
   const roi = deriveAnalysisRoi(investment, summary);
-  if (
-    investment.adoptionSchedulePct &&
-    roi === null &&
-    (investment.investmentOneTimeCost ?? 0) +
-      (investment.investmentChangeManagementCost ?? 0) >
-      0
-  ) {
+  if (investment.adoptionSchedulePct && roi === null && totalInvestment > 0) {
     return err("ADOPTION_SCHEDULE_INTEGRITY_ERROR", "Persisted adoption schedule is invalid (must match the ROI horizon, contain finite values in [0, 1], and be non-decreasing) and must be corrected before ROI can be calculated.");
   }
   return ok({
