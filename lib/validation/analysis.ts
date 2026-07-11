@@ -42,7 +42,7 @@ export const analysisInvestmentSchema = z.object({
     .number({ message: "Discount rate must be a number" })
     .finite("Discount rate must be a finite number")
     .min(0, "Discount rate cannot be negative")
-    .max(1, "Discount rate must be a decimal between 0 and 1")
+    .max(1, "Discount rate must be between 0 and 1 (0% to 100%)")
     .optional(),
   adoptionSchedulePct: z
     .array(
