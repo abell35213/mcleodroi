@@ -8,37 +8,35 @@ const c = T.colors;
 
 export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   const s = pptx.addSlide();
-  const logoPath = m.coverLogoPath === undefined ? T.assets.coverLogoPath : m.coverLogoPath;
+  const titleImagePath = m.titleSlideImagePath === undefined ? T.assets.titleSlideImagePath : m.titleSlideImagePath;
+  const coverLogoPath = m.coverLogoPath === undefined ? T.assets.coverLogoPath : m.coverLogoPath;
   s.background = { color: c.midnight };
-  if (m.themeImagePath) s.addImage({ path: m.themeImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height, transparency: 18 });
-  s.addShape("rect", { x: 0, y: 0, w: L.slide.width, h: L.slide.height, fill: { color: c.midnight, transparency: 15 }, line: { color: c.midnight } });
-  s.addShape("rect", { x: 0, y: 0, w: 4.25, h: L.slide.height, fill: { color: c.midnight, transparency: 5 }, line: { color: c.midnight } });
-  s.addShape("line", { x: 4.25, y: 0.55, w: 0, h: 5.95, line: { color: c.sunriseGold, width: 1.4 } });
-  if (logoPath) s.addImage({ path: logoPath, x: 0.72, y: 5.82, w: 2.25, h: 0.65, sizing: { type: "contain", w: 2.25, h: 0.65 } });
+  if (titleImagePath) s.addImage({ path: titleImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height });
+  s.addShape("rect", { x: 0, y: 0, w: 5.05, h: L.slide.height, fill: { color: c.midnight, transparency: 7 }, line: { color: c.midnight, transparency: 100 } });
+  if (coverLogoPath) s.addImage({ path: coverLogoPath, x: 0.78, y: 0.66, w: 1.8, h: 0.34, sizing: { type: "contain", w: 1.8, h: 0.34 } });
   if (m.customerLogoDataUri) s.addImage({ data: m.customerLogoDataUri, x: 9.65, y: 0.55, w: 2.6, h: 0.72, sizing: { type: "contain", w: 2.6, h: 0.72 } });
-  s.addText("Business Impact Analysis", { x: 0.72, y: 1.68, w: 3.3, h: 1.1, fontSize: T.typography.coverTitleFontSize, bold: true, color: c.white, fit: "shrink", breakLine: false });
-  s.addShape("line", { x: 0.72, y: 2.98, w: 1.35, h: 0, line: { color: c.sunriseGold, width: 3 } });
-  s.addText(`Prepared for\n${m.companyName}`, { x: 0.72, y: 3.28, w: 3.2, h: 0.72, fontSize: 16, color: c.white, breakLine: false, fit: "shrink" });
-  s.addText(PROPRIETARY_FOOTER_TEXT, { x: 0.72, y: 6.95, w: 3.7, h: 0.16, fontSize: 7, color: c.white, transparency: 10, fit: "shrink" });
-  if (m.analysisDate) s.addText(m.analysisDate, { x: 9.65, y: 6.9, w: 2.6, h: 0.2, align: "right", fontSize: 9, color: c.white });
+  s.addShape("line", { x: 5.05, y: 0.62, w: 0, h: 5.9, line: { color: c.sunriseGold, width: 2 } });
+  s.addText("Business Impact Analysis", { x: 0.76, y: 1.58, w: 3.95, h: 1.16, fontFace: T.typography.headingFont, fontSize: 35, bold: true, color: c.white, fit: "shrink", breakLine: false, margin: 0 });
+  s.addShape("line", { x: 0.78, y: 2.92, w: 1.48, h: 0, line: { color: c.sunriseGold, width: 3.2 } });
+  s.addText(`Prepared for\n${m.companyName}`, { x: 0.78, y: 3.24, w: 3.75, h: 0.78, fontFace: T.typography.bodyFont, fontSize: 16, color: c.white, breakLine: false, fit: "shrink", margin: 0.02 });
+  s.addText(PROPRIETARY_FOOTER_TEXT, { x: 0.78, y: 6.83, w: 4.05, h: 0.18, fontFace: T.typography.bodyFont, fontSize: 7, color: c.white, transparency: 8, fit: "shrink" });
+  if (m.analysisDate) s.addText(m.analysisDate, { x: 9.65, y: 6.88, w: 2.6, h: 0.2, align: "right", fontFace: T.typography.bodyFont, fontSize: 9, color: c.white });
   return s;
 }
 
 export function buildExecutiveSummarySlide(pptx: pptxgen, m: ExecutiveSummarySlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Executive Summary", title: "Executive Summary", companyName: m.companyName, themeImagePath: T.assets.themeImagePath });
-  s.addText(m.discussionSummary, { x: L.content.left, y: 1.35, w: 11.1, h: 0.62, fontSize: 12.5, color: c.charcoal, fit: "shrink", breakLine: false });
-  s.addText("During our discussions…", { x: L.content.left, y: 2.18, w: 5.35, h: 0.24, fontSize: 12.5, bold: true, underline: { style: "sng" }, color: "000000" });
-  s.addText(`The selected business-impact opportunities centered on ${m.moduleNames.slice(0, 6).join(", ")}${m.moduleNames.length > 6 ? ", and related areas" : ""}. These opportunities are grouped across ${m.categoryNames.join(", ")} for ${m.companyName}.`, { x: L.content.left, y: 2.5, w: 5.35, h: 0.88, fontSize: 11.3, color: c.charcoal, fit: "shrink" });
-  s.addText("McLeod’s platform addresses your key areas of need by…", { x: 6.85, y: 2.18, w: 5.25, h: 0.38, fontSize: 12.5, bold: true, underline: { style: "sng" }, color: "000000", fit: "shrink" });
-  s.addText(m.alignmentSummary, { x: 6.85, y: 2.62, w: 5.25, h: 0.76, fontSize: 11.3, color: c.charcoal, fit: "shrink" });
-  const themeY = 3.72;
-  m.needThemes.slice(0, 3).forEach((theme, i) => {
-    const y = themeY + i * 0.72;
-    s.addText(theme.heading, { x: L.content.left, y, w: 3.45, h: 0.18, fontSize: 10.3, bold: true, underline: { style: "sng" }, color: "000000", fit: "shrink" });
-    s.addText(theme.bullets.join("\n"), { x: 3.75, y: y - 0.02, w: 8.35, h: 0.46, fontSize: 8.8, color: c.charcoal, bullet: { type: "bullet" }, fit: "shrink" });
+  addBrandHeader(s, { categoryLabel: "Executive Summary", title: "Executive Summary", companyName: m.companyName });
+  s.addText(m.discussionSummary, { x: L.content.left, y: 1.32, w: 11.05, h: 0.62, fontSize: 13, color: c.charcoal, fit: "shrink", breakLine: false });
+  s.addText(m.alignmentSummary, { x: L.content.left, y: 2.08, w: 11.05, h: 0.72, fontSize: 11.5, color: c.charcoal, fit: "shrink", breakLine: false });
+  s.addText(m.keyAreasLeadIn, { x: L.content.left, y: 3.0, w: 11.05, h: 0.28, fontSize: 13, bold: true, color: c.midnight, fit: "shrink" });
+  const themeY = 3.5;
+  m.needThemes.slice(0, 4).forEach((theme, i) => {
+    const y = themeY + i * 0.62;
+    s.addText(theme.heading, { x: L.content.left, y, w: 3.4, h: 0.22, fontSize: 10.7, bold: true, color: c.midnight, fit: "shrink" });
+    s.addText(theme.bullets.slice(0, 2).join("\n"), { x: 3.86, y: y - 0.02, w: 8.12, h: 0.48, fontSize: 9.1, color: c.charcoal, bullet: { type: "bullet" }, fit: "shrink", breakLine: false });
   });
-  addSummaryBand(s, { x: L.content.left, y: 6.05, w: 11.55, h: 0.7, metrics: [m.annualOpportunity, ...(m.monthlyOpportunity ? [m.monthlyOpportunity] : [])] });
+  addSummaryBand(s, { x: L.content.left, y: 6.22, w: 11.55, h: 0.58, metrics: [m.annualOpportunity, ...(m.monthlyOpportunity ? [m.monthlyOpportunity] : [])] });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
   return s;
 }

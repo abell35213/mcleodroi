@@ -3,7 +3,7 @@ import { getValueModule } from "@/lib/modules";
 import type { ValueModuleInputDefinition, ValueType } from "@/lib/modules";
 import { buildAssumptionsAppendix } from "@/lib/analyses/assumptions";
 import { formatPresentationCount, formatPresentationCurrency, formatPresentationHours, formatPresentationPercentage } from "@/lib/presentation/format";
-import { APPROVED_COVER_LOGO_PATH, APPROVED_THEME_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
+import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import { validatePresentationTextLength } from "@/lib/presentation/text";
 import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleItemModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
 
@@ -72,14 +72,16 @@ function executive(snapshot: PresentationSnapshot, slideNumber: number): Executi
   const productName = snapshot.analysis.productContext === "POWERBROKER" ? "PowerBroker" : "LoadMaster";
   const businessTypeLabel = snapshot.analysis.businessType === "BROKERAGE" ? "freight brokerage" : "truckload carrier";
   const selectedList = moduleNames.slice(0, 5).join(", ");
+  requireGoldenPresentationAsset(APPROVED_POWERPOINT_TEMPLATE_PATH);
   return {
     companyName: snapshot.analysis.companyName,
     businessTypeLabel,
     productName,
     categoryNames,
     moduleNames,
-    discussionSummary: `${snapshot.analysis.companyName} is a ${businessTypeLabel} organization evaluating opportunities to improve operational performance, recover capacity, and strengthen financial outcomes. During discovery, the analysis focused on ${selectedList}${moduleNames.length > 5 ? ", and related opportunities" : ""}.`,
-    alignmentSummary: `McLeod’s fully integrated ${productName} platform aligns with these areas by connecting operational workflows, financial processes, documents, reporting, and automation in one operating environment.`,
+    discussionSummary: `${snapshot.analysis.companyName} is a ${businessTypeLabel} business evaluating robust technology to support scalable growth, improve operational performance, recover capacity, and strengthen financial outcomes.`,
+    alignmentSummary: `During discovery and solution alignment, the analysis focused on ${selectedList}${moduleNames.length > 5 ? ", and related opportunities" : ""}. McLeod has aligned its fully integrated ${productName} platform${snapshot.analysis.productContext === "POWERBROKER" ? " with DocumentPower capabilities" : ""} to address these current pain points and system requirements.`,
+    keyAreasLeadIn: `McLeod’s fully integrated ${productName}${snapshot.analysis.productContext === "POWERBROKER" ? " & DocumentPower" : ""} platform addresses your key areas of need by:`,
     needThemes: categoryNames.slice(0, 3).map((name) => {
       const categoryModules = snapshot.categories.find((category) => category.name === name)?.modules ?? [];
       return {
@@ -116,7 +118,7 @@ function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: n
 export function composePresentationSlidePlan(snapshot: PresentationSnapshot): PresentationSlidePlan[] {
   let slide = 1;
   const customerLogoDataUri = snapshot.branding?.customerLogoDataUri && !snapshot.branding.customerLogoDataUri.startsWith("data:image/svg") ? snapshot.branding.customerLogoDataUri : null;
-  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, themeImagePath: requireGoldenPresentationAsset(APPROVED_THEME_IMAGE_PATH), coverLogoPath: requireGoldenPresentationAsset(APPROVED_COVER_LOGO_PATH), customerLogoDataUri, slideNumber: slide++ } }];
+  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, coverLogoPath: requireGoldenPresentationAsset(APPROVED_COVER_LOGO_PATH), titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), customerLogoDataUri, slideNumber: slide++ } }];
   plans.push({ kind: "executiveSummary", model: executive(snapshot, slide++) });
   for (const category of [...snapshot.categories].sort((a,b) => a.displayOrder - b.displayOrder)) {
     const modules = [...category.modules].sort((a,b) => a.displayOrder - b.displayOrder);

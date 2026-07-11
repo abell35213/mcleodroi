@@ -3,6 +3,8 @@ import path from "node:path";
 
 export const PRESENTATION_ASSET_DIR = "public/presentation-assets";
 export const APPROVED_THEME_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/highway-sunrise.webp`;
+export const APPROVED_TITLE_SLIDE_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/McLeodTitlePage.png`;
+export const APPROVED_POWERPOINT_TEMPLATE_PATH = `${PRESENTATION_ASSET_DIR}/PPTTheme.potx`;
 export const PROPRIETARY_FOOTER_TEXT = "©2026 McLeod Software® | Proprietary & Confidential";
 export const APPROVED_COVER_LOGO_PATH = `${PRESENTATION_ASSET_DIR}/mcleod-logo.png`;
 
@@ -27,9 +29,10 @@ export function requireGoldenPresentationAsset(assetPath: string): string {
 
 export const presentationTheme = {
   colors: {
-    midnight: "05070B",
+    midnight: "0E2841",
     navy: "101820",
-    sunriseGold: "D89B2B",
+    templateBlue: "007EAE",
+    sunriseGold: "FED041",
     mcleodGold: "FC9527",
     warmCanvas: "FFFFFF",
     charcoal: "243142",
@@ -40,8 +43,8 @@ export const presentationTheme = {
     mutedText: "627085",
   },
   typography: {
-    headingFont: "Aptos Display",
-    bodyFont: "Aptos",
+    headingFont: "Calibri",
+    bodyFont: "Calibri",
     metricFont: "Arial",
     minBodyFontSize: 14,
     minDisclaimerFontSize: 8,
@@ -52,6 +55,8 @@ export const presentationTheme = {
     themeImagePath: APPROVED_THEME_IMAGE_PATH,
     logoPath: null as string | null,
     coverLogoPath: APPROVED_COVER_LOGO_PATH,
+    titleSlideImagePath: APPROVED_TITLE_SLIDE_IMAGE_PATH,
+    powerpointTemplatePath: APPROVED_POWERPOINT_TEMPLATE_PATH,
   },
 } as const;
 export type PresentationTheme = typeof presentationTheme;
