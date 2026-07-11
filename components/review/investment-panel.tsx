@@ -10,12 +10,13 @@ type Props = {
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-function pct(ratio: number): string {
+function pct(ratio: number | null): string {
+  if (ratio === null || !Number.isFinite(ratio)) return "Not applicable";
   return `${(ratio * 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
 }
 
-function payback(months: number | null): string {
-  if (months === null) return "Does not recoup";
+function payback(months: number | null, horizonYears: number): string {
+  if (months === null) return `Not achieved within ${horizonYears}-year horizon`;
   return `${months.toLocaleString(undefined, { maximumFractionDigits: 1 })} months`;
 }
 
@@ -48,8 +49,8 @@ export function InvestmentPanel({ investment, roi, identifiedAnnualOpportunity, 
               <p className="mt-1 text-3xl font-bold">{money.format(roi.netAnnualValue)}</p>
             </div>
             <div>
-              <p className="text-sm uppercase tracking-[0.14em] text-[#d89b2b]">Payback</p>
-              <p className="mt-1 text-3xl font-bold">{payback(roi.paybackMonths)}</p>
+              <p className="text-sm uppercase tracking-[0.14em] text-[#d89b2b]">Estimated Payback</p>
+              <p className="mt-1 text-3xl font-bold">{payback(roi.paybackMonths, roi.horizonYears)}</p>
             </div>
             <div>
               <p className="text-sm uppercase tracking-[0.14em] text-[#d89b2b]">First-Year ROI</p>
@@ -60,12 +61,12 @@ export function InvestmentPanel({ investment, roi, identifiedAnnualOpportunity, 
               <p className="mt-1 text-3xl font-bold">{pct(roi.horizonRoiPct)}</p>
             </div>
             <div>
-              <p className="text-sm uppercase tracking-[0.14em] text-[#d89b2b]">NPV @ {pct(roi.discountRatePct)}</p>
+              <p className="text-sm uppercase tracking-[0.14em] text-[#d89b2b]">Net Present Value @ {pct(roi.discountRatePct)}</p>
               <p className="mt-1 text-3xl font-bold">{money.format(roi.npv)}</p>
             </div>
             <div>
               <p className="text-sm uppercase tracking-[0.14em] text-[#d89b2b]">IRR</p>
-              <p className="mt-1 text-3xl font-bold">{roi.irr === null ? "N/A" : pct(roi.irr)}</p>
+              <p className="mt-1 text-3xl font-bold">{roi.irr === null ? "Unable to calculate from the configured cash flows" : pct(roi.irr)}</p>
             </div>
             <div>
               <p className="text-sm uppercase tracking-[0.14em] text-[#d89b2b]">Total Investment</p>
@@ -77,12 +78,14 @@ export function InvestmentPanel({ investment, roi, identifiedAnnualOpportunity, 
             </div>
           </div>
 
+          <p className="mt-6 text-sm text-[#d8e2ea]">Adoption schedule: {roi.adoptionSchedulePct.map((fraction) => pct(fraction)).join(" → ")}. ROI and payback reflect the configured annual adoption schedule and assume benefit realization is distributed evenly within each year for payback estimation.</p>
+
           <table className="mt-6 w-full border-collapse text-left text-sm">
             <thead>
               <tr className="text-[#d8e2ea]">
                 <th className="border-b border-[#25405c] py-2 pr-4 font-semibold">Year</th>
                 <th className="border-b border-[#25405c] py-2 pr-4 font-semibold">Adoption</th>
-                <th className="border-b border-[#25405c] py-2 pr-4 font-semibold">Net Benefit</th>
+                <th className="border-b border-[#25405c] py-2 pr-4 font-semibold">Net Annual Benefit</th>
                 <th className="border-b border-[#25405c] py-2 pr-4 font-semibold">Cumulative Net Cash</th>
                 <th className="border-b border-[#25405c] py-2 pr-4 font-semibold">Cumulative NPV</th>
               </tr>

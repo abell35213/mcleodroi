@@ -9,12 +9,13 @@ import type { ScenarioComparison } from "@/lib/analyses/scenarios";
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
 
-function pct(ratio: number): string {
+function pct(ratio: number | null): string {
+  if (ratio === null || !Number.isFinite(ratio)) return "Not applicable";
   return `${(ratio * 100).toLocaleString(undefined, { maximumFractionDigits: 1 })}%`;
 }
 
 function payback(months: number | null): string {
-  if (months === null) return "Does not recoup";
+  if (months === null) return "Not achieved";
   return `${months.toLocaleString(undefined, { maximumFractionDigits: 1 })} mo`;
 }
 
@@ -58,10 +59,10 @@ export function ScenarioComparison({ comparison }: { comparison: ScenarioCompari
             </dl>
             {scenario.roi ? (
               <dl className="mt-4 space-y-1 border-t border-[#e8dcc6] pt-4 text-sm text-[#35465c]">
-                <div className="flex justify-between"><dt>Payback</dt><dd className="font-semibold">{payback(scenario.roi.paybackMonths)}</dd></div>
+                <div className="flex justify-between"><dt>Estimated Payback</dt><dd className="font-semibold">{payback(scenario.roi.paybackMonths)}</dd></div>
                 <div className="flex justify-between"><dt>First-year ROI</dt><dd className="font-semibold">{pct(scenario.roi.firstYearRoiPct)}</dd></div>
                 <div className="flex justify-between"><dt>{scenario.roi.horizonYears}-year ROI</dt><dd className="font-semibold">{pct(scenario.roi.horizonRoiPct)}</dd></div>
-                <div className="flex justify-between"><dt>NPV</dt><dd className="font-semibold">{money.format(scenario.roi.npv)}</dd></div>
+                <div className="flex justify-between"><dt>Net Present Value</dt><dd className="font-semibold">{money.format(scenario.roi.npv)}</dd></div>
               </dl>
             ) : (
               <p className="mt-4 border-t border-[#e8dcc6] pt-4 text-xs text-[#627085]">Enter an investment above to compare ROI across scenarios.</p>

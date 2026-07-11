@@ -75,17 +75,14 @@ export type RoiMetrics = {
   readonly adoptionSchedulePct: readonly number[];
   /** Steady-state (full-adoption) benefit net of the ongoing annual cost. */
   readonly netAnnualValue: number;
-  /** Net annual value expressed monthly (`netAnnualValue / 12`). */
+  /** Year-one net benefit expressed monthly (`yearOneNetBenefit / 12`). */
   readonly netMonthlyValue: number;
-  /**
-   * Simple (undiscounted, steady-state) payback in months. `null` when the net
-   * monthly value is not positive, i.e. the investment never recoups.
-   */
+  /** Adoption-aware payback in months, estimated from even monthly realization within each year. */
   readonly paybackMonths: number | null;
-  /** First-year ROI as a decimal ratio (e.g. `3` means 300%): `(netAnnualValue - investment) / investment`. */
-  readonly firstYearRoiPct: number;
-  /** Horizon ROI as a decimal ratio (e.g. `11` means 1100%): `(netAnnualValue * horizonYears - investment) / investment`. */
-  readonly horizonRoiPct: number;
+  /** First-year ROI as a decimal ratio, or `null` when no initial investment exists. */
+  readonly firstYearRoiPct: number | null;
+  /** Horizon ROI as a decimal ratio, or `null` when no initial investment exists. */
+  readonly horizonRoiPct: number | null;
   /** Net present value of the horizon cash flows, discounted annually. */
   readonly npv: number;
   /**
@@ -125,13 +122,7 @@ function validateRoiInputs(inputs: {
   issues.push(...requireFiniteNumber(inputs.discountRatePct, "discountRatePct", "Discount rate must be a valid number."));
   if (issues.length > 0) return issues;
 
-  if (inputs.investment <= 0) {
-    issues.push({
-      code: validationCodes.POSITIVE_REQUIRED,
-      field: "investment",
-      message: "Investment must be greater than zero.",
-    });
-  }
+  issues.push(...requireNonNegative(inputs.investment, "investment", "Investment cannot be negative."));
   issues.push(...requireNonNegative(inputs.annualValue, "annualValue", "Annual value cannot be negative."));
   issues.push(
     ...requireNonNegative(inputs.annualRecurringCost, "annualRecurringCost", "Annual recurring cost cannot be negative."),
@@ -173,17 +164,43 @@ function validateRoiInputs(inputs: {
           message: "Adoption percentage must be between 0 and 1.",
         });
       }
+      if (index > 0 && pct < inputs.adoptionSchedulePct![index - 1]) {
+        issues.push({
+          code: validationCodes.ADOPTION_SCHEDULE_DECLINES,
+          field,
+          message: "Adoption schedule must be non-decreasing across the horizon.",
+        });
+      }
     });
   }
   return issues;
 }
 
+/** Estimate payback by adding each year's adoption-adjusted net benefit monthly. */
+function computePaybackMonths(investment: number, netBenefits: readonly number[]): number | null {
+  if (investment <= 0) return null;
+  let cumulative = -investment;
+  for (let yearIndex = 0; yearIndex < netBenefits.length; yearIndex += 1) {
+    const monthlyNetBenefit = netBenefits[yearIndex] / 12;
+    for (let month = 1; month <= 12; month += 1) {
+      cumulative += monthlyNetBenefit;
+      if (cumulative >= 0) return yearIndex * 12 + month;
+    }
+  }
+  return null;
+}
+
+function hasValidIrrSignChange(investment: number, netBenefits: readonly number[]): boolean {
+  const cashFlows = [-investment, ...netBenefits];
+  return cashFlows.some((value) => value < 0) && cashFlows.some((value) => value > 0);
+}
+
 /**
- * Solve for the internal rate of return via bisection over the horizon cash
- * flows `[-investment, netBenefit_1, ..., netBenefit_H]`. Returns `null` when
- * no rate brackets a sign change (e.g. all net benefits are non-positive).
+ * Solve for IRR via bisection. Returns null when no sign change exists or the
+ * configured 200-iteration, 1e-12 tolerance solver cannot bracket a finite root.
  */
 function computeIrr(investment: number, netBenefits: readonly number[]): number | null {
+  if (!hasValidIrrSignChange(investment, netBenefits)) return null;
   const npvAt = (rate: number): number => {
     let acc = -investment;
     for (let year = 1; year <= netBenefits.length; year += 1) {
@@ -218,13 +235,10 @@ function computeIrr(investment: number, netBenefits: readonly number[]): number 
 }
 
 /**
- * Compute deterministic ROI, simple payback, NPV, IRR, and a multi-year
- * cumulative benefit curve for an investment scenario.
- *
- * The calculation preserves internal precision and never performs display
- * rounding, matching the rest of the calculation engine. Scalar payback and ROI
- * ratios use the steady-state (full-adoption) net annual value; the adoption
- * ramp is honored by NPV, IRR, and the cumulative benefit curve.
+ * Compute deterministic ROI, payback, NPV, IRR, and a multi-year cumulative
+ * benefit curve from one canonical cash-flow model: year 0 is `-investment`;
+ * each horizon year is `annualValue * adoptionPct - annualRecurringCost`.
+ * Payback assumes each configured year's net benefit is realized evenly by month.
  */
 export function calculateRoi(inputs: RoiScenarioInputs): CalculationOutcome<RoiMetrics> {
   const annualValue = inputs.annualValue;
@@ -248,10 +262,6 @@ export function calculateRoi(inputs: RoiScenarioInputs): CalculationOutcome<RoiM
     : Array.from({ length: horizonYears }, () => 1);
 
   const netAnnualValue = annualValue - annualRecurringCost;
-  const netMonthlyValue = netAnnualValue / 12;
-  const paybackMonths = netMonthlyValue > 0 ? investment / netMonthlyValue : null;
-  const firstYearRoiPct = (netAnnualValue - investment) / investment;
-  const horizonRoiPct = (netAnnualValue * horizonYears - investment) / investment;
 
   const cumulativeBenefitCurve: RoiYearPoint[] = [];
   const netBenefits: number[] = [];
@@ -278,7 +288,12 @@ export function calculateRoi(inputs: RoiScenarioInputs): CalculationOutcome<RoiM
   }
 
   const npv = cumulativeDiscountedBenefit - investment;
-  const irr = computeIrr(investment, netBenefits);
+  const totalNetBenefitOverHorizon = netBenefits.reduce((sum, value) => sum + value, 0);
+  const firstYearRoiPct = investment > 0 ? (netBenefits[0] - investment) / investment : null;
+  const horizonRoiPct = investment > 0 ? (totalNetBenefitOverHorizon - investment) / investment : null;
+  const netMonthlyValue = (netBenefits[0] ?? 0) / 12;
+  const paybackMonths = computePaybackMonths(investment, netBenefits);
+  const irr = investment > 0 ? computeIrr(investment, netBenefits) : null;
 
   return {
     success: true,
