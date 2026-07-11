@@ -1,11 +1,5 @@
-# Presentation design system
+# Presentation package
 
-This package contains the reusable PowerPoint theme, layout constants, slide models, and PPTX template helpers used by the approved P1-8 presentation snapshot fixture.
+This package contains Phase 1 presentation version constants, immutable snapshot creation/parsing, snapshot-to-slide composition, PPTX generation, PDF/HTML export helpers, asset-path containment, and customer-logo utilities.
 
-## Cover artwork
-
-The cover slide uses the approved title background image from `presentationTheme.assets.titleSlideImagePath`. It does not render a separate configurable cover logo slot.
-
-## Content controls
-
-Value slides are designed to consume controlled narrative fields such as `valueNarrative`, `effectiveCustomerAnalysis`, `presentationCallout`, and `presentationDisclaimer`. Templates do not perform AI summarization or alter ROI calculations.
+Customer-facing generation must follow the immutable boundary: live Analysis → persisted `PresentationGeneration.snapshotJson` → snapshot-only PPTX/PDF/HTML output. Do not recalculate mutable analysis state inside export code after a snapshot has been created.

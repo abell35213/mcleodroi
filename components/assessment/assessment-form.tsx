@@ -36,7 +36,7 @@ function BenchmarkTooltip({ id, input, benchmark }: { id: string; input: ValueMo
         role="tooltip"
         className="pointer-events-none absolute left-1/2 top-full z-10 mt-1 w-64 -translate-x-1/2 rounded-lg border border-[#e8dcc6] bg-[#0b1d33] px-3 py-2 text-xs font-normal leading-5 text-[#fffaf0] opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100"
       >
-        <span className="block font-semibold text-[#d89b2b]">Industry typical: {formatBenchmarkRange(input, benchmark)}</span>
+        <span className="block font-semibold text-[#d89b2b]">Planning reference: {formatBenchmarkRange(input, benchmark)}</span>
         {benchmark.source.citation}
       </span>
     </span>
@@ -152,7 +152,7 @@ export function AssessmentForm({ module, action }: { module: CalculatedAnalysisM
               </span>
               {input.benchmark && (
                 <span id={benchmarkId} className="text-xs font-normal leading-5 text-[#28614a]">
-                  Industry typical: {formatBenchmarkRange(input, input.benchmark)} · Source: {input.benchmark.source.label}
+                  Planning reference: {formatBenchmarkRange(input, input.benchmark)} · Source: {input.benchmark.source.label}
                 </span>
               )}
               {showError && (

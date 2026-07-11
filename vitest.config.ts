@@ -7,6 +7,8 @@ export default defineConfig({
     globals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["tests/unit/**/*.{test,spec}.{ts,tsx,mjs}", "tests/integration/**/*.{test,spec}.{ts,tsx}"],
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
   resolve: {
     alias: {

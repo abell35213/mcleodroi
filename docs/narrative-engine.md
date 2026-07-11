@@ -31,8 +31,8 @@ Module narratives render only for selected modules with status `COMPLETE` and a 
 
 ## Custom narrative resolution
 
-`TEMPLATE` mode returns the rendered default customer analysis. `CUSTOM` mode returns trimmed custom narrative text when non-empty. Blank custom text returns a typed error. Persistence and editing UI are intentionally out of scope for P1-5.
+`TEMPLATE` mode returns the rendered default customer analysis. `CUSTOM` mode returns trimmed custom narrative text when non-empty. Blank custom text returns a typed error. Persistence and editing UI are implemented in the Review workflow: custom text is stored only when it differs from the default, stale custom fingerprints remain visible for review, and Reset to Updated Default returns a module to TEMPLATE mode.
 
 ## Presentation view
 
-The presentation-facing view prepares typed narrative content and an effective analysis field for future presentation generation. It does not generate slides, layout content, import PptxGenJS, or perform PowerPoint work.
+Presentation snapshots store the effective narrative selected at Review. PPTX/PDF/HTML generation consumes that immutable snapshot field and does not re-render mutable live narrative state after snapshot creation.
