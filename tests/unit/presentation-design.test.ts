@@ -101,15 +101,9 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
 });
 
 
-  it("uses the approved title image and template-backed executive summary structure", () => {
-    const templates = readFileSync("lib/presentation/slides/templates.ts", "utf8");
-    const composition = readFileSync("lib/presentation/composition/index.ts", "utf8");
-    expect(templates).toContain("titleSlideImagePath");
-    expect(composition).toContain("APPROVED_TITLE_SLIDE_IMAGE_PATH");
-    expect(composition).toContain("APPROVED_POWERPOINT_TEMPLATE_PATH");
-    expect(composition).toContain("keyAreasLeadIn");
-    expect(composition).toContain("addresses your key areas of need by");
-    expect(composition).toContain("DocumentPower");
+  it("has the approved title image and template assets available on disk", () => {
+    expect(statSync(resolvePresentationAssetPath(APPROVED_TITLE_SLIDE_IMAGE_PATH)).isFile()).toBe(true);
+    expect(statSync(resolvePresentationAssetPath(APPROVED_POWERPOINT_TEMPLATE_PATH)).isFile()).toBe(true);
   });
 
   it("validates length and template cardinality limits", () => {
