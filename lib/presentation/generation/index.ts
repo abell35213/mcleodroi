@@ -5,7 +5,7 @@ import type { PrismaClient } from "@prisma/client";
 import { prisma as defaultPrisma } from "@/lib/db";
 import { getGeneratedPresentationPath } from "@/lib/presentation/paths";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
-import { buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide, buildExecutiveSummarySlide, buildOpportunitySummarySlide, buildSingleModuleSlide } from "@/lib/presentation/slides";
+import { buildAssumptionsAppendixSlide, buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide, buildExecutiveSummarySlide, buildOpportunitySummarySlide, buildSingleModuleSlide } from "@/lib/presentation/slides";
 import { composePresentationSlidePlan } from "@/lib/presentation/composition";
 import { parsePresentationSnapshot } from "@/lib/presentation/snapshot";
 import type { PresentationServiceResult } from "@/lib/presentation/types";
@@ -58,6 +58,9 @@ export async function generatePresentationPptx(args: { presentationGenerationId:
           break;
         case "opportunitySummary":
           buildOpportunitySummarySlide(pptx, plan.model);
+          break;
+        case "assumptionsAppendix":
+          buildAssumptionsAppendixSlide(pptx, plan.model);
           break;
         default: {
           const unexpectedKind = (plan as { kind?: unknown }).kind;

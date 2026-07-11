@@ -1,8 +1,8 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
 import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T } from "@/lib/presentation/theme";
-import type { CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
-import { addAssumptionGrid, addBrandHeader, addDisclaimer, addFooter, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
+import type { AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
+import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
 
 const c = T.colors;
 
@@ -14,6 +14,7 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   if (titleImagePath) s.addImage({ path: titleImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height });
   s.addShape("rect", { x: 0, y: 0, w: 5.05, h: L.slide.height, fill: { color: c.midnight, transparency: 7 }, line: { color: c.midnight, transparency: 100 } });
   if (coverLogoPath) s.addImage({ path: coverLogoPath, x: 0.78, y: 0.66, w: 1.8, h: 0.34, sizing: { type: "contain", w: 1.8, h: 0.34 } });
+  if (m.customerLogoDataUri) s.addImage({ data: m.customerLogoDataUri, x: 9.65, y: 0.55, w: 2.6, h: 0.72, sizing: { type: "contain", w: 2.6, h: 0.72 } });
   s.addShape("line", { x: 5.05, y: 0.62, w: 0, h: 5.9, line: { color: c.sunriseGold, width: 2 } });
   s.addText("Business Impact Analysis", { x: 0.76, y: 1.58, w: 3.95, h: 1.16, fontFace: T.typography.headingFont, fontSize: 35, bold: true, color: c.white, fit: "shrink", breakLine: false, margin: 0 });
   s.addShape("line", { x: 0.78, y: 2.92, w: 1.48, h: 0, line: { color: c.sunriseGold, width: 3.2 } });
@@ -89,6 +90,14 @@ export function buildOpportunitySummarySlide(pptx: pptxgen, m: OpportunitySummar
   addSummaryBand(s, { x: L.content.left, y: 4.7, w: 12, h: 1.0, metrics: [...(m.monthlyOpportunity ? [m.monthlyOpportunity] : []), m.annualOpportunity].slice(0, 2) });
   if (m.informationalCapital) addDisclaimer(s, { text: `Informational capital value shown separately: ${m.informationalCapital.value} ${m.informationalCapital.label}`, x: L.content.left, y: 5.9, w: 12 });
   addDisclaimer(s, { text: m.disclaimer, x: L.content.left, y: 6.28, w: 12 });
+  addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
+  return s;
+}
+
+export function buildAssumptionsAppendixSlide(pptx: pptxgen, m: AssumptionsAppendixSlideModel) {
+  const s = pptx.addSlide();
+  addBrandHeader(s, { categoryLabel: "Appendix", title: "Assumptions & Sources", companyName: m.companyName });
+  addAssumptionsAppendixTable(s, { modules: m.modules, sources: m.sources, x: L.content.left, y: 1.4, w: 12 });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
   return s;
 }

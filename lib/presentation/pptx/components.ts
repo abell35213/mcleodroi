@@ -1,7 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
 import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T } from "@/lib/presentation/theme";
-import type { AssumptionItemModel, MetricModel, ValueCardModel } from "@/lib/presentation/types";
+import type { AssumptionItemModel, AssumptionsAppendixModuleModel, AssumptionsAppendixSourceModel, MetricModel, ValueCardModel } from "@/lib/presentation/types";
 
 const c = T.colors;
 const font = T.typography;
@@ -80,4 +80,25 @@ export function addSummaryBand(slide: pptxgen.Slide, o: { metrics: MetricModel[]
 
 export function addDisclaimer(slide: pptxgen.Slide, o: { text: string; x: number; y: number; w: number }) {
   slide.addText(o.text, { x: o.x, y: o.y, w: o.w, h: 0.32, fontSize: font.minDisclaimerFontSize, color: c.mutedText, fit: "shrink" });
+}
+
+export function addAssumptionsAppendixTable(slide: pptxgen.Slide, o: { modules: readonly AssumptionsAppendixModuleModel[]; sources: readonly AssumptionsAppendixSourceModel[]; x: number; y: number; w: number }) {
+  const colW = [o.w * 0.35, o.w * 0.18, o.w * 0.24, o.w * 0.23];
+  const border = { type: "solid" as const, color: c.softBorder, pt: 0.5 };
+  const headerCell = (text: string) => ({ text, options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 9 } });
+  const rows: pptxgen.TableRow[] = [[headerCell("Assumption"), headerCell("Entered"), headerCell("Industry Typical"), headerCell("Source")]];
+  for (const mod of o.modules) {
+    rows.push([{ text: `${mod.categoryName} — ${mod.moduleName}`, options: { colspan: 4, bold: true, color: c.midnight, fill: { color: c.warmCanvas }, fontSize: 8.5 } }]);
+    for (const row of mod.rows) {
+      rows.push([
+        { text: row.label, options: { color: c.charcoal, fontSize: 8 } },
+        { text: row.enteredValue, options: { color: c.midnight, bold: true, fontSize: 8 } },
+        { text: row.typicalRange, options: { color: c.charcoal, fontSize: 8 } },
+        { text: row.sourceLabel, options: { color: c.mutedText, fontSize: 8 } },
+      ]);
+    }
+  }
+  slide.addTable(rows, { x: o.x, y: o.y, w: o.w, colW, border, fontFace: font.bodyFont, valign: "middle", margin: 0.04, autoPage: false });
+  const legend = o.sources.map((source) => `${source.label}: ${source.citation}`).join("\n");
+  if (legend) slide.addText(`Sources — ${legend}`, { x: o.x, y: 6.35, w: o.w, h: 0.6, fontSize: font.minDisclaimerFontSize, color: c.mutedText, fit: "shrink" });
 }

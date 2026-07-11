@@ -1,10 +1,11 @@
 import { CAPACITY_VALUE_PRESENTATION_DISCLAIMER } from "@/lib/narratives/registry";
 import { getValueModule } from "@/lib/modules";
 import type { ValueModuleInputDefinition, ValueType } from "@/lib/modules";
+import { buildAssumptionsAppendix } from "@/lib/analyses/assumptions";
 import { formatPresentationCount, formatPresentationCurrency, formatPresentationHours, formatPresentationPercentage } from "@/lib/presentation/format";
 import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import { validatePresentationTextLength } from "@/lib/presentation/text";
-import type { AssumptionItemModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleItemModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
+import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleItemModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
 
 export type CoverSlidePlan = { kind: "cover"; model: CoverSlideModel };
 export type ExecutiveSummarySlidePlan = { kind: "executiveSummary"; model: ExecutiveSummarySlideModel };
@@ -12,7 +13,8 @@ export type SingleModuleSlidePlan = { kind: "singleModule"; model: SingleModuleS
 export type DualModuleSlidePlan = { kind: "dualModule"; model: DualModuleSlideModel };
 export type CategoryOverviewSlidePlan = { kind: "categoryOverview"; model: CategoryOverviewSlideModel };
 export type OpportunitySummarySlidePlan = { kind: "opportunitySummary"; model: OpportunitySummarySlideModel };
-export type PresentationSlidePlan = CoverSlidePlan | ExecutiveSummarySlidePlan | SingleModuleSlidePlan | DualModuleSlidePlan | CategoryOverviewSlidePlan | OpportunitySummarySlidePlan;
+export type AssumptionsAppendixSlidePlan = { kind: "assumptionsAppendix"; model: AssumptionsAppendixSlideModel };
+export type PresentationSlidePlan = CoverSlidePlan | ExecutiveSummarySlidePlan | SingleModuleSlidePlan | DualModuleSlidePlan | CategoryOverviewSlidePlan | OpportunitySummarySlidePlan | AssumptionsAppendixSlidePlan;
 
 const valueTypeLabels: Record<ValueType, string> = {
   REVENUE_MARGIN_OPPORTUNITY: "Revenue / Margin Opportunity",
@@ -98,9 +100,25 @@ function opportunity(snapshot: PresentationSnapshot, slideNumber: number): Oppor
   return { companyName: snapshot.analysis.companyName, classifications, monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined, annualOpportunity: { value: formatPresentationCurrency(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity), label: "Annual Identified Economic Opportunity" }, informationalCapital: snapshot.summary.informationalCapitalValueTotal ? { value: formatPresentationCurrency(snapshot.summary.informationalCapitalValueTotal), label: "Informational Capital Avoidance" } : undefined, disclaimer: hasCapacity ? CAPACITY_VALUE_PRESENTATION_DISCLAIMER : "Values shown are directional business-impact estimates based on reviewed analysis inputs.", slideNumber };
 }
 
+function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: number): AssumptionsAppendixSlideModel | null {
+  const orderedModules = [...snapshot.categories]
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .flatMap((category) => [...category.modules].sort((a, b) => a.displayOrder - b.displayOrder))
+    .map((m) => ({ moduleKey: m.moduleKey, moduleName: m.moduleName, categoryName: m.categoryName, inputs: m.inputs }));
+  const appendix = buildAssumptionsAppendix(orderedModules);
+  if (appendix.modules.length === 0) return null;
+  return {
+    companyName: snapshot.analysis.companyName,
+    modules: appendix.modules.map((m) => ({ moduleName: m.moduleName, categoryName: m.categoryName, rows: m.rows.map((r) => ({ label: r.label, enteredValue: r.enteredValue, typicalRange: r.typicalRange, sourceLabel: r.sourceLabel })) })),
+    sources: appendix.sources.map((s) => ({ label: s.label, citation: s.citation })),
+    slideNumber,
+  };
+}
+
 export function composePresentationSlidePlan(snapshot: PresentationSnapshot): PresentationSlidePlan[] {
   let slide = 1;
-  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, coverLogoPath: requireGoldenPresentationAsset(APPROVED_COVER_LOGO_PATH), titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), slideNumber: slide++ } }];
+  const customerLogoDataUri = snapshot.branding?.customerLogoDataUri && !snapshot.branding.customerLogoDataUri.startsWith("data:image/svg") ? snapshot.branding.customerLogoDataUri : null;
+  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, coverLogoPath: requireGoldenPresentationAsset(APPROVED_COVER_LOGO_PATH), titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), customerLogoDataUri, slideNumber: slide++ } }];
   plans.push({ kind: "executiveSummary", model: executive(snapshot, slide++) });
   for (const category of [...snapshot.categories].sort((a,b) => a.displayOrder - b.displayOrder)) {
     const modules = [...category.modules].sort((a,b) => a.displayOrder - b.displayOrder);
@@ -113,5 +131,7 @@ export function composePresentationSlidePlan(snapshot: PresentationSnapshot): Pr
     }
   }
   plans.push({ kind: "opportunitySummary", model: opportunity(snapshot, slide++) });
+  const appendix = assumptionsAppendixModel(snapshot, slide);
+  if (appendix) { plans.push({ kind: "assumptionsAppendix", model: appendix }); slide++; }
   return plans;
 }

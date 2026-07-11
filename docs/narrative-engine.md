@@ -23,7 +23,7 @@ Capacity-value narratives use labor-capacity, staff-capacity, operating-capacity
 
 ## Status and review
 
-Narrative status mirrors the P1-2 canonical module registry. `BROKERAGE_LTL` and `SHORT_HAUL_EFFICIENCY` remain `NEEDS_PRODUCT_REVIEW`; all other current variants are `DRAFT_APPROVED`.
+Narrative status mirrors the P1-2 canonical module registry. All current variants — including `BROKERAGE_LTL` and `SHORT_HAUL_EFFICIENCY`, which completed product review and SME sign-off — are `DRAFT_APPROVED`.
 
 ## Rendering rules
 

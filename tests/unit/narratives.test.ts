@@ -37,8 +37,8 @@ describe("narrative registry integrity", () => {
       expect(variant.fullDisclaimer).toBeTruthy();
       expect(variant.presentationDisclaimer).toBeTruthy();
     }
-    expect(getValueModule("BROKERAGE_LTL").narrativeStatus).toBe("NEEDS_PRODUCT_REVIEW");
-    expect(getValueModule("SHORT_HAUL_EFFICIENCY").narrativeStatus).toBe("NEEDS_PRODUCT_REVIEW");
+    expect(getValueModule("BROKERAGE_LTL").narrativeStatus).toBe("DRAFT_APPROVED");
+    expect(getValueModule("SHORT_HAUL_EFFICIENCY").narrativeStatus).toBe("DRAFT_APPROVED");
   });
 
   it("rejects unavailable business type variants", () => {
@@ -56,7 +56,7 @@ describe("narrative registry integrity", () => {
 
   it("preserves full analysis order and requires review readiness", () => {
     const calculatedModules = [moduleFor("REDUCE_DEADHEAD", { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 }), moduleFor("PROFIT_MARGIN_INCREASE", { monthly_gross_revenue: 500000, current_margin_pct: 0.12, target_margin_pct: 0.13 })];
-    const analysis: CalculatedAnalysis = { analysis: { id: "a", companyName: "A", businessType: "TRUCKLOAD", status: "DRAFT" }, calculatedModules, overlapNotices: [], summary: { monthlyRecurringValueTotal: 0, annualRecurringValueTotal: 0, annualOnlyValueTotal: 0, totalIdentifiedAnnualEconomicOpportunity: 0, informationalCapitalValueTotal: 0, valueTypeBreakdown: [], informationalCapitalValues: [], moduleCount: 2, completeModuleCount: 2, incompleteModuleCount: 0 }, workflowReadiness: { hasSelectedModules: true, allSelectedModulesComplete: true, canReview: true, canGeneratePresentation: true } };
+    const analysis: CalculatedAnalysis = { analysis: { id: "a", companyName: "A", businessType: "TRUCKLOAD", status: "DRAFT" }, calculatedModules, overlapNotices: [], summary: { monthlyRecurringValueTotal: 0, annualRecurringValueTotal: 0, annualOnlyValueTotal: 0, totalIdentifiedAnnualEconomicOpportunity: 0, informationalCapitalValueTotal: 0, valueTypeBreakdown: [], informationalCapitalValues: [], moduleCount: 2, completeModuleCount: 2, incompleteModuleCount: 0 }, workflowReadiness: { hasSelectedModules: true, allSelectedModulesComplete: true, canReview: true, canGeneratePresentation: true }, investment: { investmentOneTimeCost: null, investmentAnnualRecurringCost: null, investmentChangeManagementCost: null, roiHorizonYears: null, roiDiscountRatePct: null, adoptionSchedulePct: null }, roi: null };
     const rendered = renderAnalysisNarratives(analysis);
     expect(rendered.ok).toBe(true);
     if (rendered.ok) expect(rendered.value.map((n) => n.moduleKey)).toEqual(["REDUCE_DEADHEAD", "PROFIT_MARGIN_INCREASE"]);

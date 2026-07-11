@@ -13,3 +13,4 @@ prisma/e2e.db
 prisma/e2e.db-journal
 generated-presentations/
 test-results/
+customer-logos/

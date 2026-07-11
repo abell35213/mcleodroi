@@ -1,5 +1,5 @@
 import type { CalculatedAnalysis, CalculatedAnalysisModule } from "@/lib/analyses/types";
-import type { ValueModuleDefinition, ValueModuleInputDefinition, ValueModuleKey } from "@/lib/modules";
+import type { InputBenchmark, ValueModuleDefinition, ValueModuleInputDefinition, ValueModuleKey } from "@/lib/modules";
 import { getAllValueModules } from "@/lib/modules";
 
 export function toEngineInputValue(input: ValueModuleInputDefinition, value: number): number {
@@ -10,10 +10,66 @@ export function toDisplayInputValue(input: ValueModuleInputDefinition, value: nu
   return input.type === "PERCENTAGE" ? value * 100 : value;
 }
 
+function formatBenchmarkNumber(input: ValueModuleInputDefinition, value: number): string {
+  const display = toDisplayInputValue(input, value);
+  const maximumFractionDigits = input.type === "INTEGER" ? 0 : Number.isInteger(display) ? 0 : 2;
+  const formatted = new Intl.NumberFormat("en-US", { maximumFractionDigits }).format(display);
+  if (input.type === "CURRENCY") return `$${formatted}`;
+  if (input.type === "PERCENTAGE") return `${formatted}%`;
+  return formatted;
+}
+
+/** Formats a single entered/input value for display, honoring the input's unit convention. */
+export function formatInputDisplayValue(input: ValueModuleInputDefinition, value: number): string {
+  return formatBenchmarkNumber(input, value);
+}
+
+/** Formats a benchmark's typical range for display, honoring the input's unit convention. */
+export function formatBenchmarkRange(input: ValueModuleInputDefinition, benchmark: InputBenchmark): string {
+  return `${formatBenchmarkNumber(input, benchmark.typicalMin)}–${formatBenchmarkNumber(input, benchmark.typicalMax)}`;
+}
+
 export function resolveDisplayValue(input: ValueModuleInputDefinition, persistedValue: number | undefined): { value: number | undefined; isDefault: boolean } {
   if (persistedValue !== undefined) return { value: toDisplayInputValue(input, persistedValue), isDefault: false };
   if (input.defaultValue !== undefined) return { value: toDisplayInputValue(input, input.defaultValue), isDefault: true };
   return { value: undefined, isDefault: false };
+}
+
+/** Result of validating a single assessment field in its display units. */
+export type DisplayFieldValidation = {
+  /** `empty` inputs are permitted (they clear the stored value on save). */
+  readonly state: "empty" | "valid" | "error";
+  readonly message?: string;
+};
+
+/**
+ * Validate a single assessment input as typed, in display units, mirroring the
+ * authoritative engine rules in {@link file:lib/calculations/validate.ts}. Pure
+ * and framework-free so the client form and unit tests share one source of
+ * truth; the server still re-validates on save.
+ */
+export function validateDisplayInput(input: ValueModuleInputDefinition, raw: string): DisplayFieldValidation {
+  const trimmed = raw.trim();
+  if (trimmed === "") return { state: "empty" };
+  const numeric = Number(trimmed);
+  if (!Number.isFinite(numeric)) return { state: "error", message: `${input.label} must be a valid number.` };
+  if (input.type === "INTEGER" && !Number.isInteger(numeric)) {
+    return { state: "error", message: `${input.label} must be a whole number.` };
+  }
+  const engineValue = toEngineInputValue(input, numeric);
+  if (input.type === "PERCENTAGE" && (engineValue < 0 || engineValue > 1)) {
+    return { state: "error", message: `${input.label} must be between 0% and 100%.` };
+  }
+  if (input.type !== "PERCENTAGE" && engineValue < 0) {
+    return { state: "error", message: `${input.label} cannot be negative.` };
+  }
+  if (input.min !== undefined && engineValue < input.min) {
+    return { state: "error", message: `${input.label} must be at least ${formatInputDisplayValue(input, input.min)}.` };
+  }
+  if (input.max !== undefined && engineValue > input.max) {
+    return { state: "error", message: `${input.label} must be no more than ${formatInputDisplayValue(input, input.max)}.` };
+  }
+  return { state: "valid" };
 }
 
 export function getPreferredResumeRoute(analysisId: string, calculated: Pick<CalculatedAnalysis, "workflowReadiness" | "summary">): string {
