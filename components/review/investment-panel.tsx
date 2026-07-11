@@ -1,3 +1,7 @@
+"use client";
+
+import { useActionState } from "react";
+import { initialInvestmentActionState, type InvestmentActionState, type InvestmentFieldKey } from "@/lib/analyses/investment-action-state";
 import type { AnalysisInvestment } from "@/lib/analyses/types";
 import type { RoiMetrics } from "@/lib/calculations";
 
@@ -5,7 +9,7 @@ type Props = {
   investment: AnalysisInvestment;
   roi: RoiMetrics | null;
   identifiedAnnualOpportunity: number;
-  saveAction: (formData: FormData) => Promise<void>;
+  saveAction: (previousState: InvestmentActionState, formData: FormData) => Promise<InvestmentActionState>;
 };
 
 const money = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -27,7 +31,18 @@ function prefill(value: number | null): string | undefined {
 const inputClass = "mt-1 w-full rounded-lg border border-[#d7c9ae] bg-white px-3 py-2 text-[#0b1d33]";
 const labelClass = "text-sm font-semibold text-[#35465c]";
 
+function valueFor(state: InvestmentActionState, key: InvestmentFieldKey, persisted: string | undefined): string | undefined {
+  return state.status === "ERROR" ? state.submittedValues?.[key] : persisted;
+}
+
+function FieldError({ state, field }: { state: InvestmentActionState; field: InvestmentFieldKey }) {
+  const messages = state.fieldErrors?.[field];
+  if (!messages?.length) return null;
+  return <p className="mt-1 text-sm font-semibold text-red-700">{messages.join(" ")}</p>;
+}
+
 export function InvestmentPanel({ investment, roi, identifiedAnnualOpportunity, saveAction }: Props) {
+  const [state, formAction] = useActionState(saveAction, initialInvestmentActionState);
   const adoptionValue = investment.adoptionSchedulePct
     ? investment.adoptionSchedulePct.map((fraction) => Math.round(fraction * 1000) / 10).join(", ")
     : undefined;
@@ -40,6 +55,9 @@ export function InvestmentPanel({ investment, roi, identifiedAnnualOpportunity, 
         Enter the seller-quoted investment for this deal to translate the identified opportunity into finance-grade ROI,
         payback, NPV, and IRR. Leave the one-time cost blank to show identified opportunity only.
       </p>
+
+      {state.status === "ERROR" && <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800">{state.message}</div>}
+      {state.status === "SUCCESS" && <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-semibold text-green-800">{state.message}</div>}
 
       {roi && (
         <div className="mt-6 rounded-2xl bg-[#0b1d33] p-6 text-[#fffaf0]">
@@ -105,30 +123,36 @@ export function InvestmentPanel({ investment, roi, identifiedAnnualOpportunity, 
         </div>
       )}
 
-      <form action={saveAction} className="mt-6 grid gap-4 md:grid-cols-3">
+      <form action={formAction} className="mt-6 grid gap-4 md:grid-cols-3">
         <label className="block">
           <span className={labelClass}>One-time implementation cost</span>
-          <input className={inputClass} type="number" min="0" step="1" name="investmentOneTimeCost" defaultValue={prefill(investment.investmentOneTimeCost)} placeholder="e.g. 150000" />
+          <input className={inputClass} type="number" min="0" step="1" name="investmentOneTimeCost" defaultValue={valueFor(state, "investmentOneTimeCost", prefill(investment.investmentOneTimeCost))} placeholder="e.g. 150000" />
+          <FieldError state={state} field="investmentOneTimeCost" />
         </label>
         <label className="block">
           <span className={labelClass}>Recurring annual cost</span>
-          <input className={inputClass} type="number" min="0" step="1" name="investmentAnnualRecurringCost" defaultValue={prefill(investment.investmentAnnualRecurringCost)} placeholder="e.g. 60000" />
+          <input className={inputClass} type="number" min="0" step="1" name="investmentAnnualRecurringCost" defaultValue={valueFor(state, "investmentAnnualRecurringCost", prefill(investment.investmentAnnualRecurringCost))} placeholder="e.g. 60000" />
+          <FieldError state={state} field="investmentAnnualRecurringCost" />
         </label>
         <label className="block">
           <span className={labelClass}>Change-management cost (optional)</span>
-          <input className={inputClass} type="number" min="0" step="1" name="investmentChangeManagementCost" defaultValue={prefill(investment.investmentChangeManagementCost)} placeholder="e.g. 20000" />
+          <input className={inputClass} type="number" min="0" step="1" name="investmentChangeManagementCost" defaultValue={valueFor(state, "investmentChangeManagementCost", prefill(investment.investmentChangeManagementCost))} placeholder="e.g. 20000" />
+          <FieldError state={state} field="investmentChangeManagementCost" />
         </label>
         <label className="block">
           <span className={labelClass}>Analysis horizon (years)</span>
-          <input className={inputClass} type="number" min="1" max="10" step="1" name="roiHorizonYears" defaultValue={prefill(investment.roiHorizonYears)} placeholder="3" />
+          <input className={inputClass} type="number" min="1" max="10" step="1" name="roiHorizonYears" defaultValue={valueFor(state, "roiHorizonYears", prefill(investment.roiHorizonYears))} placeholder="3" />
+          <FieldError state={state} field="roiHorizonYears" />
         </label>
         <label className="block">
           <span className={labelClass}>Discount rate (%)</span>
-          <input className={inputClass} type="number" min="0" max="100" step="0.1" name="roiDiscountRatePct" defaultValue={discountPrefill} placeholder="10" />
+          <input className={inputClass} type="number" min="0" max="100" step="0.1" name="roiDiscountRatePct" defaultValue={valueFor(state, "roiDiscountRatePct", discountPrefill)} placeholder="10" />
+          <FieldError state={state} field="roiDiscountRatePct" />
         </label>
         <label className="block">
           <span className={labelClass}>Adoption ramp (% per year, optional)</span>
-          <input className={inputClass} type="text" name="adoptionSchedulePct" defaultValue={adoptionValue} placeholder="e.g. 50, 80, 100" />
+          <input className={inputClass} type="text" name="adoptionSchedulePct" defaultValue={valueFor(state, "adoptionSchedulePct", adoptionValue)} placeholder="e.g. 50, 80, 100" />
+          <FieldError state={state} field="adoptionSchedulePct" />
         </label>
         <div className="md:col-span-3">
           <p className="text-sm text-[#627085]">Identified annual opportunity available for this analysis: {money.format(identifiedAnnualOpportunity)}.</p>

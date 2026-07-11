@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { moveAnalysisModule, resetAnalysisNarrativeToTemplate, saveCustomAnalysisNarrative, saveAnalysisInvestment, saveOverlapDisposition } from "@/lib/analyses/service";
 import { prisma } from "@/lib/db";
 import { deleteCustomerLogoFiles, saveCustomerLogoFile } from "@/lib/presentation/logo";
-import type { AnalysisInvestmentInput } from "@/lib/validation/analysis";
+import type { InvestmentActionState, InvestmentFieldKey, InvestmentFormValues } from "@/lib/analyses/investment-action-state";
+import { analysisInvestmentSchema, type AnalysisInvestmentInput } from "@/lib/validation/analysis";
 
 export async function saveNarrativeAction(analysisId: string, analysisModuleId: string, formData: FormData) {
   await saveCustomAnalysisNarrative({ analysisModuleId, narrative: String(formData.get("narrative") ?? "") });
@@ -23,34 +24,67 @@ export async function moveModuleAction(analysisId: string, analysisModuleId: str
   redirect(`/analyses/${analysisId}/review`);
 }
 
-function optionalNumber(value: FormDataEntryValue | null): number | undefined {
-  if (typeof value !== "string" || value.trim() === "") return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
+function formString(formData: FormData, key: InvestmentFieldKey): string {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
 }
 
-function optionalPercentAsDecimal(value: FormDataEntryValue | null): number | undefined {
-  const percent = optionalNumber(value);
-  return percent === undefined ? undefined : percent / 100;
+function submittedValues(formData: FormData): InvestmentFormValues {
+  return {
+    investmentOneTimeCost: formString(formData, "investmentOneTimeCost"),
+    investmentAnnualRecurringCost: formString(formData, "investmentAnnualRecurringCost"),
+    investmentChangeManagementCost: formString(formData, "investmentChangeManagementCost"),
+    roiHorizonYears: formString(formData, "roiHorizonYears"),
+    roiDiscountRatePct: formString(formData, "roiDiscountRatePct"),
+    adoptionSchedulePct: formString(formData, "adoptionSchedulePct"),
+  };
 }
 
-function optionalAdoptionSchedule(value: FormDataEntryValue | null): number[] | undefined {
-  if (typeof value !== "string" || value.trim() === "") return undefined;
+function numberOrUndefined(value: string): number | undefined {
+  return value.trim() === "" ? undefined : Number(value);
+}
+
+function adoptionScheduleOrUndefined(value: string): number[] | undefined {
+  if (value.trim() === "") return undefined;
   return value.split(",").map((part) => Number(part.trim()) / 100);
 }
 
-export async function saveInvestmentAction(analysisId: string, formData: FormData) {
-  const input: AnalysisInvestmentInput = {
-    investmentOneTimeCost: optionalNumber(formData.get("investmentOneTimeCost")),
-    investmentAnnualRecurringCost: optionalNumber(formData.get("investmentAnnualRecurringCost")),
-    investmentChangeManagementCost: optionalNumber(formData.get("investmentChangeManagementCost")),
-    roiHorizonYears: optionalNumber(formData.get("roiHorizonYears")),
-    roiDiscountRatePct: optionalPercentAsDecimal(formData.get("roiDiscountRatePct")),
-    adoptionSchedulePct: optionalAdoptionSchedule(formData.get("adoptionSchedulePct")),
+function investmentInput(values: InvestmentFormValues): AnalysisInvestmentInput {
+  return {
+    investmentOneTimeCost: numberOrUndefined(values.investmentOneTimeCost),
+    investmentAnnualRecurringCost: numberOrUndefined(values.investmentAnnualRecurringCost),
+    investmentChangeManagementCost: numberOrUndefined(values.investmentChangeManagementCost),
+    roiHorizonYears: numberOrUndefined(values.roiHorizonYears),
+    roiDiscountRatePct: values.roiDiscountRatePct.trim() === "" ? undefined : Number(values.roiDiscountRatePct) / 100,
+    adoptionSchedulePct: adoptionScheduleOrUndefined(values.adoptionSchedulePct),
   };
-  await saveAnalysisInvestment({ analysisId, input });
+}
+
+function fieldErrorsFor(input: AnalysisInvestmentInput): Partial<Record<InvestmentFieldKey, string[]>> {
+  const parsed = analysisInvestmentSchema.safeParse(input);
+  if (parsed.success) return {};
+  const fieldErrors: Partial<Record<InvestmentFieldKey, string[]>> = {};
+  for (const issue of parsed.error.issues) {
+    const key = issue.path[0] as InvestmentFieldKey | undefined;
+    if (!key) continue;
+    fieldErrors[key] = [...(fieldErrors[key] ?? []), issue.message];
+  }
+  return fieldErrors;
+}
+
+export async function saveInvestmentAction(analysisId: string, _previousState: InvestmentActionState, formData: FormData): Promise<InvestmentActionState> {
+  const values = submittedValues(formData);
+  const input = investmentInput(values);
+  const clientFieldErrors = fieldErrorsFor(input);
+  if (Object.keys(clientFieldErrors).length > 0) {
+    return { status: "ERROR", message: "Investment assumptions require correction before return metrics can be calculated.", fieldErrors: clientFieldErrors, submittedValues: values };
+  }
+  const result = await saveAnalysisInvestment({ analysisId, input });
+  if (!result.ok) {
+    return { status: "ERROR", message: result.error.message, fieldErrors: fieldErrorsFor(input), submittedValues: values };
+  }
   revalidatePath(`/analyses/${analysisId}/review`);
-  redirect(`/analyses/${analysisId}/review`);
+  return { status: "SUCCESS", message: "Investment assumptions saved." };
 }
 
 export async function saveLogoAction(analysisId: string, formData: FormData) {

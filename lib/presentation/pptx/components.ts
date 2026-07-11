@@ -87,7 +87,7 @@ export function addAssumptionsAppendixTable(slide: pptxgen.Slide, o: { modules: 
   const colW = [o.w * 0.35, o.w * 0.18, o.w * 0.24, o.w * 0.23];
   const border = { type: "solid" as const, color: c.softBorder, pt: 0.5 };
   const headerCell = (text: string) => ({ text, options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 9 } });
-  const rows: pptxgen.TableRow[] = [[headerCell("Assumption"), headerCell("Entered"), headerCell("Industry Typical"), headerCell("Source")]];
+  const rows: pptxgen.TableRow[] = [[headerCell("Assumption"), headerCell("Entered"), headerCell("Planning Reference"), headerCell("Source")]];
   for (const mod of o.modules) {
     rows.push([{ text: `${mod.categoryName} — ${mod.moduleName}`, options: { colspan: 4, bold: true, color: c.midnight, fill: { color: c.warmCanvas }, fontSize: 8.5 } }]);
     for (const row of mod.rows) {

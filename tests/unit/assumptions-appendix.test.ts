@@ -34,7 +34,7 @@ describe("assumptions appendix", () => {
     expect(rows.find((r) => r.inputKey === "current_deadhead_pct")?.enteredValue).toBe("18%");
     expect(rows.find((r) => r.inputKey === "target_deadhead_pct")?.enteredValue).toBe("—");
     expect(rows.find((r) => r.inputKey === "current_deadhead_pct")?.typicalRange).toBe("10%–25%");
-    expect(appendix.sources.map((s) => s.label)).toEqual(["ATRI", "McLeod"]);
+    expect(appendix.sources.map((s) => s.label)).toEqual(["Directional planning range", "McLeod planning reference"]);
   });
 
   it("shows an em dash for benchmarked inputs without an entered value", () => {
@@ -62,6 +62,6 @@ describe("assumptions appendix", () => {
 
   it("builds the appendix slide without throwing", () => {
     const pptx = createPresentation();
-    expect(() => buildAssumptionsAppendixSlide(pptx, { companyName: "Test Carrier", slideNumber: 7, modules: [{ moduleName: "Reduce Deadhead Miles", categoryName: "Trucking Operations", rows: [{ label: "Current deadhead percentage", enteredValue: "18%", typicalRange: "10%–25%", sourceLabel: "ATRI" }] }], sources: [{ label: "ATRI", citation: "American Transportation Research Institute." }] })).not.toThrow();
+    expect(() => buildAssumptionsAppendixSlide(pptx, { companyName: "Test Carrier", slideNumber: 7, modules: [{ moduleName: "Reduce Deadhead Miles", categoryName: "Trucking Operations", rows: [{ label: "Current deadhead percentage", enteredValue: "18%", typicalRange: "10%–25%", sourceLabel: "Directional planning range" }] }], sources: [{ label: "Directional planning range", citation: "Planning reference." }] })).not.toThrow();
   });
 });

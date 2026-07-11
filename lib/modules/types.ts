@@ -97,22 +97,40 @@ export const overlapNoticeTypes = ["INFORMATION", "REVIEW"] as const;
 export type OverlapNoticeType = (typeof overlapNoticeTypes)[number];
 
 /** A sourced benchmark reference for building buyer trust in an assumption. */
+export const benchmarkSourceTypes = ["PUBLIC_VERIFIED", "MCLEOD_INTERNAL", "DIRECTIONAL_PLANNING", "USER_PROVIDED"] as const;
+export type BenchmarkSourceType = (typeof benchmarkSourceTypes)[number];
+
+export const benchmarkApprovalStatuses = ["APPROVED", "PLANNING_ONLY", "NEEDS_REVIEW", "RETIRED"] as const;
+export type BenchmarkApprovalStatus = (typeof benchmarkApprovalStatuses)[number];
+
 export interface BenchmarkSource {
-  /** Short label surfaced next to the input (e.g. "ATRI"). */
+  /** Customer-facing source category. */
+  readonly sourceType: BenchmarkSourceType;
+  /** Approval status controlling whether and how the range is shown. */
+  readonly approvalStatus: BenchmarkApprovalStatus;
+  /** Customer-facing source label. */
   readonly label: string;
-  /** Full citation surfaced in tooltips and the assumptions/sources appendix. */
+  /** Concise source note surfaced in assumptions/sources appendix. */
   readonly citation: string;
+  readonly owner?: string;
+  readonly effectiveDate?: string;
+  readonly reviewDate?: string;
+  readonly applicabilityNote?: string;
+  readonly internalRationale?: string;
 }
 
 /**
- * Optional industry-typical range and citation for an input. Values use the same
+ * Optional planning-reference range and citation for an input. Values use the same
  * convention as the input itself (percentages as decimals, currency in dollars),
  * so they can be formatted with the same display helpers as entered values.
  */
 export interface InputBenchmark {
-  /** Inclusive lower end of the industry-typical range. */
+  /** Stable benchmark identifier used for snapshot provenance. */
+  readonly key: string;
+  readonly version: string;
+  /** Inclusive lower end of the planning-reference range. */
   readonly typicalMin: number;
-  /** Inclusive upper end of the industry-typical range. */
+  /** Inclusive upper end of the planning-reference range. */
   readonly typicalMax: number;
   readonly source: BenchmarkSource;
 }
@@ -130,7 +148,7 @@ export interface ValueModuleInputDefinition {
   readonly min?: number;
   /** Optional inclusive upper bound enforced by the calculation validation layer. */
   readonly max?: number;
-  /** Optional sourced industry-typical range surfaced as credibility metadata. */
+  /** Optional sourced planning-reference range surfaced as credibility metadata. */
   readonly benchmark?: InputBenchmark;
 }
 

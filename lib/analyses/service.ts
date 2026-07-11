@@ -756,6 +756,17 @@ export async function calculateAnalysis(args: {
   const overlapReviewStates = buildOverlapReviewStates({ notices: overlapNotices, modules: calculated, dispositions: persistedDispositions });
   const summary = summarizeCalculatedModules(calculated);
   const investment = toAnalysisInvestment(analysis);
+  const persistedInvestmentValidation = analysisInvestmentSchema.safeParse({
+    investmentOneTimeCost: investment.investmentOneTimeCost ?? undefined,
+    investmentAnnualRecurringCost: investment.investmentAnnualRecurringCost ?? undefined,
+    investmentChangeManagementCost: investment.investmentChangeManagementCost ?? undefined,
+    roiHorizonYears: investment.roiHorizonYears ?? undefined,
+    roiDiscountRatePct: investment.roiDiscountRatePct ?? undefined,
+    adoptionSchedulePct: investment.adoptionSchedulePct ?? undefined,
+  });
+  if (!persistedInvestmentValidation.success) {
+    return err("INVALID_INVESTMENT_CONFIGURATION", "Investment assumptions require correction before return metrics can be calculated.");
+  }
   const totalInvestment =
     (investment.investmentOneTimeCost ?? 0) +
     (investment.investmentChangeManagementCost ?? 0);
