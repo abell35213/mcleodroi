@@ -44,8 +44,8 @@ function moduleMetric(module: PresentationSnapshot["categories"][number]["module
   const monthly = outputs.monthlyRecurringValue;
   const annualOnly = outputs.annualOnlyValue;
   const capital = outputs.informationalCapitalValue;
-  if (typeof monthly === "number") return { label: "Monthly recurring value", value: `${formatPresentationCurrency(monthly)} / month` };
-  if (typeof annualOnly === "number") return { label: "Annual value", value: `${formatPresentationCurrency(annualOnly)} / year` };
+  if (typeof monthly === "number") return { label: monthly < 0 ? "Monthly economic offset" : "Monthly recurring value", value: `${formatPresentationCurrency(monthly)} / month` };
+  if (typeof annualOnly === "number") return { label: annualOnly < 0 ? "Annual economic offset" : "Annual value", value: `${formatPresentationCurrency(annualOnly)} / year` };
   if (typeof capital === "number") return { label: "Potential avoided capital", value: formatPresentationCurrency(capital) };
   const annualRecurring = outputs.annualRecurringValue;
   return { label: "Annual recurring value", value: typeof annualRecurring === "number" ? formatPresentationCurrency(annualRecurring) : "—" };
@@ -62,7 +62,7 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
     { label: "Recurring economic opportunity", value: `${formatPresentationCurrency(summary.monthlyRecurringValueTotal)} / month` },
     { label: "Annual recurring value", value: formatPresentationCurrency(summary.annualRecurringValueTotal) },
   ];
-  if (summary.annualOnlyValueTotal > 0) summaryMetrics.push({ label: "Annual-only cost avoidance", value: formatPresentationCurrency(summary.annualOnlyValueTotal) });
+  if (summary.annualOnlyValueTotal !== 0) summaryMetrics.push({ label: summary.annualOnlyValueTotal < 0 ? "Annual-only economic offset" : "Annual-only cost avoidance", value: formatPresentationCurrency(summary.annualOnlyValueTotal) });
 
   const roi = snapshot.roi ?? null;
   const roiMetrics: ExportMetric[] = roi

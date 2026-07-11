@@ -211,3 +211,29 @@ Data builders live in `lib/analyses/charts.ts` (unit-tested in
 4. Update the formula description in this file.
 5. Run `npm run verify`. A changed customer-facing number that is *not*
    reflected in the golden fixtures will fail the golden-master test by design.
+
+## P1-Audit-3 overlap governance and reconciliation policy
+
+Overlap notices retain their canonical registry text and severity. `INFORMATION` notices remain informational and do not require acknowledgment. `REVIEW` notices require a persisted seller disposition before any customer-facing presentation snapshot or export can be generated.
+
+Valid completed dispositions are:
+
+- `ASSUMPTIONS_MUTUALLY_EXCLUSIVE` — the seller confirms the selected module values represent distinct assumptions and may remain in totals.
+- `VALUES_ADJUSTED_TO_REMOVE_OVERLAP` — the seller confirms inputs were adjusted to prevent duplicate economic value.
+- `NEEDS_REVISION` — unresolved; customer-facing generation remains blocked.
+
+`EXCLUDE_FROM_TOTALS` exists in the persistence enum for traceability but is not selectable as a completed workflow in P1-Audit-3. Sellers must remove a module from the selected analysis when a related opportunity should not contribute to customer-facing totals. This avoids a misleading acknowledgment that would otherwise continue to sum every module.
+
+Each review disposition is fingerprinted with the overlap registry version, overlap group key, selected module keys in that group, module display/order identifiers, relevant reconstructed input values, and relevant calculated financial outputs. The fingerprint uses stable serialization and SHA-256. If selected related modules, relevant inputs, relevant outputs, or the overlap registry version change, the prior disposition is stale and no longer satisfies presentation readiness.
+
+Overlap acknowledgment does not authorize double counting. It records why the selected values are considered distinct or confirms that values were adjusted or excluded.
+
+Negative calculated opportunity values remain part of a successful complete analysis. They are not clamped, inverted, or silently omitted. Negative values reduce aggregate totals, category totals, value-type totals, waterfall totals, ROI benefit base, and presentation/export decompositions. Informational capital remains separate from annual identified economic opportunity.
+
+Reconciliation guarantees:
+
+- Value-type annual recurring and annual-only classifications reconcile to annual identified economic opportunity, excluding informational capital.
+- Category annual identified opportunity equals the sum of included modules' `annualRecurringValue + annualOnlyValue`.
+- Waterfall positive bars increase and negative bars decrease the cumulative total; the final total equals aggregate annual identified economic opportunity.
+- Executive and final opportunity supporting cards include non-zero negative classifications or prioritize by absolute materiality so negative offsets are not hidden as positive-only “savings.”
+- Presentation snapshots capture valid overlap dispositions for internal traceability without adding internal warning language to customer-facing slides.

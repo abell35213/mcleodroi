@@ -11,6 +11,7 @@ import type {
   RoiMetrics,
   ValidationIssue,
 } from "@/lib/calculations";
+import type { OverlapReviewState } from "./overlap-dispositions";
 
 export const analysisModuleStatuses = [
   "NOT_STARTED",
@@ -106,6 +107,7 @@ export type CalculatedAnalysis = {
   };
   readonly calculatedModules: readonly CalculatedAnalysisModule[];
   readonly overlapNotices: readonly OverlapNotice[];
+  readonly overlapReviewStates: readonly OverlapReviewState[];
   readonly summary: AnalysisCalculationSummary;
   readonly workflowReadiness: AnalysisWorkflowReadiness;
   /** Persisted, seller-entered investment inputs (values may all be `null`). */
@@ -133,6 +135,7 @@ export const analysisServiceErrorCodes = [
   "ANALYSIS_MODULE_INTEGRITY_ERROR",
   "INVALID_INVESTMENT_INPUT",
   "ADOPTION_SCHEDULE_INTEGRITY_ERROR",
+  "OVERLAP_REVIEW_REQUIRED",
 ] as const;
 export type AnalysisServiceErrorCode =
   (typeof analysisServiceErrorCodes)[number];

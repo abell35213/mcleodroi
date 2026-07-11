@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { moveAnalysisModule, resetAnalysisNarrativeToTemplate, saveCustomAnalysisNarrative, saveAnalysisInvestment } from "@/lib/analyses/service";
+import { moveAnalysisModule, resetAnalysisNarrativeToTemplate, saveCustomAnalysisNarrative, saveAnalysisInvestment, saveOverlapDisposition } from "@/lib/analyses/service";
 import { prisma } from "@/lib/db";
 import { deleteCustomerLogoFiles, saveCustomerLogoFile } from "@/lib/presentation/logo";
 import type { AnalysisInvestmentInput } from "@/lib/validation/analysis";
@@ -69,6 +69,12 @@ export async function saveLogoAction(analysisId: string, formData: FormData) {
 export async function removeLogoAction(analysisId: string) {
   deleteCustomerLogoFiles(analysisId);
   await prisma.analysis.update({ where: { id: analysisId }, data: { customerLogoPath: null } });
+  revalidatePath(`/analyses/${analysisId}/review`);
+  redirect(`/analyses/${analysisId}/review`);
+}
+
+export async function saveOverlapDispositionAction(analysisId: string, formData: FormData) {
+  await saveOverlapDisposition({ analysisId, overlapGroupKey: String(formData.get("overlapGroupKey") ?? ""), disposition: String(formData.get("disposition") ?? ""), acknowledgmentText: String(formData.get("acknowledgmentText") ?? "") });
   revalidatePath(`/analyses/${analysisId}/review`);
   redirect(`/analyses/${analysisId}/review`);
 }

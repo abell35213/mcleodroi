@@ -21,7 +21,7 @@ export type WaterfallStep = {
   readonly analysisModuleId: string;
   readonly moduleKey: string;
   readonly label: string;
-  /** Annual economic opportunity contributed by this module (>= 0). */
+  /** Annual economic opportunity contributed by this module; negative values reduce the total. */
   readonly value: number;
   /** Running total before this step is added. */
   readonly start: number;
@@ -65,7 +65,7 @@ export function buildValueWaterfall(calculated: CalculatedAnalysis): WaterfallDa
   const steps: WaterfallStep[] = [];
   for (const moduleState of ordered) {
     const value = moduleAnnualEconomicOpportunity(moduleState);
-    if (value <= 0) continue;
+    if (value === 0) continue;
     const start = running;
     running += value;
     steps.push({
@@ -98,13 +98,14 @@ export type BreakdownData = {
 function toBreakdown(
   entries: readonly { key: string; label: string; value: number }[],
 ): BreakdownData {
-  const positive = entries.filter((entry) => entry.value > 0);
-  const total = positive.reduce((sum, entry) => sum + entry.value, 0);
-  const segments = positive.map((entry) => ({
+  const nonZero = entries.filter((entry) => entry.value !== 0);
+  const total = nonZero.reduce((sum, entry) => sum + entry.value, 0);
+  const denominator = nonZero.reduce((sum, entry) => sum + Math.abs(entry.value), 0);
+  const segments = nonZero.map((entry) => ({
     key: entry.key,
     label: entry.label,
     value: entry.value,
-    share: total > 0 ? entry.value / total : 0,
+    share: denominator > 0 ? Math.abs(entry.value) / denominator : 0,
   }));
   return { segments, total };
 }
@@ -148,7 +149,7 @@ export function buildCategoryBreakdown(calculated: CalculatedAnalysis): Breakdow
   const order: CategoryKey[] = [];
   for (const moduleState of ordered) {
     const value = moduleAnnualEconomicOpportunity(moduleState);
-    if (value <= 0) continue;
+    if (value === 0) continue;
     if (!totals.has(moduleState.category)) order.push(moduleState.category);
     totals.set(moduleState.category, (totals.get(moduleState.category) ?? 0) + value);
   }

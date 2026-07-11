@@ -30,6 +30,7 @@ function makeAnalysis(
     analysis: { id: "a1", companyName: "Acme", businessType: "TRUCKLOAD", status: "REVIEW" },
     calculatedModules: [],
     overlapNotices: [],
+    overlapReviewStates: [],
     summary: {
       monthlyRecurringValueTotal: overrides.monthly ?? 50000,
       annualRecurringValueTotal: annualRecurring,

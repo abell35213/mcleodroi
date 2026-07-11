@@ -15,6 +15,7 @@ import {
   resetAnalysisNarrativeToTemplate,
   moveAnalysisModule,
   updateAnalysisDetails,
+  saveOverlapDisposition,
 } from "@/lib/analyses";
 import { getValueModule } from "@/lib/modules";
 
@@ -406,5 +407,47 @@ describe("P1-7 narrative persistence and reordering", () => {
     const saved = await saveCustomAnalysisNarrative({ analysisModuleId: broker.analysisModuleId, narrative: `  ${rendered.value.customerAnalysis}\r\n`, db });
     expect(saved.ok && saved.value.narrativeMode).toBe("TEMPLATE");
     expect(saved.ok && saved.value.customNarrative).toBeNull();
+  });
+});
+
+
+describe("P1-Audit-3 overlap governance", () => {
+  it("does not block informational notices but blocks unresolved REVIEW notices", async () => {
+    const brokerage = await createAnalysis("BROKERAGE");
+    const rfpProcess = await selectOrThrow(brokerage.id, "RFP_PROCESS_EFFICIENCY");
+    const rfpGrowth = await selectOrThrow(brokerage.id, "RFP_GROWTH_OPPORTUNITY");
+    await saveOrThrow(rfpProcess.analysisModuleId, { current_minutes_per_rfp: 90, target_minutes_per_rfp: 60, rfps_per_month: 20, hourly_labor_rate: 40 });
+    await saveOrThrow(rfpGrowth.analysisModuleId, { additional_loads_week: 5, average_margin_per_load: 150 });
+    const info = await calculateAnalysis({ analysisId: brokerage.id, db });
+    expect(info.ok && info.value.overlapNotices[0].type).toBe("INFORMATION");
+    expect(info.ok && info.value.workflowReadiness.canGeneratePresentation).toBe(true);
+
+    const truckload = await createAnalysis("TRUCKLOAD");
+    const deadhead = await selectOrThrow(truckload.id, "REDUCE_DEADHEAD");
+    const outOfRoute = await selectOrThrow(truckload.id, "REDUCE_OUT_OF_ROUTE");
+    await saveOrThrow(deadhead.analysisModuleId, { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 });
+    await saveOrThrow(outOfRoute.analysisModuleId, { current_oor_pct: 0.08, target_oor_pct: 0.07, tractor_count: 100, miles_per_tractor_month: 10000, average_mpg: 6.5, fuel_cost_per_gallon: 4 });
+    const review = await calculateAnalysis({ analysisId: truckload.id, db });
+    expect(review.ok && review.value.overlapReviewStates[0].blocksPresentation).toBe(true);
+    expect(review.ok && review.value.workflowReadiness.canReview).toBe(true);
+    expect(review.ok && review.value.workflowReadiness.canGeneratePresentation).toBe(false);
+  });
+
+  it("accepts valid dispositions, blocks NEEDS_REVISION, and invalidates stale fingerprints", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const deadhead = await selectOrThrow(analysis.id, "REDUCE_DEADHEAD");
+    const outOfRoute = await selectOrThrow(analysis.id, "REDUCE_OUT_OF_ROUTE");
+    await saveOrThrow(deadhead.analysisModuleId, { current_deadhead_pct: 0.17, target_deadhead_pct: 0.16, monthly_miles: 2500000, variable_cost_per_mile: 0.45 });
+    await saveOrThrow(outOfRoute.analysisModuleId, { current_oor_pct: 0.08, target_oor_pct: 0.07, tractor_count: 100, miles_per_tractor_month: 10000, average_mpg: 6.5, fuel_cost_per_gallon: 4 });
+    expect((await saveOverlapDisposition({ analysisId: analysis.id, overlapGroupKey: "ASSET_PRODUCTIVITY", disposition: "NEEDS_REVISION", db })).ok).toBe(true);
+    let calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok && calculated.value.workflowReadiness.canGeneratePresentation).toBe(false);
+    expect((await saveOverlapDisposition({ analysisId: analysis.id, overlapGroupKey: "ASSET_PRODUCTIVITY", disposition: "VALUES_ADJUSTED_TO_REMOVE_OVERLAP", db })).ok).toBe(true);
+    calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok && calculated.value.workflowReadiness.canGeneratePresentation).toBe(true);
+    await saveOrThrow(deadhead.analysisModuleId, { target_deadhead_pct: 0.155 });
+    calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok && calculated.value.overlapReviewStates[0].status).toBe("STALE");
+    expect(calculated.ok && calculated.value.workflowReadiness.canGeneratePresentation).toBe(false);
   });
 });

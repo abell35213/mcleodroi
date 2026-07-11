@@ -37,6 +37,13 @@ enum PresentationGenerationStatus {
   FAILED
 }
 
+enum OverlapDisposition {
+  ASSUMPTIONS_MUTUALLY_EXCLUSIVE
+  VALUES_ADJUSTED_TO_REMOVE_OVERLAP
+  EXCLUDE_FROM_TOTALS
+  NEEDS_REVISION
+}
+
 model Analysis {
   id               String         @id @default(cuid())
   companyName      String
@@ -56,6 +63,7 @@ model Analysis {
   updatedAt        DateTime       @updatedAt
   modules          AnalysisModule[]
   presentationGenerations PresentationGeneration[]
+  overlapDispositions AnalysisOverlapDisposition[]
 }
 
 model AnalysisModule {
@@ -88,6 +96,23 @@ model AnalysisModuleInput {
   @@unique([analysisModuleId, inputKey])
 }
 
+
+model AnalysisOverlapDisposition {
+  id                  String             @id @default(cuid())
+  analysisId          String
+  analysis            Analysis           @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  overlapGroupKey     String
+  disposition         OverlapDisposition
+  acknowledgmentText  String?
+  sourceFingerprint   String
+  excludedModuleKeysJson String?
+  reviewedAt          DateTime
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@unique([analysisId, overlapGroupKey])
+  @@index([analysisId])
+}
 
 model PresentationGeneration {
   id              String   @id @default(cuid())
