@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:f
 import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
-import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
+import { APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
 import { addAssumptionGrid } from "@/lib/presentation/pptx/components";
 import { buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide } from "@/lib/presentation/slides";
@@ -20,7 +20,6 @@ const testDualModel = {
 };
 
 let approvedThemeImageBackup: Buffer | null = null;
-let approvedCoverLogoBackup: Buffer | null = null;
 
 async function pptxMediaCount(pptx: ReturnType<typeof createPresentation>) {
   const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
@@ -35,27 +34,16 @@ function writeTemporaryGoldenAssets() {
   } catch {
     approvedThemeImageBackup = null;
   }
-  try {
-    approvedCoverLogoBackup = readFileSync(APPROVED_COVER_LOGO_PATH);
-  } catch {
-    approvedCoverLogoBackup = null;
-  }
 
-  const onePixelWebpBase64 = "UklGRhoAAABXRUJQVlA4ICgAAAAwAQCdASoBAAEALwA=";
   const onePixelPngBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-  writeFileSync(APPROVED_THEME_IMAGE_PATH, Buffer.from(onePixelWebpBase64, "base64"));
-  writeFileSync(APPROVED_COVER_LOGO_PATH, Buffer.from(onePixelPngBase64, "base64"));
+  writeFileSync(APPROVED_THEME_IMAGE_PATH, Buffer.from(onePixelPngBase64, "base64"));
 }
 
 function removeTemporaryGoldenAssets() {
   if (approvedThemeImageBackup) writeFileSync(APPROVED_THEME_IMAGE_PATH, approvedThemeImageBackup);
   else rmSync(APPROVED_THEME_IMAGE_PATH, { force: true });
 
-  if (approvedCoverLogoBackup) writeFileSync(APPROVED_COVER_LOGO_PATH, approvedCoverLogoBackup);
-  else rmSync(APPROVED_COVER_LOGO_PATH, { force: true });
-
   approvedThemeImageBackup = null;
-  approvedCoverLogoBackup = null;
 }
 
 describe("presentation design system", () => {
@@ -71,11 +59,10 @@ describe("presentation design system", () => {
   it("centralizes approved presentation asset paths inside the project", () => {
     expect(PRESENTATION_ASSET_DIR).toBe("public/presentation-assets");
     expect(presentationTheme.assets.themeImagePath).toBe(APPROVED_THEME_IMAGE_PATH);
-    expect(presentationTheme.assets.coverLogoPath).toBe(APPROVED_COVER_LOGO_PATH);
     expect(presentationTheme.assets.titleSlideImagePath).toBe(APPROVED_TITLE_SLIDE_IMAGE_PATH);
     expect(presentationTheme.assets.powerpointTemplatePath).toBe(APPROVED_POWERPOINT_TEMPLATE_PATH);
     expect(presentationTheme.assets.logoPath).toBeNull();
-    for (const assetPath of [presentationTheme.assets.themeImagePath, presentationTheme.assets.coverLogoPath, presentationTheme.assets.titleSlideImagePath, presentationTheme.assets.powerpointTemplatePath]) {
+    for (const assetPath of [presentationTheme.assets.themeImagePath, presentationTheme.assets.titleSlideImagePath, presentationTheme.assets.powerpointTemplatePath]) {
       const resolved = resolvePresentationAssetPath(assetPath);
       expect(resolved).toContain(process.cwd());
       expect(resolved).toContain(assetPath);
@@ -84,31 +71,26 @@ describe("presentation design system", () => {
   });
 
 it("fails the golden fixture clearly when an approved asset is missing", () => {
-  let themeBackup: Buffer | null = null;
-  let logoBackup: Buffer | null = null;
-  try {
-    themeBackup = readFileSync(APPROVED_THEME_IMAGE_PATH);
-  } catch {
-    themeBackup = null;
-  }
-  try {
-    logoBackup = readFileSync(APPROVED_COVER_LOGO_PATH);
-  } catch {
-    logoBackup = null;
-  }
+    let themeBackup: Buffer | null = null;
+    try {
+      themeBackup = readFileSync(APPROVED_THEME_IMAGE_PATH);
+    } catch {
+      themeBackup = null;
+    }
 
-  removeTemporaryGoldenAssets();
-  try {
-    expect(() => execFileSync("npm", ["run", "presentation:golden"], { stdio: "pipe" })).toThrow(/Golden presentation asset missing: public\/presentation-assets\/mcleod-logo\.png/);
-  } finally {
-    if (themeBackup) writeFileSync(APPROVED_THEME_IMAGE_PATH, themeBackup);
-    if (logoBackup) writeFileSync(APPROVED_COVER_LOGO_PATH, logoBackup);
-  }
-});
+    rmSync(APPROVED_THEME_IMAGE_PATH, { force: true });
+    try {
+      expect(() => execFileSync("npm", ["run", "presentation:golden"], { stdio: "pipe" })).toThrow(/Golden presentation asset missing: public\/presentation-assets\/themepages\.png/);
+    } finally {
+      if (themeBackup) writeFileSync(APPROVED_THEME_IMAGE_PATH, themeBackup);
+      else rmSync(APPROVED_THEME_IMAGE_PATH, { force: true });
+    }
+  });
 
 
   it("has the approved title image and template assets available on disk", () => {
     expect(statSync(resolvePresentationAssetPath(APPROVED_TITLE_SLIDE_IMAGE_PATH)).isFile()).toBe(true);
+    expect(statSync(resolvePresentationAssetPath(APPROVED_THEME_IMAGE_PATH)).isFile()).toBe(true);
     expect(statSync(resolvePresentationAssetPath(APPROVED_POWERPOINT_TEMPLATE_PATH)).isFile()).toBe(true);
   });
 
@@ -132,18 +114,13 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     expect(testDualModel.modules[0].howMcLeodHelps).toContain("McLeod");
     expect(testDualModel.modules[0].customerImpact).toContain("$5,880");
   });
-  it("supports configurable cover logos and explicit title image disable", async () => {
-    const withLogo = createPresentation();
-    buildCoverSlide(withLogo, { companyName: "Test Carrier", titleSlideImagePath: null, coverLogoPath: APPROVED_COVER_LOGO_PATH });
-    expect(await pptxMediaCount(withLogo)).toBeGreaterThan(0);
-
+  it("uses the title background image without overlay or logo art", async () => {
     const withoutImages = createPresentation();
-    buildCoverSlide(withoutImages, { companyName: "Test Carrier", titleSlideImagePath: null, coverLogoPath: null });
+    buildCoverSlide(withoutImages, { companyName: "Test Carrier", titleSlideImagePath: null });
     const withoutImagesMediaCount = await pptxMediaCount(withoutImages);
-    expect(withoutImagesMediaCount).toBeLessThan(await pptxMediaCount(withLogo));
 
     const withDefaultTitle = createPresentation();
-    buildCoverSlide(withDefaultTitle, { companyName: "Test Carrier", coverLogoPath: null });
+    buildCoverSlide(withDefaultTitle, { companyName: "Test Carrier" });
     expect(await pptxMediaCount(withDefaultTitle)).toBeGreaterThan(withoutImagesMediaCount);
   });
   it("keeps generated paths safe", () => {
@@ -172,7 +149,7 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     expect(Object.keys(zip.files).filter((name) => name.startsWith("ppt/media/")).length).toBeGreaterThanOrEqual(2);
     const slideText = await zip.file("ppt/slides/slide2.xml")?.async("text");
     expect(slideText).toContain("West Side Transport");
-    expect(slideText).toContain("$503,200");
+    expect(slideText).not.toContain("$503,200");
     expect(slideText).toContain("addresses your key areas of need by");
   });
 });

@@ -2,11 +2,10 @@ import { statSync } from "node:fs";
 import path from "node:path";
 
 export const PRESENTATION_ASSET_DIR = "public/presentation-assets";
-export const APPROVED_THEME_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/highway-sunrise.webp`;
+export const APPROVED_THEME_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/themepages.png`;
 export const APPROVED_TITLE_SLIDE_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/McLeodTitlePage.png`;
 export const APPROVED_POWERPOINT_TEMPLATE_PATH = `${PRESENTATION_ASSET_DIR}/PPTTheme.potx`;
 export const PROPRIETARY_FOOTER_TEXT = "©2026 McLeod Software® | Proprietary & Confidential";
-export const APPROVED_COVER_LOGO_PATH = `${PRESENTATION_ASSET_DIR}/mcleod-logo.png`;
 
 export function resolvePresentationAssetPath(assetPath: string): string {
   const projectRoot = process.cwd();
@@ -54,7 +53,6 @@ export const presentationTheme = {
   assets: {
     themeImagePath: APPROVED_THEME_IMAGE_PATH,
     logoPath: null as string | null,
-    coverLogoPath: APPROVED_COVER_LOGO_PATH,
     titleSlideImagePath: APPROVED_TITLE_SLIDE_IMAGE_PATH,
     powerpointTemplatePath: APPROVED_POWERPOINT_TEMPLATE_PATH,
   },

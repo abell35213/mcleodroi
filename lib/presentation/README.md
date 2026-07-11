@@ -2,9 +2,9 @@
 
 This package contains the reusable PowerPoint theme, layout constants, slide models, and PPTX template helpers used by the approved P1-8 presentation snapshot fixture.
 
-## Cover logo support
+## Cover artwork
 
-No approved McLeod logo image asset is currently present in this repository outside dependency folders. The cover template therefore exposes a configurable `coverLogoPath` slot on `CoverSlideModel`, with `presentationTheme.assets.coverLogoPath` as the default fallback. When an approved logo asset is added to repository/sample assets, pass its file path through that slot rather than fabricating or replacing it with unapproved artwork.
+The cover slide uses the approved title background image from `presentationTheme.assets.titleSlideImagePath`. It does not render a separate configurable cover logo slot.
 
 ## Content controls
 

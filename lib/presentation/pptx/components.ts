@@ -1,6 +1,6 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
-import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T } from "@/lib/presentation/theme";
+import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import type { AssumptionItemModel, AssumptionsAppendixModuleModel, AssumptionsAppendixSourceModel, MetricModel, ValueCardModel } from "@/lib/presentation/types";
 
 const c = T.colors;
@@ -10,12 +10,13 @@ export function addCategoryHeader(slide: pptxgen.Slide, o: { label: string; x?: 
   slide.addText(o.label.toUpperCase(), { x: o.x ?? L.content.left, y: o.y ?? 0.48, w: o.w ?? 5, h: 0.18, fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.templateBlue });
 }
 
-export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; themeImagePath?: string | null; logoPath?: string | null }) {
+export function addFullSlideThemeBackground(slide: pptxgen.Slide, imagePath: string | null = T.assets.themeImagePath) {
   slide.background = { color: c.white };
-  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.templateBlue }, line: { color: c.templateBlue } });
-  if (o.themeImagePath) slide.addImage({ path: o.themeImagePath, x: 0, y: 0, w: L.rail.width, h: L.slide.height, transparency: 55 });
-  slide.addShape("rect", { x: 0, y: 0, w: L.rail.width, h: L.slide.height, fill: { color: c.midnight, transparency: 18 }, line: { color: c.midnight, transparency: 100 } });
-  slide.addShape("line", { x: L.rail.width, y: 0.35, w: 0, h: 6.55, line: { color: c.sunriseGold, width: 1.2 } });
+  if (imagePath) slide.addImage({ path: requireGoldenPresentationAsset(imagePath), x: 0, y: 0, w: L.slide.width, h: L.slide.height });
+}
+
+export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; themeImagePath?: string | null; logoPath?: string | null }) {
+  addFullSlideThemeBackground(slide, o.themeImagePath === undefined ? T.assets.themeImagePath : o.themeImagePath);
   addCategoryHeader(slide, { label: o.categoryLabel, x: L.content.left, y: 0.33, w: 4.8 });
   slide.addText(o.title, { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
   slide.addShape("line", { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
