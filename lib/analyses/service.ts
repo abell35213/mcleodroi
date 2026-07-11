@@ -777,10 +777,15 @@ export async function calculateAnalysis(args: {
     overlapNotices,
     overlapReviewStates,
     summary,
-    workflowReadiness: {
-      ...deriveAnalysisWorkflowReadiness(summary),
-      canGeneratePresentation: deriveAnalysisWorkflowReadiness(summary).canGeneratePresentation && !overlapReviewStates.some((state) => state.blocksPresentation),
-    },
+    workflowReadiness: (() => {
+      const readiness = deriveAnalysisWorkflowReadiness(summary);
+      return {
+        ...readiness,
+        canGeneratePresentation:
+          readiness.canGeneratePresentation &&
+          !overlapReviewStates.some((state) => state.blocksPresentation),
+      };
+    })(),
     investment,
     roi,
   });
