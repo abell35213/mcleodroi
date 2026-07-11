@@ -85,7 +85,11 @@ export async function saveInvestmentAction(analysisId: string, _previousState: I
   }
   const result = await saveAnalysisInvestment({ analysisId, input });
   if (!result.ok) {
-    return { status: "ERROR", message: result.error.message, fieldErrors: fieldErrorsFor(input), submittedValues: values };
+    const serverFieldErrors =
+      result.error.code === "INVALID_INVESTMENT_INPUT" && result.error.message.includes("Adoption schedule must provide exactly one value per horizon year")
+        ? { adoptionSchedulePct: [result.error.message] }
+        : fieldErrorsFor(input);
+    return { status: "ERROR", message: result.error.message, fieldErrors: serverFieldErrors, submittedValues: values };
   }
   revalidatePath(`/analyses/${analysisId}/review`);
   return { status: "SUCCESS", message: "Investment assumptions saved." };
