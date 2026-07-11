@@ -50,7 +50,7 @@ export const analysisInvestmentSchema = z.object({
         .number({ message: "Adoption percentage must be a number" })
         .finite("Adoption percentage must be a finite number")
         .min(0, "Adoption percentage cannot be negative")
-        .max(1, "Adoption percentage must be a decimal between 0 and 1"),
+        .max(1, "Adoption percentage must be between 0 and 1 (0% to 100%)"),
     )
     .optional(),
 }).superRefine((value, ctx) => {
