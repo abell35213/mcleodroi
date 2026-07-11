@@ -2,23 +2,17 @@ import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
 import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T } from "@/lib/presentation/theme";
 import type { AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
-import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
+import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addFullSlideThemeBackground, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
 
 const c = T.colors;
 
 export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   const s = pptx.addSlide();
   const titleImagePath = m.titleSlideImagePath === undefined ? T.assets.titleSlideImagePath : m.titleSlideImagePath;
-  const coverLogoPath = m.coverLogoPath === undefined ? T.assets.coverLogoPath : m.coverLogoPath;
   s.background = { color: c.midnight };
   if (titleImagePath) s.addImage({ path: titleImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height });
-  s.addShape("rect", { x: 0, y: 0, w: 5.05, h: L.slide.height, fill: { color: c.midnight, transparency: 7 }, line: { color: c.midnight, transparency: 100 } });
-  if (coverLogoPath) s.addImage({ path: coverLogoPath, x: 0.78, y: 0.66, w: 1.8, h: 0.34, sizing: { type: "contain", w: 1.8, h: 0.34 } });
-  if (m.customerLogoDataUri) s.addImage({ data: m.customerLogoDataUri, x: 9.65, y: 0.55, w: 2.6, h: 0.72, sizing: { type: "contain", w: 2.6, h: 0.72 } });
-  s.addShape("line", { x: 5.05, y: 0.62, w: 0, h: 5.9, line: { color: c.sunriseGold, width: 2 } });
-  s.addText("Business Impact Analysis", { x: 0.76, y: 1.58, w: 3.95, h: 1.16, fontFace: T.typography.headingFont, fontSize: 35, bold: true, color: c.white, fit: "shrink", breakLine: false, margin: 0 });
-  s.addShape("line", { x: 0.78, y: 2.92, w: 1.48, h: 0, line: { color: c.sunriseGold, width: 3.2 } });
-  s.addText(`Prepared for\n${m.companyName}`, { x: 0.78, y: 3.24, w: 3.75, h: 0.78, fontFace: T.typography.bodyFont, fontSize: 16, color: c.white, breakLine: false, fit: "shrink", margin: 0.02 });
+  s.addText("Business Impact Analysis", { x: 0.82, y: 1.5, w: 4.2, h: 0.9, fontFace: T.typography.headingFont, fontSize: 30, bold: true, color: c.white, fit: "shrink", breakLine: false, margin: 0 });
+  s.addText(`Prepared for ${m.companyName}`, { x: 0.84, y: 2.62, w: 4.35, h: 0.34, fontFace: T.typography.bodyFont, fontSize: 15, color: c.white, breakLine: false, fit: "shrink", margin: 0 });
   s.addText(PROPRIETARY_FOOTER_TEXT, { x: 0.78, y: 6.83, w: 4.05, h: 0.18, fontFace: T.typography.bodyFont, fontSize: 7, color: c.white, transparency: 8, fit: "shrink" });
   if (m.analysisDate) s.addText(m.analysisDate, { x: 9.65, y: 6.88, w: 2.6, h: 0.2, align: "right", fontFace: T.typography.bodyFont, fontSize: 9, color: c.white });
   return s;
@@ -26,17 +20,17 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
 
 export function buildExecutiveSummarySlide(pptx: pptxgen, m: ExecutiveSummarySlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Executive Summary", title: "Executive Summary", companyName: m.companyName });
-  s.addText(m.discussionSummary, { x: L.content.left, y: 1.32, w: 11.05, h: 0.62, fontSize: 13, color: c.charcoal, fit: "shrink", breakLine: false });
-  s.addText(m.alignmentSummary, { x: L.content.left, y: 2.08, w: 11.05, h: 0.72, fontSize: 11.5, color: c.charcoal, fit: "shrink", breakLine: false });
-  s.addText(m.keyAreasLeadIn, { x: L.content.left, y: 3.0, w: 11.05, h: 0.28, fontSize: 13, bold: true, color: c.midnight, fit: "shrink" });
-  const themeY = 3.5;
+  addFullSlideThemeBackground(s);
+  s.addText("Executive Summary", { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: T.typography.headingFont, fontSize: T.typography.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
+  s.addShape("line", { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
+  s.addText(`${m.discussionSummary} ${m.alignmentSummary}`, { x: L.content.left, y: 1.32, w: 11.05, h: 1.08, fontSize: 16, color: c.charcoal, fit: "shrink", breakLine: false });
+  s.addText(m.keyAreasLeadIn, { x: L.content.left, y: 2.72, w: 11.05, h: 0.28, fontSize: 13, bold: true, color: c.midnight, fit: "shrink" });
+  const themeY = 3.22;
   m.needThemes.slice(0, 4).forEach((theme, i) => {
-    const y = themeY + i * 0.62;
-    s.addText(theme.heading, { x: L.content.left, y, w: 3.4, h: 0.22, fontSize: 10.7, bold: true, color: c.midnight, fit: "shrink" });
-    s.addText(theme.bullets.slice(0, 2).join("\n"), { x: 3.86, y: y - 0.02, w: 8.12, h: 0.48, fontSize: 9.1, color: c.charcoal, bullet: { type: "bullet" }, fit: "shrink", breakLine: false });
+    const y = themeY + i * 0.78;
+    s.addText(theme.heading, { x: L.content.left, y, w: 11.05, h: 0.24, fontSize: 14, bold: true, underline: { style: "sng" }, color: c.midnight, fit: "shrink" });
+    s.addText(theme.bullets.slice(0, 2).join("\n"), { x: L.content.left + 0.18, y: y + 0.32, w: 10.75, h: 0.42, fontSize: 10.5, color: c.charcoal, bullet: { type: "bullet" }, fit: "shrink", breakLine: false });
   });
-  addSummaryBand(s, { x: L.content.left, y: 6.22, w: 11.55, h: 0.58, metrics: [m.annualOpportunity, ...(m.monthlyOpportunity ? [m.monthlyOpportunity] : [])] });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
   return s;
 }
@@ -82,7 +76,7 @@ export function buildCategoryOverviewSlide(pptx: pptxgen, m: CategoryOverviewSli
 
 export function buildOpportunitySummarySlide(pptx: pptxgen, m: OpportunitySummarySlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Opportunity Summary", title: "The Identified Opportunity", companyName: m.companyName });
+  addBrandHeader(s, { categoryLabel: "Opportunity Summary", title: "The Identified Opportunities", companyName: m.companyName });
   const cards = m.classifications.slice(0, 6);
   const cw = 3.82;
   const gap = 0.18;

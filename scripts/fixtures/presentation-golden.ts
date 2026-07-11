@@ -2,7 +2,7 @@ import { presentationTheme, requireGoldenPresentationAsset, type AssumptionsAppe
 
 const goldenCompany = "West Side Transport";
 
-const goldenCoverLogoPath = requireGoldenPresentationAsset(presentationTheme.assets.coverLogoPath);
+const goldenCoverLogoPath = null;
 const goldenTitleSlideImagePath = requireGoldenPresentationAsset(presentationTheme.assets.titleSlideImagePath);
 
 export const coverModel: CoverSlideModel = { companyName: goldenCompany, analysisDate: "July 8, 2026", coverLogoPath: goldenCoverLogoPath, titleSlideImagePath: goldenTitleSlideImagePath };

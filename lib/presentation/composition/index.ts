@@ -3,7 +3,7 @@ import { getValueModule } from "@/lib/modules";
 import type { ValueModuleInputDefinition, ValueType } from "@/lib/modules";
 import { buildAssumptionsAppendix } from "@/lib/analyses/assumptions";
 import { formatPresentationCount, formatPresentationCurrency, formatPresentationHours, formatPresentationPercentage } from "@/lib/presentation/format";
-import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
+import { APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import { validatePresentationTextLength } from "@/lib/presentation/text";
 import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleItemModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
 
@@ -73,6 +73,7 @@ function executive(snapshot: PresentationSnapshot, slideNumber: number): Executi
   const businessTypeLabel = snapshot.analysis.businessType === "BROKERAGE" ? "freight brokerage" : "truckload carrier";
   const selectedList = moduleNames.slice(0, 5).join(", ");
   requireGoldenPresentationAsset(APPROVED_POWERPOINT_TEMPLATE_PATH);
+  requireGoldenPresentationAsset(APPROVED_THEME_IMAGE_PATH);
   return {
     companyName: snapshot.analysis.companyName,
     businessTypeLabel,
@@ -118,7 +119,7 @@ function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: n
 export function composePresentationSlidePlan(snapshot: PresentationSnapshot): PresentationSlidePlan[] {
   let slide = 1;
   const customerLogoDataUri = snapshot.branding?.customerLogoDataUri && !snapshot.branding.customerLogoDataUri.startsWith("data:image/svg") ? snapshot.branding.customerLogoDataUri : null;
-  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, coverLogoPath: requireGoldenPresentationAsset(APPROVED_COVER_LOGO_PATH), titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), customerLogoDataUri, slideNumber: slide++ } }];
+  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, coverLogoPath: null, titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), customerLogoDataUri, slideNumber: slide++ } }];
   plans.push({ kind: "executiveSummary", model: executive(snapshot, slide++) });
   for (const category of [...snapshot.categories].sort((a,b) => a.displayOrder - b.displayOrder)) {
     const modules = [...category.modules].sort((a,b) => a.displayOrder - b.displayOrder);
