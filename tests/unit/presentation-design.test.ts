@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
 import { addAssumptionGrid } from "@/lib/presentation/pptx/components";
-import { buildCategoryOverviewSlide, buildDualModuleSlide } from "@/lib/presentation/slides";
+import { buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide } from "@/lib/presentation/slides";
 
 
 const testDualModel = {
@@ -21,6 +21,12 @@ const testDualModel = {
 
 let approvedThemeImageBackup: Buffer | null = null;
 let approvedCoverLogoBackup: Buffer | null = null;
+
+async function pptxMediaCount(pptx: ReturnType<typeof createPresentation>) {
+  const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
+  const zip = await JSZip.loadAsync(buffer);
+  return Object.keys(zip.files).filter((name) => name.startsWith("ppt/media/")).length;
+}
 
 function writeTemporaryGoldenAssets() {
   mkdirSync(PRESENTATION_ASSET_DIR, { recursive: true });
@@ -93,7 +99,7 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
 
   removeTemporaryGoldenAssets();
   try {
-    expect(() => execFileSync("npm", ["run", "presentation:golden"], { stdio: "pipe" })).toThrow(/Golden presentation asset missing: public\/presentation-assets\/highway-sunrise\.webp/);
+    expect(() => execFileSync("npm", ["run", "presentation:golden"], { stdio: "pipe" })).toThrow(/Golden presentation asset missing: public\/presentation-assets\/mcleod-logo\.png/);
   } finally {
     if (themeBackup) writeFileSync(APPROVED_THEME_IMAGE_PATH, themeBackup);
     if (logoBackup) writeFileSync(APPROVED_COVER_LOGO_PATH, logoBackup);
@@ -115,14 +121,30 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     const slide = pptx.addSlide();
     expect(() => addAssumptionGrid(slide, { x: 0, y: 0, w: 5, items: [{ label: "1", value: "1" }, { label: "2", value: "2" }, { label: "3", value: "3" }, { label: "4", value: "4" }, { label: "5", value: "5" }] })).toThrow(/at most four/);
   });
-  it("uses clearer module narrative headings and supports configurable cover logos", () => {
-    const templates = readFileSync("lib/presentation/slides/templates.ts", "utf8");
-    expect(templates).toContain("How McLeod Helps");
-    expect(templates).toContain("Customer Impact");
-    expect(templates).not.toContain('heading: "Analysis"');
-    expect(readFileSync("lib/presentation/types.ts", "utf8")).toContain("coverLogoPath");
+  it("uses clearer module narrative headings", async () => {
+    const pptx = createPresentation();
+    buildDualModuleSlide(pptx, { ...testDualModel, modules: [testDualModel.modules[0], testDualModel.modules[1]] });
+    const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
+    const zip = await JSZip.loadAsync(buffer);
+    const slideText = await zip.file("ppt/slides/slide1.xml")?.async("text");
+    expect(slideText).toContain("HOW MCLEOD HELPS");
+    expect(slideText).toContain("CUSTOMER IMPACT");
     expect(testDualModel.modules[0].howMcLeodHelps).toContain("McLeod");
     expect(testDualModel.modules[0].customerImpact).toContain("$5,880");
+  });
+  it("supports configurable cover logos and explicit title image disable", async () => {
+    const withLogo = createPresentation();
+    buildCoverSlide(withLogo, { companyName: "Test Carrier", titleSlideImagePath: null, coverLogoPath: APPROVED_COVER_LOGO_PATH });
+    expect(await pptxMediaCount(withLogo)).toBeGreaterThan(0);
+
+    const withoutImages = createPresentation();
+    buildCoverSlide(withoutImages, { companyName: "Test Carrier", titleSlideImagePath: null, coverLogoPath: null });
+    const withoutImagesMediaCount = await pptxMediaCount(withoutImages);
+    expect(withoutImagesMediaCount).toBeLessThan(await pptxMediaCount(withLogo));
+
+    const withDefaultTitle = createPresentation();
+    buildCoverSlide(withDefaultTitle, { companyName: "Test Carrier", coverLogoPath: null });
+    expect(await pptxMediaCount(withDefaultTitle)).toBeGreaterThan(withoutImagesMediaCount);
   });
   it("keeps generated paths safe", () => {
     expect(sanitizePresentationFileSegment("West Side Transport")).toBe("west-side-transport");

@@ -8,10 +8,12 @@ const c = T.colors;
 
 export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   const s = pptx.addSlide();
-  const titleImagePath = m.titleSlideImagePath ?? T.assets.titleSlideImagePath;
+  const titleImagePath = m.titleSlideImagePath === undefined ? T.assets.titleSlideImagePath : m.titleSlideImagePath;
+  const coverLogoPath = m.coverLogoPath === undefined ? T.assets.coverLogoPath : m.coverLogoPath;
   s.background = { color: c.midnight };
   if (titleImagePath) s.addImage({ path: titleImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height });
   s.addShape("rect", { x: 0, y: 0, w: 5.05, h: L.slide.height, fill: { color: c.midnight, transparency: 7 }, line: { color: c.midnight, transparency: 100 } });
+  if (coverLogoPath) s.addImage({ path: coverLogoPath, x: 0.78, y: 0.66, w: 1.8, h: 0.34, sizing: { type: "contain", w: 1.8, h: 0.34 } });
   s.addShape("line", { x: 5.05, y: 0.62, w: 0, h: 5.9, line: { color: c.sunriseGold, width: 2 } });
   s.addText("Business Impact Analysis", { x: 0.76, y: 1.58, w: 3.95, h: 1.16, fontFace: T.typography.headingFont, fontSize: 35, bold: true, color: c.white, fit: "shrink", breakLine: false, margin: 0 });
   s.addShape("line", { x: 0.78, y: 2.92, w: 1.48, h: 0, line: { color: c.sunriseGold, width: 3.2 } });

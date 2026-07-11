@@ -2,7 +2,7 @@ import { CAPACITY_VALUE_PRESENTATION_DISCLAIMER } from "@/lib/narratives/registr
 import { getValueModule } from "@/lib/modules";
 import type { ValueModuleInputDefinition, ValueType } from "@/lib/modules";
 import { formatPresentationCount, formatPresentationCurrency, formatPresentationHours, formatPresentationPercentage } from "@/lib/presentation/format";
-import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
+import { APPROVED_COVER_LOGO_PATH, APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import { validatePresentationTextLength } from "@/lib/presentation/text";
 import type { AssumptionItemModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleItemModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
 
@@ -100,7 +100,7 @@ function opportunity(snapshot: PresentationSnapshot, slideNumber: number): Oppor
 
 export function composePresentationSlidePlan(snapshot: PresentationSnapshot): PresentationSlidePlan[] {
   let slide = 1;
-  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, themeImagePath: requireGoldenPresentationAsset(APPROVED_THEME_IMAGE_PATH), coverLogoPath: requireGoldenPresentationAsset(APPROVED_COVER_LOGO_PATH), titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), slideNumber: slide++ } }];
+  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, coverLogoPath: requireGoldenPresentationAsset(APPROVED_COVER_LOGO_PATH), titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), slideNumber: slide++ } }];
   plans.push({ kind: "executiveSummary", model: executive(snapshot, slide++) });
   for (const category of [...snapshot.categories].sort((a,b) => a.displayOrder - b.displayOrder)) {
     const modules = [...category.modules].sort((a,b) => a.displayOrder - b.displayOrder);
