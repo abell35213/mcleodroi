@@ -77,7 +77,7 @@ describe("CumulativeBenefitChart", () => {
 
 describe("OverlapNotices", () => {
   it("shows the empty state when there are no overlaps", () => {
-    render(<OverlapNotices notices={[]} />);
+    render(<OverlapNotices states={[]} saveAction={() => undefined} />);
     expect(screen.getByText("No potential value overlaps identified.")).toBeInTheDocument();
   });
 
@@ -98,7 +98,7 @@ describe("OverlapNotices", () => {
         selectedModuleKeys: ["RFP_PROCESS_EFFICIENCY", "RFP_GROWTH_OPPORTUNITY"],
       },
     ];
-    render(<OverlapNotices notices={notices} />);
+    render(<OverlapNotices states={notices.map((notice) => ({ notice, sourceFingerprint: "fp", disposition: null, status: notice.type === "INFORMATION" ? "REVIEWED" : "NOT_REVIEWED", blocksPresentation: notice.type === "REVIEW" }))} saveAction={() => undefined} />);
     expect(screen.getByText(/values are not automatically discounted/i)).toBeInTheDocument();
     expect(screen.getByText("Review Overlap")).toBeInTheDocument();
     expect(screen.getByText("Informational")).toBeInTheDocument();

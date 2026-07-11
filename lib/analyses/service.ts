@@ -8,6 +8,7 @@ import {
 import { prisma as defaultPrisma } from "@/lib/db";
 import { calculateValueModule, calculateRoi, DEFAULT_ANALYSIS_DISCOUNT_RATE, DEFAULT_ROI_HORIZON_YEARS } from "@/lib/calculations";
 import { renderCalculatedModuleNarrative } from "@/lib/narratives";
+import { buildOverlapReviewStates, toOverlapDispositionRecord, completedOverlapDispositions } from "./overlap-dispositions";
 import {
   createNarrativeSourceFingerprint,
   normalizeNarrativeForComparison,
@@ -746,6 +747,13 @@ export async function calculateAnalysis(args: {
         (allModules.get(right.moduleKey)?.displayOrder ?? 0)
     );
   });
+  const overlapNotices = getOverlapNoticesForSelectedModules(
+    calculated.map((calculatedModule) => calculatedModule.moduleKey),
+  );
+  const persistedDispositions = (await db.analysisOverlapDisposition.findMany({ where: { analysisId: args.analysisId } }))
+    .map(toOverlapDispositionRecord)
+    .filter((record): record is NonNullable<typeof record> => record !== null);
+  const overlapReviewStates = buildOverlapReviewStates({ notices: overlapNotices, modules: calculated, dispositions: persistedDispositions });
   const summary = summarizeCalculatedModules(calculated);
   const investment = toAnalysisInvestment(analysis);
   const totalInvestment =
@@ -766,14 +774,33 @@ export async function calculateAnalysis(args: {
       status: analysis.status,
     },
     calculatedModules: calculated,
-    overlapNotices: getOverlapNoticesForSelectedModules(
-      calculated.map((calculatedModule) => calculatedModule.moduleKey),
-    ),
+    overlapNotices,
+    overlapReviewStates,
     summary,
-    workflowReadiness: deriveAnalysisWorkflowReadiness(summary),
+    workflowReadiness: {
+      ...deriveAnalysisWorkflowReadiness(summary),
+      canGeneratePresentation: deriveAnalysisWorkflowReadiness(summary).canGeneratePresentation && !overlapReviewStates.some((state) => state.blocksPresentation),
+    },
     investment,
     roi,
   });
+}
+
+export async function saveOverlapDisposition(args: { analysisId: string; overlapGroupKey: string; disposition: string; acknowledgmentText?: string; db?: Db }): Promise<ServiceResult<{ overlapGroupKey: string }>> {
+  const db = args.db ?? defaultPrisma;
+  if (![...completedOverlapDispositions, "NEEDS_REVISION"].includes(args.disposition as never)) {
+    return err("OVERLAP_REVIEW_REQUIRED", "Choose a valid overlap disposition. Exclude from totals is not enabled in this release; remove the related module instead.");
+  }
+  const calculated = await calculateAnalysis({ analysisId: args.analysisId, db });
+  if (!calculated.ok) return calculated;
+  const state = calculated.value.overlapReviewStates.find((candidate) => candidate.notice.key === args.overlapGroupKey && candidate.notice.type === "REVIEW");
+  if (!state) return err("OVERLAP_REVIEW_REQUIRED", "No current review-required overlap was found for this analysis.");
+  await db.analysisOverlapDisposition.upsert({
+    where: { analysisId_overlapGroupKey: { analysisId: args.analysisId, overlapGroupKey: state.notice.key } },
+    create: { analysisId: args.analysisId, overlapGroupKey: state.notice.key, disposition: args.disposition as never, acknowledgmentText: args.acknowledgmentText?.trim() || null, sourceFingerprint: state.sourceFingerprint, excludedModuleKeysJson: null, reviewedAt: new Date() },
+    update: { disposition: args.disposition as never, acknowledgmentText: args.acknowledgmentText?.trim() || null, sourceFingerprint: state.sourceFingerprint, excludedModuleKeysJson: null, reviewedAt: new Date() },
+  });
+  return ok({ overlapGroupKey: state.notice.key });
 }
 
 export async function saveCustomAnalysisNarrative(args: {

@@ -78,6 +78,7 @@ function makeAnalysis(
     analysis: { id: "analysis-1", companyName: "Acme", businessType: "BROKERAGE", status: "DRAFT" },
     calculatedModules: modules,
     overlapNotices: [],
+    overlapReviewStates: [],
     summary: {
       monthlyRecurringValueTotal: 0,
       annualRecurringValueTotal: 0,
@@ -143,6 +144,21 @@ describe("buildValueWaterfall", () => {
     expect(waterfall.steps.map((step) => step.start)).toEqual([0, 80000, 200000]);
     expect(waterfall.steps.map((step) => step.end)).toEqual([80000, 200000, 240000]);
     expect(waterfall.total).toBe(240000);
+  });
+
+  it("includes negative contributions and reconciles the final total", () => {
+    const withNegative = [
+      sampleModules[0],
+      makeModule({ id: "m-neg", moduleKey: "SHORT_HAUL_EFFICIENCY", category: "TL_BACK_OFFICE", valueType: "NET_CAPACITY_VALUE", displayOrder: 2, annualRecurringValue: -30000 }),
+      sampleModules[2],
+    ];
+    const analysis = makeAnalysis(withNegative);
+    const waterfall = buildValueWaterfall(analysis);
+    expect(waterfall.steps.map((step) => step.value)).toEqual([120000, -30000, 40000]);
+    expect(waterfall.steps.map((step) => step.end)).toEqual([120000, 90000, 130000]);
+    expect(waterfall.total).toBe(analysis.summary.totalIdentifiedAnnualEconomicOpportunity);
+    expect(buildValueTypeBreakdown(analysis).segments.find((segment) => segment.key === "NET_CAPACITY_VALUE")?.value).toBe(-30000);
+    expect(buildCategoryBreakdown(analysis).total).toBe(130000);
   });
 
   it("omits modules with no annual economic opportunity", () => {

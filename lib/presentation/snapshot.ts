@@ -19,7 +19,10 @@ export async function createPresentationSnapshot(args: { analysisId: string; db?
   if (!analysisRecord) return fail("ANALYSIS_NOT_FOUND", "Analysis was not found.");
   const calculated = await calculateAnalysis({ analysisId: args.analysisId, db });
   if (!calculated.ok) return fail(calculated.error.code, calculated.error.message);
-  if (!calculated.value.workflowReadiness.canGeneratePresentation) return fail("ANALYSIS_NOT_PRESENTATION_READY", "Analysis must be complete and review-ready before creating a presentation snapshot.");
+  if (!calculated.value.workflowReadiness.canGeneratePresentation) {
+    if (calculated.value.overlapReviewStates.some((state) => state.blocksPresentation)) return fail("OVERLAP_REVIEW_REQUIRED", "Review and resolve the identified overlap risks before generating a customer presentation.");
+    return fail("ANALYSIS_NOT_PRESENTATION_READY", "Analysis must be complete and review-ready before creating a presentation snapshot.");
+  }
   const rendered = renderAnalysisNarratives(calculated.value);
   if (!rendered.ok) return fail(rendered.error.code, rendered.error.message);
   const narrativeByModule = new Map(rendered.value.map((n) => [n.moduleKey, n]));
@@ -43,7 +46,9 @@ export async function createPresentationSnapshot(args: { analysisId: string; db?
     snapshotVersion: PRESENTATION_SNAPSHOT_VERSION, presentationTemplateVersion: PRESENTATION_TEMPLATE_VERSION, narrativeRegistryVersion: NARRATIVE_REGISTRY_VERSION, createdAt: (args.now ?? new Date()).toISOString(),
     analysis: { id: analysisRecord.id, companyName: analysisRecord.companyName, customerContact: analysisRecord.customerContact, businessType: analysisRecord.businessType, productContext: productContextForBusinessType(analysisRecord.businessType), preparedBy: analysisRecord.preparedBy, analysisDate: analysisRecord.analysisDate.toISOString() },
     summary: { monthlyRecurringValueTotal: calculated.value.summary.monthlyRecurringValueTotal, annualRecurringValueTotal: calculated.value.summary.annualRecurringValueTotal, annualOnlyValueTotal: calculated.value.summary.annualOnlyValueTotal, totalIdentifiedAnnualEconomicOpportunity: calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity, informationalCapitalValueTotal: calculated.value.summary.informationalCapitalValueTotal, valueTypeBreakdown: calculated.value.summary.valueTypeBreakdown, informationalCapitalValues: calculated.value.summary.informationalCapitalValues },
-    overlapNotices: calculated.value.overlapNotices, categories: [...categories.values()],
+    overlapNotices: calculated.value.overlapNotices,
+    overlapDispositions: calculated.value.overlapReviewStates.filter((state) => state.notice.type === "REVIEW" && !state.blocksPresentation && state.disposition).map((state) => ({ overlapGroupKey: state.notice.key, disposition: state.disposition!.disposition, modulesInvolved: state.notice.selectedModuleKeys, excludedModuleKeys: state.disposition!.excludedModuleKeys, sourceFingerprint: state.sourceFingerprint, reviewedAt: state.disposition!.reviewedAt.toISOString(), acknowledgmentText: state.disposition!.acknowledgmentText })),
+    categories: [...categories.values()],
     roi: calculated.value.roi ?? null,
     charts: {
       waterfall: buildValueWaterfall(calculated.value),

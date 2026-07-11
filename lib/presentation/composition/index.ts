@@ -34,7 +34,7 @@ function formatDate(value: string): string { return new Intl.DateTimeFormat("en-
 
 function metricForModule(m: PresentationSnapshotModule): MetricModel & { variant?: "standard" | "annual" | "capital" } {
   if (m.valueType === "CAPITAL_AVOIDANCE") return { value: formatPresentationCurrency(capitalValue(m)), label: "Avoided Capital Investment", supportingText: monthlyValue(m) ? `${formatPresentationCurrency(monthlyValue(m))} monthly economic equivalent` : undefined, variant: "capital" };
-  if (m.valueType === "NET_CAPACITY_VALUE") return { value: formatPresentationCurrency(monthlyValue(m) || annualOpportunity(m)), period: monthlyValue(m) ? "/ MONTH" : "/ YEAR", label: "Net Capacity Value" };
+  if (m.valueType === "NET_CAPACITY_VALUE") return { value: formatPresentationCurrency(monthlyValue(m) || annualOpportunity(m)), period: monthlyValue(m) ? "/ MONTH" : "/ YEAR", label: annualOpportunity(m) < 0 || monthlyValue(m) < 0 ? "Net Economic Impact" : "Net Capacity Value" };
   if (monthlyValue(m)) return { value: formatPresentationCurrency(monthlyValue(m)), period: "/ MONTH", label: valueTypeLabels[m.valueType] };
   return { value: formatPresentationCurrency(annualOpportunity(m)), period: "/ YEAR", label: valueTypeLabels[m.valueType], variant: "annual" };
 }
@@ -62,7 +62,7 @@ export function canUseDualModuleSlide(a: PresentationSnapshotModule, b: Presenta
 }
 function categoryOverview(snapshot: PresentationSnapshot, c: PresentationSnapshotCategory, slideNumber: number): CategoryOverviewSlideModel {
   const total = c.modules.reduce((sum, m) => sum + annualOpportunity(m), 0);
-  const cards = c.modules.filter((m) => financialValueForCard(m) > 0).slice(0, 4).map(valueCardFromModule);
+  const cards = [...c.modules].filter((m) => financialValueForCard(m) !== 0).sort((a, b) => Math.abs(financialValueForCard(b)) - Math.abs(financialValueForCard(a))).slice(0, 4).map(valueCardFromModule);
   return { companyName: snapshot.analysis.companyName, categoryName: c.name, categoryOpportunity: { value: formatPresentationCurrency(total), label: "Annual Identified Opportunity" }, cards, slideNumber };
 }
 function executive(snapshot: PresentationSnapshot, slideNumber: number): ExecutiveSummarySlideModel {
@@ -96,7 +96,7 @@ function executive(snapshot: PresentationSnapshot, slideNumber: number): Executi
   };
 }
 function opportunity(snapshot: PresentationSnapshot, slideNumber: number): OpportunitySummarySlideModel {
-  const classifications = valueTypeOrder.flatMap((vt) => { const b = snapshot.summary.valueTypeBreakdown.find((x) => x.valueType === vt); return b && b.annualEconomicOpportunity > 0 ? [{ title: valueTypeLabels[vt].toUpperCase(), value: formatPresentationCurrency(b.annualEconomicOpportunity), label: "Annual Identified Opportunity", valueType: vt }] : []; });
+  const classifications = valueTypeOrder.flatMap((vt) => { const b = snapshot.summary.valueTypeBreakdown.find((x) => x.valueType === vt); return b && b.annualEconomicOpportunity !== 0 ? [{ title: valueTypeLabels[vt].toUpperCase(), value: formatPresentationCurrency(b.annualEconomicOpportunity), label: b.annualEconomicOpportunity < 0 ? "Economic Offset" : "Annual Identified Opportunity", valueType: vt }] : []; });
   const hasCapacity = snapshot.categories.some((c) => c.modules.some((m) => m.valueType === "CAPACITY_VALUE" || m.valueType === "NET_CAPACITY_VALUE"));
   return { companyName: snapshot.analysis.companyName, classifications, monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined, annualOpportunity: { value: formatPresentationCurrency(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity), label: "Annual Identified Economic Opportunity" }, informationalCapital: snapshot.summary.informationalCapitalValueTotal ? { value: formatPresentationCurrency(snapshot.summary.informationalCapitalValueTotal), label: "Informational Capital Avoidance" } : undefined, disclaimer: hasCapacity ? CAPACITY_VALUE_PRESENTATION_DISCLAIMER : "Values shown are directional business-impact estimates based on reviewed analysis inputs.", slideNumber };
 }

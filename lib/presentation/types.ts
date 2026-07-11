@@ -1,5 +1,6 @@
 import type { BusinessType, CategoryKey, NarrativeStatus, OverlapNotice, ProductContext, ValueModuleKey, ValueType } from "@/lib/modules";
 import type { InformationalCapitalValue, NarrativeMode, ValueTypeSummary } from "@/lib/analyses/types";
+import type { OverlapDispositionRecord } from "@/lib/analyses/overlap-dispositions";
 import type { BreakdownData, CumulativeBenefitData, WaterfallData } from "@/lib/analyses/charts";
 import type { RoiMetrics } from "@/lib/calculations/roi";
 import type { PresentationGenerationStatus } from "@prisma/client";
@@ -19,11 +20,12 @@ export type PresentationSnapshotCharts = {
   cumulativeBenefit: CumulativeBenefitData | null;
 };
 export type PresentationSnapshotBranding = { customerLogoPath: string | null; customerLogoDataUri: string | null };
+export type PresentationSnapshotOverlapDisposition = Pick<OverlapDispositionRecord, "overlapGroupKey" | "disposition" | "sourceFingerprint" | "excludedModuleKeys"> & { readonly modulesInvolved: readonly ValueModuleKey[]; readonly reviewedAt: string; readonly acknowledgmentText: string | null };
 export type PresentationSnapshot = {
   snapshotVersion: string; presentationTemplateVersion: string; narrativeRegistryVersion: string; createdAt: string;
   analysis: { id: string; companyName: string; customerContact: string | null; businessType: BusinessType; productContext: ProductContext; preparedBy: string; analysisDate: string };
   summary: { monthlyRecurringValueTotal: number; annualRecurringValueTotal: number; annualOnlyValueTotal: number; totalIdentifiedAnnualEconomicOpportunity: number; informationalCapitalValueTotal: number; valueTypeBreakdown: readonly ValueTypeSummary[]; informationalCapitalValues: readonly InformationalCapitalValue[] };
-  overlapNotices: readonly OverlapNotice[]; categories: PresentationSnapshotCategory[];
+  overlapNotices: readonly OverlapNotice[]; overlapDispositions?: readonly PresentationSnapshotOverlapDisposition[]; categories: PresentationSnapshotCategory[];
   /** Finance-grade ROI folded into the snapshot; `null` when no investment entered. Optional for backward compatibility with 1.0.0 snapshots. */
   roi?: RoiMetrics | null;
   /** Value-story chart datasets rendered identically across PPTX/PDF/HTML. Optional for backward compatibility. */
