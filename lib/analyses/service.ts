@@ -720,13 +720,16 @@ export async function calculateAnalysis(args: {
       analysis,
     );
     if (!result.ok) {
-      if (
-        result.error.code === "MODULE_NOT_FOUND" ||
-        result.error.code === "MODULE_NOT_AVAILABLE_FOR_BUSINESS_TYPE"
-      ) {
+      if (result.error.code === "MODULE_NOT_FOUND") {
         return err(
           "ANALYSIS_MODULE_INTEGRITY_ERROR",
-          `Analysis contains an invalid or incompatible selected opportunity (${selectedAnalysisModule.moduleKey}). Please remove it or restore the correct business type before continuing.`,
+          `Analysis contains an invalid selected opportunity key (${selectedAnalysisModule.moduleKey}). Please remove it before continuing.`,
+        );
+      }
+      if (result.error.code === "MODULE_NOT_AVAILABLE_FOR_BUSINESS_TYPE") {
+        return err(
+          "ANALYSIS_MODULE_INTEGRITY_ERROR",
+          `Analysis contains a selected opportunity (${selectedAnalysisModule.moduleKey}) that is incompatible with business type (${analysis.businessType}). Please remove it or restore the correct business type before continuing.`,
         );
       }
       return result;
