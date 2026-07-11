@@ -37,7 +37,7 @@ describe("presentation snapshots", () => {
     expect(brokerModule.defaultCustomerAnalysis).not.toBe(brokerModule.effectiveCustomerAnalysis);
     const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
     expect(calculated.ok && snapshot.summary.totalIdentifiedAnnualEconomicOpportunity).toBeCloseTo(calculated.ok ? calculated.value.summary.totalIdentifiedAnnualEconomicOpportunity : 0);
-    expect(snapshot.snapshotVersion).toBe("1.3.0");
+    expect(snapshot.snapshotVersion).toBe("1.4.0");
     expect(snapshot.overlapDispositions?.[0]).toEqual(expect.objectContaining({ overlapGroupKey: "ASSET_PRODUCTIVITY", disposition: "ASSUMPTIONS_MUTUALLY_EXCLUSIVE", modulesInvolved: ["REDUCE_DEADHEAD", "TRAILER_ASSET_UTILIZATION"] }));
     expect(snapshot.charts?.waterfall.steps.length).toBeGreaterThan(0);
     expect(snapshot.charts?.valueTypeBreakdown.total).toBeCloseTo(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity);

@@ -1,42 +1,29 @@
-# Presentation Snapshot and PowerPoint Design System
+# Presentation Snapshot and Export Architecture
 
-P1-8 establishes the presentation-generation foundation only. It does not implement the final automatic deck-composition algorithm, a Generate PowerPoint action, downloads, PDF conversion, AI summarization, or external image acquisition.
-
-## Immutable snapshot source of truth
-
-Generated presentations consume a reviewed immutable `PresentationGeneration.snapshotJson` record. The snapshot is created from the current analysis through `calculateAnalysis`, `renderAnalysisNarratives`, and the Review workflow's TEMPLATE/CUSTOM effective narrative resolution. Once persisted, `snapshotJson` is never updated; if analysis inputs or narratives change, a new `PresentationGeneration` row is created.
-
-SQLite persistence stores `snapshotJson` as a stable serialized `String` rather than Prisma `Json`. This keeps the implementation reliable across the current SQLite/Prisma setup while preserving deterministic source data for future composition.
+Generated customer artifacts consume reviewed immutable `PresentationGeneration.snapshotJson` records. Snapshot creation is the only step that reads the live analysis: it calls `calculateAnalysis`, resolves controlled narratives, records overlap dispositions, captures benchmark provenance, embeds logo data when available, and serializes the resulting `PresentationSnapshot`. After that boundary, PPTX/PDF/HTML generation must use the snapshot only.
 
 ## Version domains
 
-`PRESENTATION_TEMPLATE_VERSION` tracks the PowerPoint template/design system version. `NARRATIVE_REGISTRY_VERSION` tracks deterministic narrative copy and fingerprint source data. Both are stored in every snapshot because they change independently.
+- `PRESENTATION_SNAPSHOT_VERSION = "1.4.0"` — current snapshot contract. History: 1.2.0 corrected ROI semantics; 1.3.0 added overlap dispositions; 1.4.0 added benchmark provenance for traceability.
+- `PRESENTATION_TEMPLATE_VERSION = "1.1.0"` — current McLeod visual template. History: 1.0.0 was the reusable foundation; 1.1.0 covers the P1-9B through P1-9D title treatment, content-slide background, Executive Summary redesign, final opportunity layout, branding, and footer treatment.
+- `NARRATIVE_REGISTRY_VERSION = "1.0.0"` and `OVERLAP_REGISTRY_VERSION = "1.0.0"` change independently and are recorded/fingerprinted where relevant.
 
-## Data and design separation
+Older persisted snapshots are not rewritten. Optional fields such as ROI, charts, branding, overlap dispositions, and benchmark provenance remain optional so historical snapshots can still be parsed where practical.
 
-Slide template primitives accept explicit typed view models. They do not query Prisma, call `calculateAnalysis`, or calculate module financial values. P1-9 will map `PresentationSnapshot` data into those view models and then call the reusable builders.
+## Design and composition boundary
+
+Slide template primitives accept typed view models and never query Prisma or recalculate module formulas. Composition maps the immutable snapshot into title, executive summary, category/module, opportunity summary, and assumptions appendix models.
 
 ## Visual system
 
-The canonical design system uses a 16:9 widescreen layout, deep midnight/navy anchors, warm canvas content backgrounds, selective sunrise-gold accents, muted blue/forest secondary accents, strong metric hierarchy, generous whitespace, and Office-safe fonts. The approved highway/mountain/sunrise image is supported through the centralized theme asset path and is used for the cover visual and restrained panoramic brand/header treatment where configured. Content slides should not become full-image backgrounds.
+The approved P1 template uses `public/presentation-assets/McLeodTitlePage.png` for the title slide and `public/presentation-assets/themepages.png` for non-title slides. The title slide has no blue overlay. The Executive Summary uses one large heading, a combined opening paragraph, bold underlined opportunity headings with supporting bullets, and no monthly/yearly totals band at the bottom. The final summary slide title is “The Identified Opportunities.”
 
-## Approved presentation assets
-
-Approved presentation assets live in `public/presentation-assets/` and are referenced through `presentationTheme.assets` rather than duplicated across templates.
-
-- `public/presentation-assets/highway-sunrise.webp` is the approved highway/mountain/sunrise theme image.
-- `public/presentation-assets/mcleod-logo.png` is the approved McLeod logo for the cover treatment.
-
-The golden fixture requires both approved assets and fails clearly if either file is missing. Production presentation components still support graceful missing-image behavior where appropriate, so generic component usage can render clean navy/text fallbacks. Approved brand imagery must not be replaced with externally sourced, generated, redrawn, or substitute logo artwork without product-owner approval.
-
-## Reusable PowerPoint foundation
-
-`lib/presentation/pptx/create-presentation.ts` centralizes PptxGenJS initialization. `lib/presentation/layout.ts` defines the primary geometry grid. `lib/presentation/pptx/components.ts` provides reusable header, footer, hero metric, assumption grid, narrative block, value card, summary band, disclaimer, and category-label treatments. `lib/presentation/slides/templates.ts` provides cover, executive summary, single-module, dual-module, category overview, and opportunity summary primitives.
+`public/presentation-assets/mcleod-logo.png` remains available where components still need a logo asset. Approved brand imagery must not be replaced with generated, externally sourced, redrawn, or substitute artwork without product-owner approval.
 
 ## Generated files
 
-Future production PPTX files should be written beneath `generated-presentations/`, which is git-ignored. `getGeneratedPresentationPath` sanitizes company names and generation IDs and prevents path traversal.
+Production PPTX files are written beneath `generated-presentations/`, which is git-ignored. Path builders sanitize company/generation segments and enforce directory containment. Downloads require `PresentationGeneration.status = COMPLETE`; failed generations must not expose misleading file paths.
 
 ## Golden fixture
 
-`npm run presentation:golden` writes `test-results/presentation-golden.pptx` from fixture-only West Side-style data. This validates reusable components, approved presentation assets, and package generation but is not a production analysis-to-deck composer and does not query Prisma.
+`npm run presentation:golden` writes `test-results/presentation-golden.pptx` from deterministic fixture data. It validates required assets, package generation, and the current visual/template version without mutating production analyses.
