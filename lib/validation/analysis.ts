@@ -19,7 +19,7 @@ export type CreateAnalysisInput = z.infer<typeof createAnalysisSchema>;
 const optionalNonNegativeCurrency = (fieldName: string) =>
   z.coerce
     .number({ message: `${fieldName} must be a number` })
-    .finite(`${fieldName} must be a valid number`)
+    .finite(`${fieldName} must be a finite number`)
     .min(0, `${fieldName} cannot be negative`)
     .optional();
 
@@ -40,17 +40,32 @@ export const analysisInvestmentSchema = z.object({
     .optional(),
   roiDiscountRatePct: z.coerce
     .number({ message: "Discount rate must be a number" })
+    .finite("Discount rate must be a finite number")
     .min(0, "Discount rate cannot be negative")
-    .max(1, "Discount rate must be a decimal between 0 and 1")
+    .max(1, "Discount rate must be between 0 and 1 (0% to 100%)")
     .optional(),
   adoptionSchedulePct: z
     .array(
       z.coerce
         .number({ message: "Adoption percentage must be a number" })
+        .finite("Adoption percentage must be a finite number")
         .min(0, "Adoption percentage cannot be negative")
-        .max(1, "Adoption percentage must be a decimal between 0 and 1"),
+        .max(1, "Adoption percentage must be between 0 and 1 (0% to 100%)"),
     )
     .optional(),
+}).superRefine((value, ctx) => {
+  const schedule = value.adoptionSchedulePct;
+  if (!schedule) return;
+  const horizon = value.roiHorizonYears;
+  if (horizon !== undefined && schedule.length !== horizon) {
+    ctx.addIssue({ code: "custom", path: ["adoptionSchedulePct"], message: "Adoption schedule must provide exactly one value per horizon year." });
+  }
+  for (let index = 1; index < schedule.length; index += 1) {
+    if (schedule[index] < schedule[index - 1]) {
+      ctx.addIssue({ code: "custom", path: ["adoptionSchedulePct"], message: "Adoption schedule cannot decline over time." });
+      break;
+    }
+  }
 });
 
 export type AnalysisInvestmentInput = z.infer<typeof analysisInvestmentSchema>;

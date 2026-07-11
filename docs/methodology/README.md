@@ -152,7 +152,7 @@ It is additive: analyses without seller-entered investment are unaffected.
 
 ## Benchmark defaults & sources
 
-Module inputs can carry an optional **benchmark**: a sourced industry-typical
+Module inputs can carry an optional **benchmark**: a sourced planning-reference
 range surfaced next to the field in Assessment, in the Review "Assumptions &
 Sources" table, and in the presentation's assumptions appendix slide. Benchmarks
 are metadata only — they never change any calculation — and are entirely

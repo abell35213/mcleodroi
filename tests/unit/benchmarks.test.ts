@@ -8,7 +8,8 @@ describe("input benchmarks", () => {
     const deadhead = getValueModule("REDUCE_DEADHEAD");
     const currentDeadhead = deadhead.inputDefinitions.find((input) => input.key === "current_deadhead_pct");
     expect(currentDeadhead?.benchmark).toBeDefined();
-    expect(currentDeadhead?.benchmark?.source.label).toBe("ATRI");
+    expect(currentDeadhead?.benchmark?.source.label).toBe("Directional planning range");
+    expect(currentDeadhead?.benchmark?.source.sourceType).toBe("DIRECTIONAL_PLANNING");
     expect(currentDeadhead?.benchmark?.typicalMin).toBeLessThan(currentDeadhead!.benchmark!.typicalMax);
     expect(getInputBenchmark("REDUCE_DEADHEAD", "current_deadhead_pct")).toEqual(currentDeadhead?.benchmark);
   });
@@ -21,7 +22,7 @@ describe("input benchmarks", () => {
     expect(moduleHasBenchmarks("DRIVER_DETENTION")).toBe(false);
   });
 
-  it("keeps every benchmark valid: known input, ordered range, within declared bounds, non-empty citation", () => {
+  it("keeps every benchmark valid: known input, ordered range, within declared bounds, non-empty citation and governance metadata", () => {
     const allKeys = new Set<ValueModuleKey>(valueModuleKeys);
     for (const definition of getAllValueModules()) {
       expect(allKeys.has(definition.key)).toBe(true);
@@ -37,6 +38,9 @@ describe("input benchmarks", () => {
         if (input.max !== undefined) expect(typicalMax).toBeLessThanOrEqual(input.max);
         expect(source.label.length).toBeGreaterThan(0);
         expect(source.citation.length).toBeGreaterThan(0);
+        expect(["PUBLIC_VERIFIED", "MCLEOD_INTERNAL", "DIRECTIONAL_PLANNING", "USER_PROVIDED"]).toContain(source.sourceType);
+        expect(["APPROVED", "PLANNING_ONLY", "NEEDS_REVIEW", "RETIRED"]).toContain(source.approvalStatus);
+        expect(source.label).not.toMatch(/industry typical/i);
         expect(Object.values(benchmarkSources)).toContainEqual(source);
       }
     }

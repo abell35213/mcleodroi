@@ -4,6 +4,7 @@ import { buildCategoryBreakdown, buildCumulativeBenefitSeries, buildValueTypeBre
 import { prisma as defaultPrisma } from "@/lib/db";
 import { NARRATIVE_REGISTRY_VERSION, stableSerialize } from "@/lib/narratives/fingerprint";
 import { renderAnalysisNarratives, resolveEffectiveNarrative, productContextForBusinessType } from "@/lib/narratives";
+import { formatBenchmarkRange } from "@/lib/analyses/ui";
 import { getCategoryByKey, getValueModule } from "@/lib/modules";
 import { readCustomerLogoDataUri } from "./logo";
 import { PRESENTATION_SNAPSHOT_VERSION, PRESENTATION_TEMPLATE_VERSION } from "./version";
@@ -37,9 +38,10 @@ export async function createPresentationSnapshot(args: { analysisId: string; db?
     const result = calculatedModule.calculationOutcome?.success ? calculatedModule.calculationOutcome.result : null;
     if (!category || !result) return fail("SNAPSHOT_SOURCE_INCOMPLETE", `Snapshot source incomplete for ${calculatedModule.moduleKey}.`);
     if (!categories.has(category.key)) categories.set(category.key, { categoryKey: category.key, name: category.name, displayOrder: category.displayOrder, modules: [] });
+    const benchmarkProvenance = definition.inputDefinitions.filter((input) => input.benchmark).map((input) => ({ benchmarkKey: input.benchmark!.key, version: input.benchmark!.version, inputKey: input.key, sourceType: input.benchmark!.source.sourceType, approvalStatus: input.benchmark!.source.approvalStatus, sourceDisplayName: input.benchmark!.source.label, rangeShown: formatBenchmarkRange(input, input.benchmark!), sourceCitation: input.benchmark!.source.citation, applicabilityNote: input.benchmark!.source.applicabilityNote }));
     categories.get(category.key)!.modules.push({
       analysisModuleId: calculatedModule.analysisModuleId, moduleKey: calculatedModule.moduleKey, moduleName: definition.name, categoryKey: category.key, categoryName: category.name, displayOrder: calculatedModule.displayOrder, valueType: calculatedModule.valueType, narrativeStatus: definition.narrativeStatus, narrativeMode: calculatedModule.narrativeMode,
-      inputs: scalarMap(calculatedModule.reconstructedInputs), financialOutputs: scalarMap(result.financialOutputs), derivedMetrics: scalarMap(result.derivedMetrics), opportunityHeadline: narrative.opportunityHeadline, valueNarrative: narrative.valueNarrative, defaultCustomerAnalysis: narrative.customerAnalysis, effectiveCustomerAnalysis: effective.value, presentationDisclaimer: narrative.presentationDisclaimer, presentationCallout: narrative.presentationCallout, customNarrativeSourceFingerprint: calculatedModule.customNarrativeSourceFingerprint,
+      inputs: scalarMap(calculatedModule.reconstructedInputs), financialOutputs: scalarMap(result.financialOutputs), derivedMetrics: scalarMap(result.derivedMetrics), benchmarkProvenance, opportunityHeadline: narrative.opportunityHeadline, valueNarrative: narrative.valueNarrative, defaultCustomerAnalysis: narrative.customerAnalysis, effectiveCustomerAnalysis: effective.value, presentationDisclaimer: narrative.presentationDisclaimer, presentationCallout: narrative.presentationCallout, customNarrativeSourceFingerprint: calculatedModule.customNarrativeSourceFingerprint,
     });
   }
   const snapshot: PresentationSnapshot = {

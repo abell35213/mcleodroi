@@ -1,4 +1,4 @@
-import type { BusinessType, CategoryKey, NarrativeStatus, OverlapNotice, ProductContext, ValueModuleKey, ValueType } from "@/lib/modules";
+import type { BenchmarkApprovalStatus, BenchmarkSourceType, BusinessType, CategoryKey, NarrativeStatus, OverlapNotice, ProductContext, ValueModuleKey, ValueType } from "@/lib/modules";
 import type { InformationalCapitalValue, NarrativeMode, ValueTypeSummary } from "@/lib/analyses/types";
 import type { OverlapDispositionRecord } from "@/lib/analyses/overlap-dispositions";
 import type { BreakdownData, CumulativeBenefitData, WaterfallData } from "@/lib/analyses/charts";
@@ -6,9 +6,10 @@ import type { RoiMetrics } from "@/lib/calculations/roi";
 import type { PresentationGenerationStatus } from "@prisma/client";
 
 export type SnapshotScalarMap = Record<string, number | string | boolean | null>;
+export type PresentationBenchmarkProvenance = { benchmarkKey: string; version: string; inputKey: string; sourceType: BenchmarkSourceType; approvalStatus: BenchmarkApprovalStatus; sourceDisplayName: string; rangeShown: string; sourceCitation: string; applicabilityNote?: string };
 export type PresentationSnapshotModule = {
   analysisModuleId: string; moduleKey: ValueModuleKey; moduleName: string; categoryKey: CategoryKey; categoryName: string; displayOrder: number; valueType: ValueType; narrativeStatus: NarrativeStatus; narrativeMode: NarrativeMode;
-  inputs: SnapshotScalarMap; financialOutputs: SnapshotScalarMap; derivedMetrics: SnapshotScalarMap;
+  inputs: SnapshotScalarMap; financialOutputs: SnapshotScalarMap; derivedMetrics: SnapshotScalarMap; benchmarkProvenance?: readonly PresentationBenchmarkProvenance[];
   opportunityHeadline: string; valueNarrative: string; defaultCustomerAnalysis: string; effectiveCustomerAnalysis: string; presentationDisclaimer: string; presentationCallout: string; customNarrativeSourceFingerprint: string | null;
 };
 export type PresentationSnapshotCategory = { categoryKey: CategoryKey; name: string; displayOrder: number; modules: PresentationSnapshotModule[] };
