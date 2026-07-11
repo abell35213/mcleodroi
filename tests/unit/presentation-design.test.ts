@@ -59,7 +59,6 @@ describe("presentation design system", () => {
   it("centralizes approved presentation asset paths inside the project", () => {
     expect(PRESENTATION_ASSET_DIR).toBe("public/presentation-assets");
     expect(presentationTheme.assets.themeImagePath).toBe(APPROVED_THEME_IMAGE_PATH);
-    expect(presentationTheme.assets.coverLogoPath).toBeNull();
     expect(presentationTheme.assets.titleSlideImagePath).toBe(APPROVED_TITLE_SLIDE_IMAGE_PATH);
     expect(presentationTheme.assets.powerpointTemplatePath).toBe(APPROVED_POWERPOINT_TEMPLATE_PATH);
     expect(presentationTheme.assets.logoPath).toBeNull();
@@ -79,11 +78,12 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
       themeBackup = null;
     }
 
-    removeTemporaryGoldenAssets();
+    rmSync(APPROVED_THEME_IMAGE_PATH, { force: true });
     try {
       expect(() => execFileSync("npm", ["run", "presentation:golden"], { stdio: "pipe" })).toThrow(/Golden presentation asset missing: public\/presentation-assets\/themepages\.png/);
     } finally {
       if (themeBackup) writeFileSync(APPROVED_THEME_IMAGE_PATH, themeBackup);
+      else rmSync(APPROVED_THEME_IMAGE_PATH, { force: true });
     }
   });
 
@@ -116,11 +116,11 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
   });
   it("uses the title background image without overlay or logo art", async () => {
     const withoutImages = createPresentation();
-    buildCoverSlide(withoutImages, { companyName: "Test Carrier", titleSlideImagePath: null, coverLogoPath: null });
+    buildCoverSlide(withoutImages, { companyName: "Test Carrier", titleSlideImagePath: null });
     const withoutImagesMediaCount = await pptxMediaCount(withoutImages);
 
     const withDefaultTitle = createPresentation();
-    buildCoverSlide(withDefaultTitle, { companyName: "Test Carrier", coverLogoPath: null });
+    buildCoverSlide(withDefaultTitle, { companyName: "Test Carrier" });
     expect(await pptxMediaCount(withDefaultTitle)).toBeGreaterThan(withoutImagesMediaCount);
   });
   it("keeps generated paths safe", () => {
