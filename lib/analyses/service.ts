@@ -719,7 +719,19 @@ export async function calculateAnalysis(args: {
       selectedAnalysisModule,
       analysis,
     );
-    if (result.ok) calculated.push(result.value);
+    if (!result.ok) {
+      if (
+        result.error.code === "MODULE_NOT_FOUND" ||
+        result.error.code === "MODULE_NOT_AVAILABLE_FOR_BUSINESS_TYPE"
+      ) {
+        return err(
+          "ANALYSIS_MODULE_INTEGRITY_ERROR",
+          `Analysis contains an invalid or incompatible selected opportunity (${selectedAnalysisModule.moduleKey}). Please remove it or restore the correct business type before continuing.`,
+        );
+      }
+      return result;
+    }
+    calculated.push(result.value);
   }
   const allModules = new Map(
     getAllValueModules().map((valueModule) => [valueModule.key, valueModule]),
@@ -917,8 +929,20 @@ export async function updateAnalysisDetails(args: {
   const db = args.db ?? defaultPrisma;
   const parsed = createAnalysisSchema.safeParse(args.input);
   if (!parsed.success) return err("INVALID_INPUT_KEY", parsed.error.issues.map((issue) => issue.message).join(" "));
-  const existing = await db.analysis.findUnique({ where: { id: args.analysisId }, select: { id: true } });
+  const existing = await db.analysis.findUnique({
+    where: { id: args.analysisId },
+    select: { id: true, businessType: true, _count: { select: { modules: true } } },
+  });
   if (!existing) return err("ANALYSIS_NOT_FOUND", "Analysis not found.");
+  if (
+    existing.businessType !== parsed.data.businessType &&
+    existing._count.modules > 0
+  ) {
+    return err(
+      "BUSINESS_TYPE_CHANGE_REQUIRES_NEW_ANALYSIS",
+      "Business type cannot be changed after opportunities have been selected. Create a new analysis or remove all selected opportunities first.",
+    );
+  }
   await db.analysis.update({ where: { id: args.analysisId }, data: parsed.data });
   return ok({ id: args.analysisId });
 }

@@ -243,7 +243,7 @@ const valueModules = [
       input("hourly_labor_rate", "Average loaded hourly labor rate", "CURRENCY", "CURRENCY_PER_HOUR", 3, "Use an estimated loaded hourly rate when possible, including wage or salary plus employment burden."),
     ],
     overlapGroups: ["BACK_OFFICE_REDUNDANT_LABOR"],
-    narrativeStatus: "DRAFT_APPROVED",
+    narrativeStatus: "NEEDS_PRODUCT_REVIEW",
     displayOrder: 13,
   },
   {
@@ -372,7 +372,7 @@ const valueModules = [
       input("transaction_cost_per_ticket", "Short Haul transaction cost per processed ticket", "CURRENCY", "CURRENCY_PER_TICKET", 5, "Gather the customer value for short haul transaction cost per processed ticket.", 0.25),
     ],
     overlapGroups: ["BILLING_EFFICIENCY"],
-    narrativeStatus: "DRAFT_APPROVED",
+    narrativeStatus: "NEEDS_PRODUCT_REVIEW",
     displayOrder: 21,
   },
 ] as const satisfies readonly ValueModuleDefinition[];
