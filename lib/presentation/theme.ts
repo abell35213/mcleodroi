@@ -5,7 +5,6 @@ export const PRESENTATION_ASSET_DIR = "public/presentation-assets";
 export const APPROVED_THEME_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/themepages.png`;
 export const APPROVED_TITLE_SLIDE_IMAGE_PATH = `${PRESENTATION_ASSET_DIR}/McLeodTitlePage.png`;
 export const APPROVED_POWERPOINT_TEMPLATE_PATH = `${PRESENTATION_ASSET_DIR}/PPTTheme.potx`;
-export const PROPRIETARY_FOOTER_TEXT = "©2026 McLeod Software® | Proprietary & Confidential";
 
 export function resolvePresentationAssetPath(assetPath: string): string {
   const projectRoot = process.cwd();

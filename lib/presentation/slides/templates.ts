@@ -1,6 +1,6 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
-import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T } from "@/lib/presentation/theme";
+import { presentationTheme as T } from "@/lib/presentation/theme";
 import type { AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
 import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addFullSlideThemeBackground, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
 
@@ -13,7 +13,7 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   if (titleImagePath) s.addImage({ path: titleImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height });
   s.addText("Business Impact Analysis", { x: 0.82, y: 1.5, w: 4.2, h: 0.9, fontFace: T.typography.headingFont, fontSize: 30, bold: true, color: c.white, fit: "shrink", breakLine: false, margin: 0 });
   s.addText(`Prepared for ${m.companyName}`, { x: 0.84, y: 2.62, w: 4.35, h: 0.34, fontFace: T.typography.bodyFont, fontSize: 15, color: c.white, breakLine: false, fit: "shrink", margin: 0 });
-  s.addText(PROPRIETARY_FOOTER_TEXT, { x: 0.78, y: 6.83, w: 4.05, h: 0.18, fontFace: T.typography.bodyFont, fontSize: 7, color: c.white, transparency: 8, fit: "shrink" });
+  s.addShape("rect", { x: 0.74, y: 6.8, w: 4.25, h: 0.28, fill: { color: c.midnight, transparency: 0 }, line: { color: c.midnight, transparency: 100 } });
   if (m.analysisDate) s.addText(m.analysisDate, { x: 9.65, y: 6.88, w: 2.6, h: 0.2, align: "right", fontFace: T.typography.bodyFont, fontSize: 9, color: c.white });
   return s;
 }
@@ -76,14 +76,16 @@ export function buildCategoryOverviewSlide(pptx: pptxgen, m: CategoryOverviewSli
 
 export function buildOpportunitySummarySlide(pptx: pptxgen, m: OpportunitySummarySlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Opportunity Summary", title: "The Identified Opportunities", companyName: m.companyName });
-  const cards = m.classifications.slice(0, 6);
-  const cw = 3.82;
-  const gap = 0.18;
-  cards.forEach((card, i) => addValueCard(s, { ...card, x: L.content.left + (i % 3) * (cw + gap), y: 1.45 + Math.floor(i / 3) * 1.55, w: cw, h: 1.3 }));
-  addSummaryBand(s, { x: L.content.left, y: 4.7, w: 12, h: 1.0, metrics: [...(m.monthlyOpportunity ? [m.monthlyOpportunity] : []), m.annualOpportunity].slice(0, 2) });
-  if (m.informationalCapital) addDisclaimer(s, { text: `Informational capital value shown separately: ${m.informationalCapital.value} ${m.informationalCapital.label}`, x: L.content.left, y: 5.9, w: 12 });
-  addDisclaimer(s, { text: m.disclaimer, x: L.content.left, y: 6.28, w: 12 });
+  addBrandHeader(s, { categoryLabel: "Opportunity Summary", title: m.title ?? "The Identified Opportunities", companyName: m.companyName });
+  const cards = m.classifications.slice(0, 4);
+  const cw = 5.88;
+  const gap = 0.24;
+  cards.forEach((card, i) => addValueCard(s, { ...card, x: L.content.left + (i % 2) * (cw + gap), y: 1.45 + Math.floor(i / 2) * 1.62, w: cw, h: 1.38 }));
+  if (m.showTotals ?? true) {
+    addSummaryBand(s, { x: L.content.left, y: 4.9, w: 12, h: 1.0, metrics: [...(m.monthlyOpportunity ? [m.monthlyOpportunity] : []), m.annualOpportunity].slice(0, 2) });
+    if (m.informationalCapital) addDisclaimer(s, { text: `Informational capital value shown separately: ${m.informationalCapital.value} ${m.informationalCapital.label}`, x: L.content.left, y: 6.0, w: 12 });
+  }
+  addDisclaimer(s, { text: m.disclaimer, x: L.content.left, y: 6.35, w: 12 });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
   return s;
 }

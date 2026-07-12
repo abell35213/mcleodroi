@@ -5,7 +5,7 @@ import { buildAssumptionsAppendix } from "@/lib/analyses/assumptions";
 import { formatPresentationCount, formatPresentationCurrency, formatPresentationHours, formatPresentationPercentage } from "@/lib/presentation/format";
 import { APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import { validatePresentationTextLength } from "@/lib/presentation/text";
-import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleItemModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
+import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
 
 export type CoverSlidePlan = { kind: "cover"; model: CoverSlideModel };
 export type ExecutiveSummarySlidePlan = { kind: "executiveSummary"; model: ExecutiveSummarySlideModel };
@@ -24,8 +24,6 @@ const valueTypeLabels: Record<ValueType, string> = {
   COST_AVOIDANCE: "Cost Avoidance",
   CAPITAL_AVOIDANCE: "Capital Avoidance",
 };
-const valueTypeOrder: ValueType[] = ["REVENUE_MARGIN_OPPORTUNITY", "COST_REDUCTION", "CAPACITY_VALUE", "COST_AVOIDANCE", "NET_CAPACITY_VALUE", "CAPITAL_AVOIDANCE"];
-
 function num(v: unknown): number { return typeof v === "number" && Number.isFinite(v) ? v : 0; }
 function annualOpportunity(m: PresentationSnapshotModule): number { return num(m.financialOutputs.annualRecurringValue) + num(m.financialOutputs.annualOnlyValue); }
 function monthlyValue(m: PresentationSnapshotModule): number { return num(m.financialOutputs.monthlyRecurringValue); }
@@ -56,7 +54,6 @@ function singleModuleModel(snapshot: PresentationSnapshot, m: PresentationSnapsh
   const capital = m.valueType === "CAPITAL_AVOIDANCE" && monthlyValue(m) ? `Monthly economic equivalent: ${formatPresentationCurrency(monthlyValue(m))}.` : undefined;
   return { companyName: snapshot.analysis.companyName, categoryLabel: m.categoryName, moduleTitle: m.moduleName, analysisText: m.effectiveCustomerAnalysis, valueNarrative: m.valueNarrative, effectiveCustomerAnalysis: m.effectiveCustomerAnalysis, presentationCallout: m.presentationCallout, heroMetric: metricForModule(m), assumptions: assumptionItems(m), disclaimer: m.presentationDisclaimer || undefined, informationalCapitalCallout: capital, slideNumber };
 }
-function dualItem(m: PresentationSnapshotModule): DualModuleItemModel { const metric = metricForModule(m); return { title: m.moduleName, primaryMetric: metric.value, period: metric.period, label: metric.label, supportingMetric: m.presentationCallout || undefined, analysisText: m.effectiveCustomerAnalysis, howMcLeodHelps: m.valueNarrative, customerImpact: m.effectiveCustomerAnalysis }; }
 export function canUseDualModuleSlide(a: PresentationSnapshotModule, b: PresentationSnapshotModule): boolean {
   return a.categoryKey === b.categoryKey && validatePresentationTextLength({ text: a.effectiveCustomerAnalysis, kind: "dualModuleAnalysis" }).length === 0 && validatePresentationTextLength({ text: b.effectiveCustomerAnalysis, kind: "dualModuleAnalysis" }).length === 0 && validatePresentationTextLength({ text: a.valueNarrative, kind: "dualModuleAnalysis" }).length === 0 && validatePresentationTextLength({ text: b.valueNarrative, kind: "dualModuleAnalysis" }).length === 0 && a.valueType !== "CAPITAL_AVOIDANCE" && b.valueType !== "CAPITAL_AVOIDANCE";
 }
@@ -95,10 +92,20 @@ function executive(snapshot: PresentationSnapshot, slideNumber: number): Executi
     monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined,
   };
 }
-function opportunity(snapshot: PresentationSnapshot, slideNumber: number): OpportunitySummarySlideModel {
-  const classifications = valueTypeOrder.flatMap((vt) => { const b = snapshot.summary.valueTypeBreakdown.find((x) => x.valueType === vt); return b && b.annualEconomicOpportunity !== 0 ? [{ title: valueTypeLabels[vt].toUpperCase(), value: formatPresentationCurrency(b.annualEconomicOpportunity), label: b.annualEconomicOpportunity < 0 ? "Economic Offset" : "Annual Identified Opportunity", valueType: vt }] : []; });
+const SUMMARY_CARDS_PER_SLIDE = 4;
+function opportunity(snapshot: PresentationSnapshot, slideNumber: number, modules: PresentationSnapshotModule[], showTotals: boolean, continued: boolean): OpportunitySummarySlideModel {
   const hasCapacity = snapshot.categories.some((c) => c.modules.some((m) => m.valueType === "CAPACITY_VALUE" || m.valueType === "NET_CAPACITY_VALUE"));
-  return { companyName: snapshot.analysis.companyName, classifications, monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined, annualOpportunity: { value: formatPresentationCurrency(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity), label: "Annual Identified Economic Opportunity" }, informationalCapital: snapshot.summary.informationalCapitalValueTotal ? { value: formatPresentationCurrency(snapshot.summary.informationalCapitalValueTotal), label: "Informational Capital Avoidance" } : undefined, disclaimer: hasCapacity ? CAPACITY_VALUE_PRESENTATION_DISCLAIMER : "Values shown are directional business-impact estimates based on reviewed analysis inputs.", slideNumber };
+  return {
+    companyName: snapshot.analysis.companyName,
+    title: continued ? "The Identified Opportunities — Continued" : "The Identified Opportunities",
+    classifications: modules.map(valueCardFromModule),
+    monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined,
+    annualOpportunity: { value: formatPresentationCurrency(snapshot.summary.totalIdentifiedAnnualEconomicOpportunity), label: "Annual Identified Economic Opportunity" },
+    informationalCapital: snapshot.summary.informationalCapitalValueTotal ? { value: formatPresentationCurrency(snapshot.summary.informationalCapitalValueTotal), label: "Informational Capital Avoidance" } : undefined,
+    disclaimer: hasCapacity ? CAPACITY_VALUE_PRESENTATION_DISCLAIMER : "Values shown are directional business-impact estimates based on reviewed analysis inputs.",
+    slideNumber,
+    showTotals,
+  };
 }
 
 function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: number): AssumptionsAppendixSlideModel | null {
@@ -124,13 +131,18 @@ export function composePresentationSlidePlan(snapshot: PresentationSnapshot): Pr
     const modules = [...category.modules].sort((a,b) => a.displayOrder - b.displayOrder);
     if (modules.length === 0) continue;
     if (modules.length >= 3) plans.push({ kind: "categoryOverview", model: categoryOverview(snapshot, { ...category, modules }, slide++) });
-    for (let i = 0; i < modules.length; i++) {
-      const next = modules[i + 1];
-      if (next && canUseDualModuleSlide(modules[i], next)) { plans.push({ kind: "dualModule", model: { companyName: snapshot.analysis.companyName, categoryLabel: category.name, title: `${category.name} Opportunities`, modules: [dualItem(modules[i]), dualItem(next)], slideNumber: slide++ } }); i++; }
-      else plans.push({ kind: "singleModule", model: singleModuleModel(snapshot, modules[i], slide++) });
+    for (const selectedModule of modules) {
+      plans.push({ kind: "singleModule", model: singleModuleModel(snapshot, selectedModule, slide++) });
     }
   }
-  plans.push({ kind: "opportunitySummary", model: opportunity(snapshot, slide++) });
+  const orderedModules = [...snapshot.categories]
+    .sort((a, b) => a.displayOrder - b.displayOrder)
+    .flatMap((category) => [...category.modules].sort((a, b) => a.displayOrder - b.displayOrder));
+  for (let i = 0; i < orderedModules.length; i += SUMMARY_CARDS_PER_SLIDE) {
+    const pageModules = orderedModules.slice(i, i + SUMMARY_CARDS_PER_SLIDE);
+    const isFinalSummaryPage = i + SUMMARY_CARDS_PER_SLIDE >= orderedModules.length;
+    plans.push({ kind: "opportunitySummary", model: opportunity(snapshot, slide++, pageModules, isFinalSummaryPage, i > 0) });
+  }
   const appendix = assumptionsAppendixModel(snapshot, slide);
   if (appendix) { plans.push({ kind: "assumptionsAppendix", model: appendix }); slide++; }
   return plans;

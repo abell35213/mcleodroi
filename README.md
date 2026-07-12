@@ -58,7 +58,7 @@ Production generation follows: Analysis → immutable snapshot → persisted `Pr
 Version domains are independent:
 
 - `PRESENTATION_SNAPSHOT_VERSION = "1.4.0"` — current schema includes ROI/charts/branding, overlap dispositions, and benchmark provenance.
-- `PRESENTATION_TEMPLATE_VERSION = "1.1.0"` — current McLeod visual template and slide treatment.
+- `PRESENTATION_TEMPLATE_VERSION = "1.2.0"` — current McLeod visual template and slide treatment.
 - `NARRATIVE_REGISTRY_VERSION = "1.0.0"` — deterministic narrative/fingerprint source.
 - `OVERLAP_REGISTRY_VERSION = "1.0.0"` — overlap-disposition fingerprint source.
 

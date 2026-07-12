@@ -1,6 +1,6 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
-import { PROPRIETARY_FOOTER_TEXT, presentationTheme as T, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
+import { presentationTheme as T, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import type { AssumptionItemModel, AssumptionsAppendixModuleModel, AssumptionsAppendixSourceModel, MetricModel, ValueCardModel } from "@/lib/presentation/types";
 
 const c = T.colors;
@@ -28,7 +28,7 @@ export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string;
 
 export function addFooter(slide: pptxgen.Slide, o: { companyName: string; slideNumber?: number; hideSlideNumber?: boolean }) {
   slide.addShape("line", { x: L.content.left, y: 7.08, w: 11.6, h: 0, line: { color: c.softBorder, width: 0.7 } });
-  slide.addText(PROPRIETARY_FOOTER_TEXT, { x: L.content.left, y: 7.17, w: 6, h: 0.12, fontSize: 7, color: c.mutedText });
+  slide.addShape("rect", { x: L.content.left, y: 7.12, w: 6.2, h: 0.24, fill: { color: c.white, transparency: 0 }, line: { color: c.white, transparency: 100 } });
   if (!o.hideSlideNumber && o.slideNumber) slide.addText(String(o.slideNumber), { x: 12.22, y: 7.16, w: 0.35, h: 0.12, fontSize: 7, color: c.mutedText, align: "right" });
 }
 
