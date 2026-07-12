@@ -35,7 +35,7 @@ export function BrandingPanel({
           )}
         </div>
         <div className="flex flex-col gap-3">
-          <form action={saveAction} className="flex flex-wrap items-center gap-3">
+          <form action={saveAction} className="flex flex-wrap items-center gap-3" encType="multipart/form-data">
             <label className="sr-only" htmlFor="logo-input">
               Customer logo file
             </label>
