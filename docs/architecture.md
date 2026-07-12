@@ -33,7 +33,7 @@ PPTX, PDF, and HTML outputs consume the persisted snapshot only. Export composit
 ## Version constants
 
 - `PRESENTATION_SNAPSHOT_VERSION = "1.4.0"`: current snapshot schema includes corrected ROI semantics, overlap dispositions, and benchmark provenance.
-- `PRESENTATION_TEMPLATE_VERSION = "1.1.0"`: current McLeod title/background assets and slide treatment.
+- `PRESENTATION_TEMPLATE_VERSION = "1.2.0"`: current McLeod title/background assets and slide treatment.
 - `NARRATIVE_REGISTRY_VERSION = "1.0.0"`: narrative text and fingerprint source.
 - `OVERLAP_REGISTRY_VERSION = "1.0.0"`: overlap disposition fingerprint source.
 

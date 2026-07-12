@@ -61,7 +61,7 @@ describe("presentation snapshots", () => {
       expect(xml).toContain("Trailer Asset Utilization");
       expect(xml).toContain("McLeod");
       expect(xml).toContain("platform addresses your key areas of need");
-      expect(xml).toContain("Proprietary &amp; Confidential");
+      expect(xml).not.toContain("Proprietary &amp; Confidential");
     } finally {
       rmSync(zipDir, { recursive: true, force: true });
     }

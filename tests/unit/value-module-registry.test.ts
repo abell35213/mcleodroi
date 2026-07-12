@@ -52,7 +52,7 @@ describe("canonical value module registry", () => {
     ]);
     expect(getCategoriesForBusinessType("BROKERAGE").map((category) => category.name)).toEqual([
       "Building the Best Carrier Base",
-      "Selling to the Best Shippers",
+      "Brokerage Operational Efficiencies",
       "Managing the Back Office",
       "Strategic",
     ]);
