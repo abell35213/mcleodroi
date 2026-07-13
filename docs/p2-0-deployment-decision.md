@@ -323,7 +323,8 @@ Scoring: 1 = poor, 3 = acceptable/mixed, 5 = strong. Weights reflect assumed imp
 | Long-term architecture fit | 5 | 5 | 2 | 3 |
 | Reuse of existing Phase 1 code | 3 | 4 | 4 | 4 |
 | Unweighted total | - | 65 | 36 | 43 |
-| Weighted total | 61 | 267 | 134 | 177 |
+| Total weight | 61 | - | - | - |
+| Weighted total | - | 267 | 134 | 177 |
 | Weighted average | - | 4.38 | 2.20 | 2.90 |
 
 ### Matrix assumptions
