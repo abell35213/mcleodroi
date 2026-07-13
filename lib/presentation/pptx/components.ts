@@ -62,9 +62,7 @@ export function addValueCard(slide: pptxgen.Slide, o: ValueCardModel & { x: numb
   slide.addShape("rect", { x: o.x, y: o.y, w: o.w, h: o.h, fill: { color: c.white }, line: { color: c.softBorder } });
   slide.addText(o.title, { x: o.x + 0.16, y: o.y + 0.12, w: o.w - 0.32, h: 0.24, fontSize: 12, bold: true, color: c.charcoal, fit: "shrink" });
   slide.addText(o.value, { x: o.x + 0.16, y: o.y + 0.42, w: o.w - 0.32, h: 0.34, fontSize: 21, bold: true, color: c.midnight, fit: "shrink" });
-  if (o.period) slide.addText(o.period.toUpperCase(), { x: o.x + 0.18, y: o.y + 0.78, w: o.w - 0.32, h: 0.2, fontSize: 12, bold: true, color: c.mutedBlue, fit: "shrink" });
-  slide.addText(o.label, { x: o.x + 0.16, y: o.y + 1.04, w: o.w - 0.32, h: 0.24, fontSize: 8, color: c.mutedText, fit: "shrink" });
-  if (o.supportingMetric) slide.addText(o.supportingMetric, { x: o.x + 0.16, y: o.y + 1.32, w: o.w - 0.32, h: 0.18, fontSize: 8, bold: true, color: c.forest, fit: "shrink" });
+  if (o.supportingMetric) slide.addText(o.supportingMetric, { x: o.x + 0.16, y: o.y + Math.min(1.32, o.h - 0.28), w: o.w - 0.32, h: 0.18, fontSize: 8, bold: true, color: c.forest, fit: "shrink" });
 }
 
 export function addSummaryBand(slide: pptxgen.Slide, o: { metrics: MetricModel[]; x: number; y: number; w: number; h: number }) {
