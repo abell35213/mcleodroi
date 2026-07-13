@@ -176,7 +176,7 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     expect(media.length).toBeGreaterThanOrEqual(1);
     const slideRels = await zip.file("ppt/slides/_rels/slide1.xml.rels")?.async("text");
     const slideXml = await zip.file("ppt/slides/slide1.xml")?.async("text");
-    expect(slideRels).toMatch(/Target="..\/media\//);
+    expect(slideRels).toMatch(/Target="\.\.\/media\//);
     expect(slideXml).toContain("Logo Carrier logo");
   });
 
