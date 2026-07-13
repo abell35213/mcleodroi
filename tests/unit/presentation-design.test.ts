@@ -1,4 +1,5 @@
 import { mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { execFileSync } from "node:child_process";
 import JSZip from "jszip";
 import { describe, expect, it } from "vitest";
@@ -20,6 +21,55 @@ const testDualModel = {
 };
 
 let approvedThemeImageBackup: Buffer | null = null;
+
+
+async function validatePptxPackage(buffer: Buffer) {
+  const zip = await JSZip.loadAsync(buffer);
+  const names = Object.keys(zip.files);
+  const fileNames = names.filter((name) => !zip.files[name].dir);
+  expect(fileNames).toContain("[Content_Types].xml");
+  expect(fileNames).toContain("_rels/.rels");
+  expect(fileNames).toContain("ppt/presentation.xml");
+  expect(fileNames).toContain("ppt/_rels/presentation.xml.rels");
+
+  const parser = new DOMParser();
+  const parseXml = async (name: string) => {
+    const xml = await zip.file(name)?.async("text");
+    expect(xml, `${name} should exist`).toBeTruthy();
+    expect(xml).not.toMatch(/\b(?:NaN|Infinity|-Infinity)\b/);
+    const doc = parser.parseFromString(xml ?? "", "application/xml");
+    expect(doc.getElementsByTagName("parsererror").length, `${name} should be well formed`).toBe(0);
+    return { xml: xml ?? "", doc };
+  };
+
+  for (const name of fileNames.filter((name) => name.endsWith(".xml") || name.endsWith(".rels"))) await parseXml(name);
+
+  for (const relName of fileNames.filter((name) => name.endsWith(".rels"))) {
+    const { doc } = await parseXml(relName);
+    const ids = Array.from(doc.getElementsByTagName("Relationship")).map((rel) => rel.getAttribute("Id"));
+    expect(new Set(ids).size, `${relName} relationship IDs should be unique`).toBe(ids.length);
+    const baseDir = relName === "_rels/.rels" ? "" : path.posix.dirname(path.posix.dirname(relName));
+    for (const rel of Array.from(doc.getElementsByTagName("Relationship"))) {
+      if (rel.getAttribute("TargetMode") === "External") continue;
+      const target = rel.getAttribute("Target");
+      expect(target, `${relName} relationship target should be present`).toBeTruthy();
+      const normalized = path.posix.normalize(path.posix.join(baseDir, target ?? ""));
+      expect(fileNames, `${relName} target ${normalized} should exist`).toContain(normalized);
+    }
+  }
+
+  for (const slideName of fileNames.filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))) {
+    const { doc, xml } = await parseXml(slideName);
+    const shapeIds = Array.from(doc.getElementsByTagName("p:cNvPr")).map((node) => node.getAttribute("id"));
+    expect(new Set(shapeIds).size, `${slideName} shape IDs should be unique`).toBe(shapeIds.length);
+    expect(xml).not.toContain("<c:title");
+  }
+
+  const charts = fileNames.filter((name) => /^ppt\/charts\/chart\d+\.xml$/.test(name));
+  const embeddings = fileNames.filter((name) => name.startsWith("ppt/embeddings/"));
+  expect(charts).toHaveLength(0);
+  expect(embeddings).toHaveLength(0);
+}
 
 async function pptxMediaCount(pptx: ReturnType<typeof createPresentation>) {
   const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
@@ -144,12 +194,18 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     }
     const path = "test-results/presentation-golden.pptx";
     expect(statSync(path).size).toBeGreaterThan(10_000);
-    const zip = await JSZip.loadAsync(readFileSync(path));
+    const goldenBuffer = readFileSync(path);
+    await validatePptxPackage(goldenBuffer);
+    const zip = await JSZip.loadAsync(goldenBuffer);
     expect(zip.file("ppt/slides/slide6.xml")).not.toBeNull();
     expect(Object.keys(zip.files).filter((name) => name.startsWith("ppt/media/")).length).toBeGreaterThanOrEqual(2);
     const slideText = await zip.file("ppt/slides/slide2.xml")?.async("text");
     expect(slideText).toContain("West Side Transport");
     expect(slideText).not.toContain("$503,200");
     expect(slideText).toContain("addresses your key areas of need by");
+    const roiSlideText = await zip.file("ppt/slides/slide7.xml")?.async("text");
+    expect(roiSlideText).toContain("Investment &amp; Return Analysis");
+    expect(roiSlideText).not.toContain("Cumulative Net Cash Flow");
+    expect(roiSlideText).toContain("Estimated Payback");
   });
 });

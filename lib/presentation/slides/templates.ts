@@ -102,9 +102,10 @@ export function buildInvestmentReturnSlide(pptx: pptxgen, m: InvestmentReturnSli
   addBrandHeader(s, { categoryLabel: "Planning Analysis", title: "Investment & Return Analysis", companyName: m.companyName });
   s.addText(m.explanationText, { x: L.content.left, y: 1.28, w: 11.7, h: 0.62, fontSize: 14.5, color: c.charcoal, fit: "shrink", breakLine: false });
 
-  const chart = { x: L.content.left, y: 2.12, w: 7.35, h: 3.95 };
-  s.addText("Cumulative Net Cash Flow", { x: chart.x, y: chart.y - 0.24, w: chart.w, h: 0.18, fontSize: 11.5, bold: true, color: c.midnight });
-  s.addShape("rect", { x: chart.x, y: chart.y, w: chart.w, h: chart.h, fill: { color: c.white }, line: { color: c.softBorder } });
+  const chart = { x: L.content.left, y: 2.12, w: 6.7, h: 3.95 };
+  const tableX = 8.15;
+  const chartTableGutter = tableX - (chart.x + chart.w);
+  s.addShape("rect", { x: chart.x, y: chart.y, w: chart.w, h: chart.h, fill: { color: c.white, transparency: 100 }, line: { color: c.white, transparency: 100 } });
   const points = [...m.cumulativeCashFlowPoints];
   if (points.length > 1) {
     const min = Math.min(0, ...points.map((p) => p.cumulativeNetCashFlow));
@@ -129,8 +130,8 @@ export function buildInvestmentReturnSlide(pptx: pptxgen, m: InvestmentReturnSli
     }
   }
 
-  const tableX = 8.15;
-  const rows: pptxgen.TableRow[] = [
+  if (chartTableGutter < 0.35) throw new Error("Investment return chart/table gutter must be at least 0.35 inches.");
+  const rows: { text: string; options?: { bold?: boolean; color?: string; fontSize?: number; fill?: unknown } }[][] = [
     [{ text: "Financial Measure", options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 12 } }, { text: "Analysis Result", options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 12 } }],
     [{ text: "Initial Investment", options: { fontSize: 10.5 } }, { text: m.initialInvestment, options: { bold: true, fontSize: 11 } }],
     [{ text: "Annual Recurring Investment", options: { fontSize: 10.5 } }, { text: m.annualRecurringInvestment, options: { bold: true, fontSize: 11 } }],
@@ -140,7 +141,18 @@ export function buildInvestmentReturnSlide(pptx: pptxgen, m: InvestmentReturnSli
     [{ text: "Net Present Value", options: { fontSize: 10.5 } }, { text: m.netPresentValue, options: { bold: true, fontSize: 11 } }],
     [{ text: "Internal Rate of Return", options: { fontSize: 10.5 } }, { text: m.internalRateOfReturn, options: { bold: true, fontSize: 11 } }],
   ];
-  s.addTable(rows, { x: tableX, y: 2.12, w: 4.25, h: 2.75, colW: [2.25, 2.0], border: { type: "solid", color: c.softBorder, pt: 0.4 }, fontFace: T.typography.bodyFont, fontSize: 10.2, margin: 0.045, valign: "middle" });
+  rows.forEach((row, index) => {
+    const y = 2.12 + index * 0.34;
+    const isHeader = index === 0;
+    const fills = isHeader ? c.midnight : c.white;
+    s.addShape("rect", { x: tableX, y, w: 2.25, h: 0.34, fill: { color: fills }, line: { color: c.softBorder, width: 0.4 } });
+    s.addShape("rect", { x: tableX + 2.25, y, w: 2.0, h: 0.34, fill: { color: fills }, line: { color: c.softBorder, width: 0.4 } });
+    row.forEach((cell, cellIndex) => {
+      const text = cell.text;
+      const options = cell.options ?? {};
+      s.addText(text, { x: tableX + (cellIndex === 0 ? 0.08 : 2.33), y: y + 0.08, w: cellIndex === 0 ? 2.08 : 1.84, h: 0.14, fontFace: T.typography.bodyFont, fontSize: Number(options.fontSize ?? 10.2), bold: Boolean(options.bold), color: isHeader ? c.white : String(options.color ?? c.charcoal), fit: "shrink", margin: 0 });
+    });
+  });
   s.addText("Benefit Realization", { x: tableX, y: 5.08, w: 4.25, h: 0.18, fontSize: 11.5, bold: true, color: c.midnight });
   s.addText(m.adoptionSchedule.map((row) => `Year ${row.year} — ${row.display}`).join("\n"), { x: tableX, y: 5.35, w: 4.25, h: 0.62, fontSize: 9.5, color: c.charcoal, breakLine: false, fit: "shrink" });
   addDisclaimer(s, { text: m.methodologyNote, x: L.content.left, y: 6.48, w: 11.75 });
