@@ -111,7 +111,7 @@ function opportunity(snapshot: PresentationSnapshot, slideNumber: number, module
 
 function safePct(value: number | null): string { return value === null || !Number.isFinite(value) ? "Not applicable" : formatPresentationPercentage(value); }
 function safeCurrency(value: number | null): string { return value === null || !Number.isFinite(value) ? "Not applicable" : formatPresentationCurrency(value); }
-function paybackWording(paybackMonths: number | null, horizonYears: number, investment: number): string {
+function paybackWording(paybackMonths: number | null, _horizonYears: number, investment: number): string {
   if (paybackMonths !== null) return `${formatPresentationCount(paybackMonths)} months`;
   if (investment <= 0) return "payback is not applicable under the current investment assumptions";
   return "the configured analysis horizon is not expected to reach full payback";
