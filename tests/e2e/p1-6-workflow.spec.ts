@@ -21,7 +21,7 @@ async function createBrokerProductivityAnalysis(page: import("@playwright/test")
   await page.getByLabel("Target average loads per broker per day").fill(inputs.targetLoads);
   await page.getByLabel("Number of brokers").fill(inputs.brokers);
   await page.getByLabel("Working days per month").fill(inputs.workingDays);
-  await page.getByRole("spinbutton", { name: "Average gross margin per brokered load" }).fill(inputs.margin);
+  await page.getByLabel("Average gross margin per brokered load").fill(inputs.margin);
   await page.getByRole("button", { name: "Save & Calculate" }).click();
 }
 
