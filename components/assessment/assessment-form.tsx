@@ -8,6 +8,19 @@ import type { InputBenchmark, ValueModuleInputDefinition } from "@/lib/modules";
 
 const PERCENT_SLIDER_MAX = 100;
 
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function finiteDisplayValue(value: string | undefined): string {
+  return value ?? "";
+}
+
+function normalizedPercentValue(value: string | undefined): number {
+  const parsedValue = Number(value);
+  return Number.isFinite(parsedValue) ? clamp(parsedValue, 0, PERCENT_SLIDER_MAX) : 0;
+}
+
 function initialValues(module: CalculatedAnalysisModule): Record<string, string> {
   const definition = getValueModule(module.moduleKey);
   const persisted = new Map(module.inputs.map((input) => [input.inputKey, input.numericValue]));
@@ -63,7 +76,7 @@ export function AssessmentForm({ module, action }: { module: CalculatedAnalysisM
   const [values, setValues] = useState<Record<string, string>>(() => initialValues(module));
 
   const validations = useMemo(
-    () => Object.fromEntries(inputs.map((input) => [input.key, validateDisplayInput(input, values[input.key] ?? "")])),
+    () => Object.fromEntries(inputs.map((input) => [input.key, validateDisplayInput(input, finiteDisplayValue(values[input.key]))])),
     [inputs, values],
   );
   const hasClientErrors = inputs.some((input) => validations[input.key]?.state === "error");
@@ -105,7 +118,7 @@ export function AssessmentForm({ module, action }: { module: CalculatedAnalysisM
                       min={0}
                       max={PERCENT_SLIDER_MAX}
                       step={0.1}
-                      value={values[input.key] === "" ? 0 : Number(values[input.key])}
+                      value={normalizedPercentValue(values[input.key])}
                       onChange={(event) => setValue(input.key, event.target.value)}
                       aria-label={`${input.label} slider`}
                       className="h-2 flex-1 cursor-pointer accent-[#d89b2b]"
@@ -114,11 +127,9 @@ export function AssessmentForm({ module, action }: { module: CalculatedAnalysisM
                       <input
                         id={input.key}
                         name={input.key}
-                        type="number"
-                        step="any"
-                        min={0}
-                        max={PERCENT_SLIDER_MAX}
-                        value={values[input.key]}
+                        type="text"
+                        inputMode="decimal"
+                        value={finiteDisplayValue(values[input.key])}
                         onChange={(event) => setValue(input.key, event.target.value)}
                         aria-describedby={describedBy}
                         aria-invalid={showError}
@@ -135,9 +146,9 @@ export function AssessmentForm({ module, action }: { module: CalculatedAnalysisM
                   <input
                     id={input.key}
                     name={input.key}
-                    type="number"
-                    step={input.type === "INTEGER" ? "1" : "any"}
-                    value={values[input.key]}
+                    type="text"
+                    inputMode={input.type === "INTEGER" ? "numeric" : "decimal"}
+                    value={finiteDisplayValue(values[input.key])}
                     onChange={(event) => setValue(input.key, event.target.value)}
                     aria-describedby={describedBy}
                     aria-invalid={showError}

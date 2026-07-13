@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
 import { addAssumptionGrid } from "@/lib/presentation/pptx/components";
-import { buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide } from "@/lib/presentation/slides";
+import { buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide, buildInvestmentReturnSlide } from "@/lib/presentation/slides";
 
 
 const testDualModel = {
@@ -63,6 +63,7 @@ async function validatePptxPackage(buffer: Buffer) {
     const shapeIds = Array.from(doc.getElementsByTagName("p:cNvPr")).map((node) => node.getAttribute("id"));
     expect(new Set(shapeIds).size, `${slideName} shape IDs should be unique`).toBe(shapeIds.length);
     expect(xml).not.toContain("<c:title");
+    expect(xml.replace(/<p:grpSpPr>[\s\S]*?<\/p:grpSpPr>/g, "")).not.toMatch(/<a:ext[^>]*(?:cx="0"|cy="0"|cx="-|cy="-)/);
   }
 
   const charts = fileNames.filter((name) => /^ppt\/charts\/chart\d+\.xml$/.test(name));
@@ -164,6 +165,44 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     expect(testDualModel.modules[0].howMcLeodHelps).toContain("McLeod");
     expect(testDualModel.modules[0].customerImpact).toContain("$5,880");
   });
+
+  it("embeds a supplied customer logo on the title slide", async () => {
+    const pptx = createPresentation();
+    const logoDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    buildCoverSlide(pptx, { companyName: "Logo Carrier", analysisDate: "July 13, 2026", customerLogoDataUri: logoDataUri, titleSlideImagePath: null });
+    const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
+    const zip = await JSZip.loadAsync(buffer);
+    const media = Object.keys(zip.files).filter((name) => name.startsWith("ppt/media/") && !zip.files[name].dir);
+    expect(media.length).toBeGreaterThanOrEqual(1);
+    const slideRels = await zip.file("ppt/slides/_rels/slide1.xml.rels")?.async("text");
+    const slideXml = await zip.file("ppt/slides/slide1.xml")?.async("text");
+    expect(slideRels).toMatch(/Target="..\/media\//);
+    expect(slideXml).toContain("Logo Carrier logo");
+  });
+
+  it("generates ROI chart lines without zero extents", async () => {
+    const pptx = createPresentation();
+    buildInvestmentReturnSlide(pptx, {
+      companyName: "Test Carrier",
+      explanationText: "Directional investment analysis.",
+      initialInvestment: "$10,000",
+      annualRecurringInvestment: "$1,000",
+      firstYearROI: "100%",
+      horizonYears: 3,
+      horizonROI: "200%",
+      paybackMonths: 12,
+      paybackDisplay: "12 Months",
+      netPresentValue: "$15,000",
+      internalRateOfReturn: "50%",
+      adoptionSchedule: [{ year: 1, display: "50%" }, { year: 2, display: "75%" }],
+      cumulativeCashFlowPoints: [{ month: 0, cumulativeNetCashFlow: -10000 }, { month: 12, cumulativeNetCashFlow: 0 }, { month: 24, cumulativeNetCashFlow: 10000 }],
+      methodologyNote: "Planning estimate.",
+      slideNumber: 6,
+    });
+    const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
+    await validatePptxPackage(buffer);
+  });
+
   it("uses the title background image without overlay or logo art", async () => {
     const withoutImages = createPresentation();
     buildCoverSlide(withoutImages, { companyName: "Test Carrier", titleSlideImagePath: null });
