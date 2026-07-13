@@ -2,7 +2,7 @@ import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
 import { presentationTheme as T } from "@/lib/presentation/theme";
 import type { AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, InvestmentReturnSlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
-import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addFullSlideThemeBackground, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
+import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addFullSlideThemeBackground, addHeroMetric, addNarrativeBlock, addSafeLine, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
 
 const c = T.colors;
 
@@ -13,6 +13,7 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
   if (titleImagePath) s.addImage({ path: titleImagePath, x: 0, y: 0, w: L.slide.width, h: L.slide.height });
   s.addText("Business Impact Analysis", { x: 0.82, y: 1.5, w: 4.2, h: 0.9, fontFace: T.typography.headingFont, fontSize: 30, bold: true, color: c.white, fit: "shrink", breakLine: false, margin: 0 });
   s.addText(`Prepared for ${m.companyName}`, { x: 0.84, y: 2.62, w: 4.35, h: 0.34, fontFace: T.typography.bodyFont, fontSize: 15, color: c.white, breakLine: false, fit: "shrink", margin: 0 });
+  if (m.customerLogoDataUri) s.addImage({ data: m.customerLogoDataUri, x: 9.25, y: 5.35, w: 2.65, h: 0.9, sizing: { type: "contain", w: 2.65, h: 0.9 }, altText: `${m.companyName} logo` });
   if (m.analysisDate) s.addText(m.analysisDate, { x: 9.65, y: 6.88, w: 2.6, h: 0.2, align: "right", fontFace: T.typography.bodyFont, fontSize: 9, color: c.white });
   return s;
 }
@@ -21,7 +22,7 @@ export function buildExecutiveSummarySlide(pptx: pptxgen, m: ExecutiveSummarySli
   const s = pptx.addSlide();
   addFullSlideThemeBackground(s);
   s.addText("Executive Summary", { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: T.typography.headingFont, fontSize: T.typography.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
-  s.addShape("line", { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
+  addSafeLine(s, { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
   s.addText(`${m.discussionSummary} ${m.alignmentSummary}`, { x: L.content.left, y: 1.32, w: 11.05, h: 1.08, fontSize: 16, color: c.charcoal, fit: "shrink", breakLine: false });
   s.addText(m.keyAreasLeadIn, { x: L.content.left, y: 2.72, w: 11.05, h: 0.28, fontSize: 13, bold: true, color: c.midnight, fit: "shrink" });
   const themeY = 3.22;
@@ -114,16 +115,16 @@ export function buildInvestmentReturnSlide(pptx: pptxgen, m: InvestmentReturnSli
     const xFor = (month: number) => chart.x + 0.35 + (month / Math.max(points[points.length - 1].month, 1)) * (chart.w - 0.7);
     const yFor = (value: number) => chart.y + 0.22 + ((max - value) / span) * (chart.h - 0.55);
     const zeroY = yFor(0);
-    s.addShape("line", { x: chart.x + 0.25, y: zeroY, w: chart.w - 0.5, h: 0, line: { color: c.sunriseGold, width: 1, transparency: 20 } });
+    addSafeLine(s, { x: chart.x + 0.25, y: zeroY, w: chart.w - 0.5, h: 0, line: { color: c.sunriseGold, width: 1, transparency: 20 } });
     s.addText("Break-even", { x: chart.x + chart.w - 1.2, y: zeroY - 0.16, w: 0.9, h: 0.14, fontSize: 7.5, color: c.mutedText, align: "right" });
     for (let i = 1; i < points.length; i += 1) {
       const prev = points[i - 1];
       const cur = points[i];
-      s.addShape("line", { x: xFor(prev.month), y: yFor(prev.cumulativeNetCashFlow), w: xFor(cur.month) - xFor(prev.month), h: yFor(cur.cumulativeNetCashFlow) - yFor(prev.cumulativeNetCashFlow), line: { color: c.templateBlue, width: 1.7 } });
+      addSafeLine(s, { x: xFor(prev.month), y: yFor(prev.cumulativeNetCashFlow), w: xFor(cur.month) - xFor(prev.month), h: yFor(cur.cumulativeNetCashFlow) - yFor(prev.cumulativeNetCashFlow), line: { color: c.templateBlue, width: 1.7 } });
     }
     if (m.paybackMonths !== null) {
       const px = xFor(m.paybackMonths);
-      s.addShape("line", { x: px, y: chart.y + 0.25, w: 0, h: chart.h - 0.55, line: { color: c.forest, width: 1 } });
+      addSafeLine(s, { x: px, y: chart.y + 0.25, w: 0, h: chart.h - 0.55, line: { color: c.forest, width: 1 } });
       s.addText(`Estimated Payback: ${m.paybackDisplay}`, { x: Math.min(px + 0.08, chart.x + chart.w - 2.25), y: chart.y + 0.32, w: 2.1, h: 0.18, fontSize: 8.5, bold: true, color: c.forest, fit: "shrink" });
     } else {
       s.addText(`Estimated Payback: ${m.paybackDisplay}`, { x: chart.x + 0.35, y: chart.y + chart.h - 0.34, w: chart.w - 0.7, h: 0.18, fontSize: 8.2, color: c.mutedText, fit: "shrink" });

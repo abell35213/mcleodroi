@@ -161,7 +161,7 @@ function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: n
 
 export function composePresentationSlidePlan(snapshot: PresentationSnapshot): PresentationSlidePlan[] {
   let slide = 1;
-  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), slideNumber: slide++ } }];
+  const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), customerLogoDataUri: snapshot.branding?.customerLogoDataUri ?? null, slideNumber: slide++ } }];
   plans.push({ kind: "executiveSummary", model: executive(snapshot, slide++) });
   for (const category of [...snapshot.categories].sort((a,b) => a.displayOrder - b.displayOrder)) {
     const modules = [...category.modules].sort((a,b) => a.displayOrder - b.displayOrder);

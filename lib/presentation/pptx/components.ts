@@ -5,6 +5,24 @@ import type { AssumptionItemModel, AssumptionsAppendixModuleModel, AssumptionsAp
 
 const c = T.colors;
 const font = T.typography;
+const MIN_LINE_EXTENT_INCHES = 0.001;
+
+export function addSafeLine(slide: pptxgen.Slide, options: pptxgen.ShapeProps) {
+  const rawW = Number(options.w ?? 0);
+  const rawH = Number(options.h ?? 0);
+  const w = Math.max(Math.abs(rawW), MIN_LINE_EXTENT_INCHES);
+  const h = Math.max(Math.abs(rawH), MIN_LINE_EXTENT_INCHES);
+  slide.addShape("line", {
+    ...options,
+    x: rawW < 0 ? Number(options.x ?? 0) + rawW : options.x,
+    y: rawH < 0 ? Number(options.y ?? 0) + rawH : options.y,
+    w,
+    h,
+    flipV: rawH < 0,
+    flipH: rawW < 0,
+  });
+}
+
 
 export function addCategoryHeader(slide: pptxgen.Slide, o: { label: string; x?: number; y?: number; w?: number }) {
   slide.addText(o.label.toUpperCase(), { x: o.x ?? L.content.left, y: o.y ?? 0.48, w: o.w ?? 5, h: 0.18, fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.templateBlue });
@@ -19,7 +37,7 @@ export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string;
   addFullSlideThemeBackground(slide, o.themeImagePath === undefined ? T.assets.themeImagePath : o.themeImagePath);
   addCategoryHeader(slide, { label: o.categoryLabel, x: L.content.left, y: 0.33, w: 4.8 });
   slide.addText(o.title, { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
-  slide.addShape("line", { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
+  addSafeLine(slide, { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
   const logoPath = o.logoPath === undefined ? T.assets.logoPath : o.logoPath;
   if (logoPath) slide.addImage({ path: logoPath, x: 10.65, y: 0.45, w: 1.8, h: 0.34, sizing: { type: "contain", w: 1.8, h: 0.34 } });
   else slide.addText("McLeod Software", { x: 10.45, y: 0.48, w: 1.95, h: 0.22, align: "right", fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.charcoal });
@@ -27,13 +45,13 @@ export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string;
 }
 
 export function addFooter(slide: pptxgen.Slide, o: { companyName: string; slideNumber?: number; hideSlideNumber?: boolean }) {
-  slide.addShape("line", { x: L.content.left, y: 7.08, w: 11.6, h: 0, line: { color: c.softBorder, width: 0.7 } });
+  addSafeLine(slide, { x: L.content.left, y: 7.08, w: 11.6, h: 0, line: { color: c.softBorder, width: 0.7 } });
   if (!o.hideSlideNumber && o.slideNumber) slide.addText(String(o.slideNumber), { x: 12.22, y: 7.16, w: 0.35, h: 0.12, fontSize: 7, color: c.mutedText, align: "right" });
 }
 
 export function addHeroMetric(slide: pptxgen.Slide, o: MetricModel & { x: number; y: number; w: number; h?: number; variant?: string }) {
   slide.addShape("rect", { x: o.x, y: o.y, w: o.w, h: o.h ?? 1.55, fill: { color: c.white }, line: { color: c.softBorder } });
-  slide.addShape("line", { x: o.x + 0.18, y: o.y + 0.18, w: 0.8, h: 0, line: { color: c.sunriseGold, width: 2 } });
+  addSafeLine(slide, { x: o.x + 0.18, y: o.y + 0.18, w: 0.8, h: 0, line: { color: c.sunriseGold, width: 2 } });
   slide.addText(o.value, { x: o.x + 0.18, y: o.y + 0.37, w: o.w - 0.36, h: 0.45, fontFace: font.metricFont, fontSize: o.variant === "capital" ? 28 : 32, bold: true, color: c.midnight, margin: 0 });
   if (o.period) slide.addText(o.period.toUpperCase(), { x: o.x + 0.22, y: o.y + 0.88, w: o.w - 0.4, h: 0.18, fontSize: 9, bold: true, color: c.mutedBlue });
   slide.addText(o.label.toUpperCase(), { x: o.x + 0.2, y: o.y + 1.12, w: o.w - 0.4, h: 0.28, fontSize: 8, bold: true, color: c.charcoal, fit: "shrink" });
