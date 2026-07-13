@@ -45,6 +45,13 @@ export type RoiScenarioInputs = {
 };
 
 /** One year of the multi-year cumulative benefit curve. */
+export type RoiMonthlyCashFlowPoint = {
+  /** 0-based elapsed month within the configured horizon. */
+  readonly month: number;
+  /** Running net cash position including upfront investment and monthly realized net benefits. */
+  readonly cumulativeNetCashFlow: number;
+};
+
 export type RoiYearPoint = {
   /** 1-based year index within the horizon. */
   readonly year: number;
@@ -92,6 +99,8 @@ export type RoiMetrics = {
   readonly irr: number | null;
   /** Year-by-year cumulative benefit curve across the horizon. */
   readonly cumulativeBenefitCurve: readonly RoiYearPoint[];
+  /** Month-by-month cumulative net cash-flow curve using the canonical payback interpolation. */
+  readonly cumulativeCashFlowPoints?: readonly RoiMonthlyCashFlowPoint[];
 };
 
 function requireFiniteNumber(value: number, field: string, message: string): ValidationIssue[] {
@@ -177,6 +186,19 @@ function validateRoiInputs(inputs: {
 }
 
 /** Estimate payback by adding each year's adoption-adjusted net benefit monthly. */
+function buildMonthlyCashFlowPoints(investment: number, netBenefits: readonly number[]): RoiMonthlyCashFlowPoint[] {
+  const points: RoiMonthlyCashFlowPoint[] = [{ month: 0, cumulativeNetCashFlow: -investment }];
+  let cumulative = -investment;
+  for (let yearIndex = 0; yearIndex < netBenefits.length; yearIndex += 1) {
+    const monthlyNetBenefit = netBenefits[yearIndex] / 12;
+    for (let month = 1; month <= 12; month += 1) {
+      cumulative += monthlyNetBenefit;
+      points.push({ month: yearIndex * 12 + month, cumulativeNetCashFlow: cumulative });
+    }
+  }
+  return points;
+}
+
 function computePaybackMonths(investment: number, netBenefits: readonly number[]): number | null {
   if (investment <= 0) return null;
   let cumulative = -investment;
@@ -292,6 +314,7 @@ export function calculateRoi(inputs: RoiScenarioInputs): CalculationOutcome<RoiM
   const firstYearRoiPct = investment > 0 ? (netBenefits[0] - investment) / investment : null;
   const horizonRoiPct = investment > 0 ? (totalNetBenefitOverHorizon - investment) / investment : null;
   const netMonthlyValue = (netBenefits[0] ?? 0) / 12;
+  const cumulativeCashFlowPoints = buildMonthlyCashFlowPoints(investment, netBenefits);
   const paybackMonths = computePaybackMonths(investment, netBenefits);
   const irr = investment > 0 ? computeIrr(investment, netBenefits) : null;
 
@@ -312,6 +335,7 @@ export function calculateRoi(inputs: RoiScenarioInputs): CalculationOutcome<RoiM
       npv,
       irr,
       cumulativeBenefitCurve,
+      cumulativeCashFlowPoints,
     },
   };
 }

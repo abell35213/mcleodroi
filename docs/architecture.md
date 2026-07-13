@@ -32,12 +32,12 @@ PPTX, PDF, and HTML outputs consume the persisted snapshot only. Export composit
 
 ## Version constants
 
-- `PRESENTATION_SNAPSHOT_VERSION = "1.4.0"`: current snapshot schema includes corrected ROI semantics, overlap dispositions, and benchmark provenance.
-- `PRESENTATION_TEMPLATE_VERSION = "1.2.0"`: current McLeod title/background assets and slide treatment.
+- `PRESENTATION_SNAPSHOT_VERSION = "1.5.0"`: current snapshot schema includes corrected ROI semantics, overlap dispositions, and benchmark provenance.
+- `PRESENTATION_TEMPLATE_VERSION = "1.3.0"`: current McLeod title/background assets and slide treatment.
 - `NARRATIVE_REGISTRY_VERSION = "1.0.0"`: narrative text and fingerprint source.
 - `OVERLAP_REGISTRY_VERSION = "1.0.0"`: overlap disposition fingerprint source.
 
-Snapshot history: 1.2.0 corrected ROI semantics; 1.3.0 added overlap dispositions; 1.4.0 adds benchmark provenance as a traceability field. Template history: 1.0.0 was the initial reusable foundation; 1.1.0 reflects the P1 McLeod branded title/background and summary/opportunity layouts.
+Snapshot history: 1.2.0 corrected ROI semantics; 1.3.0 added overlap dispositions; 1.4.0 adds benchmark provenance as a traceability field; 1.5.0 adds canonical monthly ROI cash-flow points. Template history: 1.0.0 was the initial reusable foundation; 1.1.0 reflects the P1 McLeod branded title/background and summary/opportunity layouts; 1.2.0 updates opportunity detail/summary treatment and footer behavior; 1.3.0 adds the conditional Investment & Return Analysis slide.
 
 ## Database entities
 

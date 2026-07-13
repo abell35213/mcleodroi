@@ -1,7 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
 import { presentationTheme as T } from "@/lib/presentation/theme";
-import type { AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
+import type { AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, InvestmentReturnSlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
 import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addFullSlideThemeBackground, addHeroMetric, addNarrativeBlock, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
 
 const c = T.colors;
@@ -93,6 +93,57 @@ export function buildAssumptionsAppendixSlide(pptx: pptxgen, m: AssumptionsAppen
   const s = pptx.addSlide();
   addBrandHeader(s, { categoryLabel: "Appendix", title: "Assumptions & Sources", companyName: m.companyName });
   addAssumptionsAppendixTable(s, { modules: m.modules, sources: m.sources, x: L.content.left, y: 1.4, w: 12 });
+  addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
+  return s;
+}
+
+export function buildInvestmentReturnSlide(pptx: pptxgen, m: InvestmentReturnSlideModel) {
+  const s = pptx.addSlide();
+  addBrandHeader(s, { categoryLabel: "Planning Analysis", title: "Investment & Return Analysis", companyName: m.companyName });
+  s.addText(m.explanationText, { x: L.content.left, y: 1.28, w: 11.7, h: 0.62, fontSize: 14.5, color: c.charcoal, fit: "shrink", breakLine: false });
+
+  const chart = { x: L.content.left, y: 2.12, w: 7.35, h: 3.95 };
+  s.addText("Cumulative Net Cash Flow", { x: chart.x, y: chart.y - 0.24, w: chart.w, h: 0.18, fontSize: 11.5, bold: true, color: c.midnight });
+  s.addShape("rect", { x: chart.x, y: chart.y, w: chart.w, h: chart.h, fill: { color: c.white }, line: { color: c.softBorder } });
+  const points = [...m.cumulativeCashFlowPoints];
+  if (points.length > 1) {
+    const min = Math.min(0, ...points.map((p) => p.cumulativeNetCashFlow));
+    const max = Math.max(0, ...points.map((p) => p.cumulativeNetCashFlow));
+    const span = max - min || 1;
+    const xFor = (month: number) => chart.x + 0.35 + (month / Math.max(points[points.length - 1].month, 1)) * (chart.w - 0.7);
+    const yFor = (value: number) => chart.y + 0.22 + ((max - value) / span) * (chart.h - 0.55);
+    const zeroY = yFor(0);
+    s.addShape("line", { x: chart.x + 0.25, y: zeroY, w: chart.w - 0.5, h: 0, line: { color: c.sunriseGold, width: 1, transparency: 20 } });
+    s.addText("Break-even", { x: chart.x + chart.w - 1.2, y: zeroY - 0.16, w: 0.9, h: 0.14, fontSize: 7.5, color: c.mutedText, align: "right" });
+    for (let i = 1; i < points.length; i += 1) {
+      const prev = points[i - 1];
+      const cur = points[i];
+      s.addShape("line", { x: xFor(prev.month), y: yFor(prev.cumulativeNetCashFlow), w: xFor(cur.month) - xFor(prev.month), h: yFor(cur.cumulativeNetCashFlow) - yFor(prev.cumulativeNetCashFlow), line: { color: c.templateBlue, width: 1.7 } });
+    }
+    if (m.paybackMonths !== null) {
+      const px = xFor(m.paybackMonths);
+      s.addShape("line", { x: px, y: chart.y + 0.25, w: 0, h: chart.h - 0.55, line: { color: c.forest, width: 1 } });
+      s.addText(`Estimated Payback: ${m.paybackDisplay}`, { x: Math.min(px + 0.08, chart.x + chart.w - 2.25), y: chart.y + 0.32, w: 2.1, h: 0.18, fontSize: 8.5, bold: true, color: c.forest, fit: "shrink" });
+    } else {
+      s.addText(`Payback not achieved within the configured ${m.horizonYears}-year horizon.`, { x: chart.x + 0.35, y: chart.y + chart.h - 0.34, w: chart.w - 0.7, h: 0.18, fontSize: 8.2, color: c.mutedText, fit: "shrink" });
+    }
+  }
+
+  const tableX = 8.15;
+  const rows: pptxgen.TableRow[] = [
+    [{ text: "Financial Measure", options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 12 } }, { text: "Analysis Result", options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 12 } }],
+    [{ text: "Initial Investment", options: { fontSize: 10.5 } }, { text: m.initialInvestment, options: { bold: true, fontSize: 11 } }],
+    [{ text: "Annual Recurring Investment", options: { fontSize: 10.5 } }, { text: m.annualRecurringInvestment, options: { bold: true, fontSize: 11 } }],
+    [{ text: "First-Year ROI", options: { fontSize: 10.5 } }, { text: m.firstYearROI, options: { bold: true, fontSize: 11 } }],
+    [{ text: "Estimated Payback", options: { fontSize: 10.5 } }, { text: m.paybackDisplay, options: { bold: true, fontSize: 11 } }],
+    [{ text: `${m.horizonYears}-Year ROI`, options: { fontSize: 10.5 } }, { text: m.horizonROI, options: { bold: true, fontSize: 11 } }],
+    [{ text: "Net Present Value", options: { fontSize: 10.5 } }, { text: m.netPresentValue, options: { bold: true, fontSize: 11 } }],
+    [{ text: "Internal Rate of Return", options: { fontSize: 10.5 } }, { text: m.internalRateOfReturn, options: { bold: true, fontSize: 11 } }],
+  ];
+  s.addTable(rows, { x: tableX, y: 2.12, w: 4.25, h: 2.75, colW: [2.25, 2.0], border: { type: "solid", color: c.softBorder, pt: 0.4 }, fontFace: T.typography.bodyFont, fontSize: 10.2, margin: 0.045, valign: "middle" });
+  s.addText("Benefit Realization", { x: tableX, y: 5.08, w: 4.25, h: 0.18, fontSize: 11.5, bold: true, color: c.midnight });
+  s.addText(m.adoptionSchedule.map((row) => `Year ${row.year} — ${row.display}`).join("\n"), { x: tableX, y: 5.35, w: 4.25, h: 0.62, fontSize: 9.5, color: c.charcoal, breakLine: false, fit: "shrink" });
+  addDisclaimer(s, { text: m.methodologyNote, x: L.content.left, y: 6.48, w: 11.75 });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
   return s;
 }

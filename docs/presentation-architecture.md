@@ -4,8 +4,8 @@ Generated customer artifacts consume reviewed immutable `PresentationGeneration.
 
 ## Version domains
 
-- `PRESENTATION_SNAPSHOT_VERSION = "1.4.0"` — current snapshot contract. History: 1.2.0 corrected ROI semantics; 1.3.0 added overlap dispositions; 1.4.0 added benchmark provenance for traceability.
-- `PRESENTATION_TEMPLATE_VERSION = "1.2.0"` — current McLeod visual template. History: 1.0.0 was the reusable foundation; 1.1.0 covers the P1-9B through P1-9D title treatment, content-slide background, Executive Summary redesign, final opportunity layout, branding, and footer treatment; 1.2.0 makes production decks one opportunity per detail slide, changes final summaries to module cards with pagination, renames the brokerage display category, and removes proprietary/confidential footer text.
+- `PRESENTATION_SNAPSHOT_VERSION = "1.5.0"` — current snapshot contract. History: 1.2.0 corrected ROI semantics; 1.3.0 added overlap dispositions; 1.4.0 added benchmark provenance for traceability; 1.5.0 added canonical monthly ROI cash-flow points for investment return charting.
+- `PRESENTATION_TEMPLATE_VERSION = "1.3.0"` — current McLeod visual template. History: 1.0.0 was the reusable foundation; 1.1.0 covers the P1-9B through P1-9D title treatment, content-slide background, Executive Summary redesign, final opportunity layout, branding, and footer treatment; 1.2.0 makes production decks one opportunity per detail slide, changes final summaries to module cards with pagination, renames the brokerage display category, and removes proprietary/confidential footer text; 1.3.0 adds the conditional Investment & Return Analysis production slide.
 - `NARRATIVE_REGISTRY_VERSION = "1.0.0"` and `OVERLAP_REGISTRY_VERSION = "1.0.0"` change independently and are recorded/fingerprinted where relevant.
 
 Older persisted snapshots are not rewritten. Optional fields such as ROI, charts, branding, overlap dispositions, and benchmark provenance remain optional so historical snapshots can still be parsed where practical.

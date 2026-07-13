@@ -50,4 +50,22 @@ export type OpportunitySummarySlideModel = { companyName: string; title?: string
 export type AssumptionsAppendixRowModel = { label: string; enteredValue: string; typicalRange: string; sourceLabel: string };
 export type AssumptionsAppendixModuleModel = { moduleName: string; categoryName: string; rows: readonly AssumptionsAppendixRowModel[] };
 export type AssumptionsAppendixSourceModel = { label: string; citation: string };
+export type InvestmentReturnCashFlowPointModel = { month: number; cumulativeNetCashFlow: number };
+export type InvestmentReturnSlideModel = {
+  companyName: string;
+  explanationText: string;
+  initialInvestment: string;
+  annualRecurringInvestment: string;
+  firstYearROI: string;
+  horizonYears: number;
+  horizonROI: string;
+  paybackMonths: number | null;
+  paybackDisplay: string;
+  netPresentValue: string;
+  internalRateOfReturn: string;
+  adoptionSchedule: readonly { year: number; display: string }[];
+  cumulativeCashFlowPoints: readonly InvestmentReturnCashFlowPointModel[];
+  methodologyNote: string;
+  slideNumber: number;
+};
 export type AssumptionsAppendixSlideModel = { companyName: string; modules: readonly AssumptionsAppendixModuleModel[]; sources: readonly AssumptionsAppendixSourceModel[]; slideNumber: number };
