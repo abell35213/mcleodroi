@@ -7,22 +7,30 @@ if (args.Length != 1)
     return 2;
 }
 
-using PresentationDocument document = PresentationDocument.Open(args[0], false);
-OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
-var errors = validator.Validate(document).ToList();
-
-foreach (var error in errors)
+try
 {
-    string part = error.Part?.Uri.ToString() ?? "(unknown part)";
-    string node = error.Node?.LocalName ?? "(unknown node)";
-    Console.Error.WriteLine($"{part} :: {node} :: {error.Description}");
-}
+    using PresentationDocument document = PresentationDocument.Open(args[0], false);
+    OpenXmlValidator validator = new(FileFormatVersions.Microsoft365);
+    var errors = validator.Validate(document).ToList();
 
-if (errors.Count > 0)
+    foreach (var error in errors)
+    {
+        string part = error.Part?.Uri.ToString() ?? "(unknown part)";
+        string node = error.Node?.LocalName ?? "(unknown node)";
+        Console.Error.WriteLine($"{part} :: {node} :: {error.Description}");
+    }
+
+    if (errors.Count > 0)
+    {
+        Console.Error.WriteLine($"Open XML validation failed with {errors.Count} error(s).");
+        return 1;
+    }
+
+    Console.WriteLine("Open XML validation passed with no schema errors.");
+    return 0;
+}
+catch (Exception ex)
 {
-    Console.Error.WriteLine($"Open XML validation failed with {errors.Count} error(s).");
-    return 1;
+    Console.Error.WriteLine($"Failed to validate '{args[0]}': {ex.Message}");
+    return 2;
 }
-
-Console.WriteLine("Open XML validation passed with no schema errors.");
-return 0;
