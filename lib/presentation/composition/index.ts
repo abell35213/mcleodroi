@@ -5,7 +5,7 @@ import { buildAssumptionsAppendix } from "@/lib/analyses/assumptions";
 import { formatPresentationCount, formatPresentationCurrency, formatPresentationHours, formatPresentationPercentage } from "@/lib/presentation/format";
 import { APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import { validatePresentationTextLength } from "@/lib/presentation/text";
-import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
+import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, InvestmentReturnSlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
 
 export type CoverSlidePlan = { kind: "cover"; model: CoverSlideModel };
 export type ExecutiveSummarySlidePlan = { kind: "executiveSummary"; model: ExecutiveSummarySlideModel };
@@ -13,8 +13,9 @@ export type SingleModuleSlidePlan = { kind: "singleModule"; model: SingleModuleS
 export type DualModuleSlidePlan = { kind: "dualModule"; model: DualModuleSlideModel };
 export type CategoryOverviewSlidePlan = { kind: "categoryOverview"; model: CategoryOverviewSlideModel };
 export type OpportunitySummarySlidePlan = { kind: "opportunitySummary"; model: OpportunitySummarySlideModel };
+export type InvestmentReturnSlidePlan = { kind: "investmentReturn"; model: InvestmentReturnSlideModel };
 export type AssumptionsAppendixSlidePlan = { kind: "assumptionsAppendix"; model: AssumptionsAppendixSlideModel };
-export type PresentationSlidePlan = CoverSlidePlan | ExecutiveSummarySlidePlan | SingleModuleSlidePlan | DualModuleSlidePlan | CategoryOverviewSlidePlan | OpportunitySummarySlidePlan | AssumptionsAppendixSlidePlan;
+export type PresentationSlidePlan = CoverSlidePlan | ExecutiveSummarySlidePlan | SingleModuleSlidePlan | DualModuleSlidePlan | CategoryOverviewSlidePlan | OpportunitySummarySlidePlan | InvestmentReturnSlidePlan | AssumptionsAppendixSlidePlan;
 
 const valueTypeLabels: Record<ValueType, string> = {
   REVENUE_MARGIN_OPPORTUNITY: "Revenue / Margin Opportunity",
@@ -108,6 +109,41 @@ function opportunity(snapshot: PresentationSnapshot, slideNumber: number, module
   };
 }
 
+function safePct(value: number | null): string { return value === null || !Number.isFinite(value) ? "Not applicable" : formatPresentationPercentage(value); }
+function safeCurrency(value: number | null): string { return value === null || !Number.isFinite(value) ? "Not applicable" : formatPresentationCurrency(value); }
+function paybackWording(paybackMonths: number | null, _horizonYears: number, investment: number): string {
+  if (paybackMonths !== null) return `${formatPresentationCount(paybackMonths)} months`;
+  if (investment <= 0) return "payback is not applicable under the current investment assumptions";
+  return "the configured analysis horizon is not expected to reach full payback";
+}
+function paybackDisplay(paybackMonths: number | null, horizonYears: number, investment: number): string {
+  if (paybackMonths !== null) return `${formatPresentationCount(paybackMonths)} Months`;
+  if (investment <= 0) return "Not applicable";
+  return `Not achieved within ${horizonYears} years`;
+}
+function investmentReturn(snapshot: PresentationSnapshot, slideNumber: number): InvestmentReturnSlideModel | null {
+  const roi = snapshot.roi;
+  if (!roi) return null;
+  const wording = paybackWording(roi.paybackMonths, roi.horizonYears, roi.investment);
+  return {
+    companyName: snapshot.analysis.companyName,
+    explanationText: `By investing in McLeod Software, ${snapshot.analysis.companyName} can begin capturing the operational and financial opportunities identified in this analysis. Based on the configured investment and adoption assumptions, the investment is estimated to achieve payback within ${wording}, after which the cumulative economic benefit continues to grow throughout the analysis period.`,
+    initialInvestment: formatPresentationCurrency(roi.investment),
+    annualRecurringInvestment: formatPresentationCurrency(roi.annualRecurringCost),
+    firstYearROI: safePct(roi.firstYearRoiPct),
+    horizonYears: roi.horizonYears,
+    horizonROI: safePct(roi.horizonRoiPct),
+    paybackMonths: roi.paybackMonths,
+    paybackDisplay: paybackDisplay(roi.paybackMonths, roi.horizonYears, roi.investment),
+    netPresentValue: safeCurrency(roi.npv),
+    internalRateOfReturn: roi.irr === null || !Number.isFinite(roi.irr) ? "Unable to calculate" : formatPresentationPercentage(roi.irr),
+    adoptionSchedule: roi.adoptionSchedulePct.map((pct, index) => ({ year: index + 1, display: formatPresentationPercentage(pct) })),
+    cumulativeCashFlowPoints: roi.cumulativeCashFlowPoints ?? [],
+    methodologyNote: "Return estimates reflect the configured investment, recurring costs, and annual benefit-realization schedule. Payback assumes benefit realization is distributed evenly within each year. Results are planning estimates and are not audited financial projections.",
+    slideNumber,
+  };
+}
+
 function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: number): AssumptionsAppendixSlideModel | null {
   const orderedModules = [...snapshot.categories]
     .sort((a, b) => a.displayOrder - b.displayOrder)
@@ -143,6 +179,8 @@ export function composePresentationSlidePlan(snapshot: PresentationSnapshot): Pr
     const isFinalSummaryPage = i + SUMMARY_CARDS_PER_SLIDE >= orderedModules.length;
     plans.push({ kind: "opportunitySummary", model: opportunity(snapshot, slide++, pageModules, isFinalSummaryPage, i > 0) });
   }
+  const returnSlide = investmentReturn(snapshot, slide);
+  if (returnSlide) { plans.push({ kind: "investmentReturn", model: returnSlide }); slide++; }
   const appendix = assumptionsAppendixModel(snapshot, slide);
   if (appendix) { plans.push({ kind: "assumptionsAppendix", model: appendix }); slide++; }
   return plans;
