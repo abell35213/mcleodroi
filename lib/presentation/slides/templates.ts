@@ -125,7 +125,7 @@ export function buildInvestmentReturnSlide(pptx: pptxgen, m: InvestmentReturnSli
       s.addShape("line", { x: px, y: chart.y + 0.25, w: 0, h: chart.h - 0.55, line: { color: c.forest, width: 1 } });
       s.addText(`Estimated Payback: ${m.paybackDisplay}`, { x: Math.min(px + 0.08, chart.x + chart.w - 2.25), y: chart.y + 0.32, w: 2.1, h: 0.18, fontSize: 8.5, bold: true, color: c.forest, fit: "shrink" });
     } else {
-      s.addText(`Payback not achieved within the configured ${m.horizonYears}-year horizon.`, { x: chart.x + 0.35, y: chart.y + chart.h - 0.34, w: chart.w - 0.7, h: 0.18, fontSize: 8.2, color: c.mutedText, fit: "shrink" });
+      s.addText(`Estimated Payback: ${m.paybackDisplay}`, { x: chart.x + 0.35, y: chart.y + chart.h - 0.34, w: chart.w - 0.7, h: 0.18, fontSize: 8.2, color: c.mutedText, fit: "shrink" });
     }
   }
 
