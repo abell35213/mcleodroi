@@ -28,7 +28,6 @@ export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string;
 
 export function addFooter(slide: pptxgen.Slide, o: { companyName: string; slideNumber?: number; hideSlideNumber?: boolean }) {
   slide.addShape("line", { x: L.content.left, y: 7.08, w: 11.6, h: 0, line: { color: c.softBorder, width: 0.7 } });
-  slide.addShape("rect", { x: L.content.left, y: 7.12, w: 6.2, h: 0.24, fill: { color: c.white, transparency: 0 }, line: { color: c.white, transparency: 100 } });
   if (!o.hideSlideNumber && o.slideNumber) slide.addText(String(o.slideNumber), { x: 12.22, y: 7.16, w: 0.35, h: 0.12, fontSize: 7, color: c.mutedText, align: "right" });
 }
 
@@ -61,11 +60,9 @@ export function addNarrativeBlock(slide: pptxgen.Slide, o: { heading: string; te
 
 export function addValueCard(slide: pptxgen.Slide, o: ValueCardModel & { x: number; y: number; w: number; h: number }) {
   slide.addShape("rect", { x: o.x, y: o.y, w: o.w, h: o.h, fill: { color: c.white }, line: { color: c.softBorder } });
-  slide.addText(o.title, { x: o.x + 0.16, y: o.y + 0.14, w: o.w - 0.32, h: 0.22, fontSize: 9, bold: true, color: c.charcoal, fit: "shrink" });
-  slide.addText(o.value, { x: o.x + 0.16, y: o.y + 0.46, w: o.w - 0.32, h: 0.34, fontSize: 21, bold: true, color: c.midnight, fit: "shrink" });
-  if (o.period) slide.addText(o.period.toUpperCase(), { x: o.x + 0.18, y: o.y + 0.83, w: o.w - 0.32, h: 0.14, fontSize: 7.5, bold: true, color: c.mutedBlue });
-  slide.addText(o.label, { x: o.x + 0.16, y: o.y + 1.04, w: o.w - 0.32, h: 0.32, fontSize: 8, color: c.mutedText, fit: "shrink" });
-  if (o.supportingMetric) slide.addText(o.supportingMetric, { x: o.x + 0.16, y: o.y + o.h - 0.28, w: o.w - 0.32, h: 0.16, fontSize: 8, bold: true, color: c.forest });
+  slide.addText(o.title, { x: o.x + 0.16, y: o.y + 0.12, w: o.w - 0.32, h: 0.24, fontSize: 12, bold: true, color: c.charcoal, fit: "shrink" });
+  slide.addText(o.value, { x: o.x + 0.16, y: o.y + 0.42, w: o.w - 0.32, h: 0.34, fontSize: 21, bold: true, color: c.midnight, fit: "shrink" });
+  if (o.supportingMetric) slide.addText(o.supportingMetric, { x: o.x + 0.16, y: o.y + Math.min(1.32, o.h - 0.28), w: o.w - 0.32, h: 0.18, fontSize: 8, bold: true, color: c.forest, fit: "shrink" });
 }
 
 export function addSummaryBand(slide: pptxgen.Slide, o: { metrics: MetricModel[]; x: number; y: number; w: number; h: number }) {
@@ -86,16 +83,16 @@ export function addDisclaimer(slide: pptxgen.Slide, o: { text: string; x: number
 export function addAssumptionsAppendixTable(slide: pptxgen.Slide, o: { modules: readonly AssumptionsAppendixModuleModel[]; sources: readonly AssumptionsAppendixSourceModel[]; x: number; y: number; w: number }) {
   const colW = [o.w * 0.35, o.w * 0.18, o.w * 0.24, o.w * 0.23];
   const border = { type: "solid" as const, color: c.softBorder, pt: 0.5 };
-  const headerCell = (text: string) => ({ text, options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 9 } });
+  const headerCell = (text: string) => ({ text, options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 12 } });
   const rows: pptxgen.TableRow[] = [[headerCell("Assumption"), headerCell("Entered"), headerCell("Planning Reference"), headerCell("Source")]];
   for (const mod of o.modules) {
-    rows.push([{ text: `${mod.categoryName} — ${mod.moduleName}`, options: { colspan: 4, bold: true, color: c.midnight, fill: { color: c.warmCanvas }, fontSize: 8.5 } }]);
+    rows.push([{ text: `${mod.categoryName} — ${mod.moduleName}`, options: { colspan: 4, bold: true, color: c.midnight, fill: { color: c.warmCanvas }, fontSize: 10 } }]);
     for (const row of mod.rows) {
       rows.push([
-        { text: row.label, options: { color: c.charcoal, fontSize: 8 } },
-        { text: row.enteredValue, options: { color: c.midnight, bold: true, fontSize: 8 } },
-        { text: row.typicalRange, options: { color: c.charcoal, fontSize: 8 } },
-        { text: row.sourceLabel, options: { color: c.mutedText, fontSize: 8 } },
+        { text: row.label, options: { color: c.charcoal, fontSize: 9 } },
+        { text: row.enteredValue, options: { color: c.midnight, bold: true, fontSize: 9 } },
+        { text: row.typicalRange, options: { color: c.charcoal, fontSize: 9 } },
+        { text: row.sourceLabel, options: { color: c.mutedText, fontSize: 9 } },
       ]);
     }
   }
