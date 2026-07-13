@@ -82,21 +82,28 @@ export function addDisclaimer(slide: pptxgen.Slide, o: { text: string; x: number
 
 export function addAssumptionsAppendixTable(slide: pptxgen.Slide, o: { modules: readonly AssumptionsAppendixModuleModel[]; sources: readonly AssumptionsAppendixSourceModel[]; x: number; y: number; w: number }) {
   const colW = [o.w * 0.35, o.w * 0.18, o.w * 0.24, o.w * 0.23];
-  const border = { type: "solid" as const, color: c.softBorder, pt: 0.5 };
-  const headerCell = (text: string) => ({ text, options: { bold: true, color: c.white, fill: { color: c.midnight }, fontSize: 12 } });
-  const rows: pptxgen.TableRow[] = [[headerCell("Assumption"), headerCell("Entered"), headerCell("Planning Reference"), headerCell("Source")]];
+  const rowH = 0.34;
+  let y = o.y;
+  const addCell = (text: string, x: number, w: number, opts: { fill: string; color: string; bold?: boolean; fontSize: number }) => {
+    slide.addShape("rect", { x, y, w, h: rowH, fill: { color: opts.fill }, line: { color: c.softBorder, width: 0.5 } });
+    slide.addText(text, { x: x + 0.05, y: y + 0.08, w: w - 0.1, h: 0.14, fontFace: font.bodyFont, fontSize: opts.fontSize, bold: opts.bold, color: opts.color, fit: "shrink", margin: 0 });
+  };
+  ["Assumption", "Entered", "Planning Reference", "Source"].forEach((header, index) => {
+    const x = o.x + colW.slice(0, index).reduce((sum, width) => sum + width, 0);
+    addCell(header, x, colW[index], { fill: c.midnight, color: c.white, bold: true, fontSize: 12 });
+  });
+  y += rowH;
   for (const mod of o.modules) {
-    rows.push([{ text: `${mod.categoryName} — ${mod.moduleName}`, options: { colspan: 4, bold: true, color: c.midnight, fill: { color: c.warmCanvas }, fontSize: 10 } }]);
+    addCell(`${mod.categoryName} — ${mod.moduleName}`, o.x, o.w, { fill: c.warmCanvas, color: c.midnight, bold: true, fontSize: 10 });
+    y += rowH;
     for (const row of mod.rows) {
-      rows.push([
-        { text: row.label, options: { color: c.charcoal, fontSize: 9 } },
-        { text: row.enteredValue, options: { color: c.midnight, bold: true, fontSize: 9 } },
-        { text: row.typicalRange, options: { color: c.charcoal, fontSize: 9 } },
-        { text: row.sourceLabel, options: { color: c.mutedText, fontSize: 9 } },
-      ]);
+      [row.label, row.enteredValue, row.typicalRange, row.sourceLabel].forEach((text, index) => {
+        const x = o.x + colW.slice(0, index).reduce((sum, width) => sum + width, 0);
+        addCell(text, x, colW[index], { fill: c.white, color: index === 1 ? c.midnight : index === 3 ? c.mutedText : c.charcoal, bold: index === 1, fontSize: 9 });
+      });
+      y += rowH;
     }
   }
-  slide.addTable(rows, { x: o.x, y: o.y, w: o.w, colW, border, fontFace: font.bodyFont, valign: "middle", margin: 0.04, autoPage: false });
   const legend = o.sources.map((source) => `${source.label}: ${source.citation}`).join("\n");
   if (legend) slide.addText(`Sources — ${legend}`, { x: o.x, y: 6.35, w: o.w, h: 0.6, fontSize: font.minDisclaimerFontSize, color: c.mutedText, fit: "shrink" });
 }
