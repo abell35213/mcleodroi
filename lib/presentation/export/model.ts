@@ -112,7 +112,7 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
       categoryName: category?.name ?? custom.categoryKey,
       moduleName: custom.title,
       opportunityHeadline: "Customer-Specific Opportunity",
-      metricLabel: custom.valueFrequency === "INFORMATIONAL_CAPITAL" ? "Informational capital" : custom.monthlyRecurringValue && custom.monthlyRecurringValue < 0 ? "Net Economic Impact" : "Customer-Specific Opportunity",
+      metricLabel: custom.valueFrequency === "MONTHLY_RECURRING" ? ((custom.monthlyRecurringValue ?? 0) < 0 ? "Monthly economic offset" : "Monthly recurring value") : custom.valueFrequency === "ANNUAL_ONLY" ? ((custom.annualOnlyValue ?? 0) < 0 ? "Annual economic offset" : "Annual value") : "Informational capital",
       metricValue,
       narrative: custom.customerBusinessImpact ?? "Narrative details may be added before customer presentation.",
       valueNarrative: custom.howMcLeodHelps ?? "",
