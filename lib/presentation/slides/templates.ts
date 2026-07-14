@@ -2,7 +2,7 @@ import pptxgen from "pptxgenjs";
 import { presentationLayout as L } from "@/lib/presentation/layout";
 import { presentationTheme as T } from "@/lib/presentation/theme";
 import type { AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, InvestmentReturnSlideModel, OpportunitySummarySlideModel, SingleModuleSlideModel } from "@/lib/presentation/types";
-import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addFullSlideThemeBackground, addHeroMetric, addNarrativeBlock, addSafeLine, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
+import { addAssumptionGrid, addAssumptionsAppendixTable, addBrandHeader, addDisclaimer, addFooter, addHeroMetric, addNarrativeBlock, addSafeLine, addSummaryBand, addValueCard } from "@/lib/presentation/pptx/components";
 
 const c = T.colors;
 
@@ -20,9 +20,7 @@ export function buildCoverSlide(pptx: pptxgen, m: CoverSlideModel) {
 
 export function buildExecutiveSummarySlide(pptx: pptxgen, m: ExecutiveSummarySlideModel) {
   const s = pptx.addSlide();
-  addFullSlideThemeBackground(s);
-  s.addText("Executive Summary", { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: T.typography.headingFont, fontSize: T.typography.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
-  addSafeLine(s, { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
+  addBrandHeader(s, { categoryLabel: "Executive Summary", title: "Executive Summary", companyName: m.companyName, customerLogoDataUri: m.customerLogoDataUri });
   s.addText(`${m.discussionSummary} ${m.alignmentSummary}`, { x: L.content.left, y: 1.32, w: 11.05, h: 1.08, fontSize: 16, color: c.charcoal, fit: "shrink", breakLine: false });
   s.addText(m.keyAreasLeadIn, { x: L.content.left, y: 2.72, w: 11.05, h: 0.28, fontSize: 13, bold: true, color: c.midnight, fit: "shrink" });
   const themeY = 3.22;
@@ -37,20 +35,20 @@ export function buildExecutiveSummarySlide(pptx: pptxgen, m: ExecutiveSummarySli
 
 export function buildSingleModuleSlide(pptx: pptxgen, m: SingleModuleSlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: m.categoryLabel, title: m.moduleTitle, companyName: m.companyName });
+  addBrandHeader(s, { categoryLabel: m.categoryLabel, title: m.moduleTitle, companyName: m.companyName, customerLogoDataUri: m.customerLogoDataUri });
   addHeroMetric(s, { ...m.heroMetric, x: 8.15, y: 1.5, w: 3.8, h: 1.7 });
   if (m.presentationCallout) addDisclaimer(s, { text: m.presentationCallout, x: 8.15, y: 3.32, w: 3.8 });
   const hasHow = Boolean(m.valueNarrative?.trim());
   const hasImpact = Boolean(m.effectiveCustomerAnalysis?.trim());
   if (hasHow && hasImpact) {
-    addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.valueNarrative ?? "", x: L.content.left, y: 1.38, w: 6.95, h: 1.45 });
-    addNarrativeBlock(s, { heading: "Customer Analysis / Business Impact", text: m.effectiveCustomerAnalysis ?? "", secondaryText: m.informationalCapitalCallout, x: L.content.left, y: 3.02, w: 7.25, h: 1.2 });
+    addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.valueNarrative ?? "", x: 1.05, y: 1.25, w: 6.95, h: 1.55, headingFontSize: 10 });
+    addNarrativeBlock(s, { heading: "Customer Analysis / Business Impact", text: m.effectiveCustomerAnalysis ?? "", secondaryText: m.informationalCapitalCallout, x: 1.05, y: 3.16, w: 7.25, h: 1.22, headingFontSize: 10, bodyY: 3.3 });
   } else if (hasHow || hasImpact) {
-    addNarrativeBlock(s, { heading: hasHow ? "How McLeod Helps" : "Customer Analysis / Business Impact", text: (hasHow ? m.valueNarrative : m.effectiveCustomerAnalysis) ?? "", secondaryText: m.informationalCapitalCallout, x: L.content.left, y: 1.38, w: 6.95, h: 2.0 });
+    addNarrativeBlock(s, { heading: hasHow ? "How McLeod Helps" : "Customer Analysis / Business Impact", text: (hasHow ? m.valueNarrative : m.effectiveCustomerAnalysis) ?? "", secondaryText: m.informationalCapitalCallout, x: 1.05, y: hasHow ? 1.25 : 3.16, w: hasHow ? 6.95 : 7.25, h: hasHow ? 2.13 : 1.22, headingFontSize: 10, bodyY: hasHow ? undefined : 3.3 });
   } else if (m.isCustomerSpecific) {
     addDisclaimer(s, { text: "Narrative details may be added before customer presentation.", x: L.content.left, y: 1.55, w: 6.95 });
   } else {
-    addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.analysisText, x: L.content.left, y: 1.38, w: 6.95, h: 1.95 });
+    addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.analysisText, x: 1.05, y: 1.25, w: 6.95, h: 2.08, headingFontSize: 10 });
   }
   if (m.calculationRationale) addDisclaimer(s, { text: `Calculation rationale: ${m.calculationRationale}`, x: L.content.left, y: 4.55, w: 12 });
   addAssumptionGrid(s, { items: m.assumptions, x: L.content.left, y: 5.35, w: 12 });
@@ -62,7 +60,7 @@ export function buildSingleModuleSlide(pptx: pptxgen, m: SingleModuleSlideModel)
 export function buildDualModuleSlide(pptx: pptxgen, m: DualModuleSlideModel) {
   if (m.modules.length !== 2) throw new Error("Dual-module slide requires exactly two module models.");
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: m.categoryLabel, title: m.title, companyName: m.companyName });
+  addBrandHeader(s, { categoryLabel: m.categoryLabel, title: m.title, companyName: m.companyName, customerLogoDataUri: m.customerLogoDataUri });
   m.modules.forEach((mod, i) => {
     const x = L.content.left + i * 6.15;
     addValueCard(s, { title: mod.title, value: mod.primaryMetric, period: mod.period, label: mod.label, supportingMetric: mod.supportingMetric, x, y: 1.45, w: 5.75, h: 1.65 });
@@ -76,7 +74,7 @@ export function buildDualModuleSlide(pptx: pptxgen, m: DualModuleSlideModel) {
 export function buildCategoryOverviewSlide(pptx: pptxgen, m: CategoryOverviewSlideModel) {
   if (m.cards.length > 4) throw new Error("Category overview supports at most four cards.");
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Category Overview", title: m.categoryName, companyName: m.companyName });
+  addBrandHeader(s, { categoryLabel: "Category Overview", title: m.categoryName, companyName: m.companyName, customerLogoDataUri: m.customerLogoDataUri });
   addHeroMetric(s, { ...m.categoryOpportunity, x: L.content.left, y: 1.5, w: 4.2, h: 1.55 });
   const gap = 0.2;
   const cw = (7.55 - gap * (Math.max(m.cards.length, 1) - 1)) / Math.max(m.cards.length, 1);
@@ -87,7 +85,7 @@ export function buildCategoryOverviewSlide(pptx: pptxgen, m: CategoryOverviewSli
 
 export function buildOpportunitySummarySlide(pptx: pptxgen, m: OpportunitySummarySlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Opportunity Summary", title: m.title ?? "The Identified Opportunities", companyName: m.companyName });
+  addBrandHeader(s, { categoryLabel: "Opportunity Summary", title: m.title ?? "The Identified Opportunities", companyName: m.companyName, customerLogoDataUri: m.customerLogoDataUri });
   const cards = m.classifications.slice(0, 4);
   const cw = 5.88;
   const gap = 0.24;
@@ -103,7 +101,7 @@ export function buildOpportunitySummarySlide(pptx: pptxgen, m: OpportunitySummar
 
 export function buildAssumptionsAppendixSlide(pptx: pptxgen, m: AssumptionsAppendixSlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Appendix", title: "Assumptions & Sources", companyName: m.companyName });
+  addBrandHeader(s, { categoryLabel: "Appendix", title: "Assumptions & Sources", companyName: m.companyName, customerLogoDataUri: m.customerLogoDataUri });
   addAssumptionsAppendixTable(s, { modules: m.modules, sources: m.sources, x: L.content.left, y: 1.4, w: 12 });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
   return s;
@@ -111,7 +109,7 @@ export function buildAssumptionsAppendixSlide(pptx: pptxgen, m: AssumptionsAppen
 
 export function buildInvestmentReturnSlide(pptx: pptxgen, m: InvestmentReturnSlideModel) {
   const s = pptx.addSlide();
-  addBrandHeader(s, { categoryLabel: "Planning Analysis", title: "Investment & Return Analysis", companyName: m.companyName });
+  addBrandHeader(s, { categoryLabel: "Planning Analysis", title: "Investment & Return Analysis", companyName: m.companyName, customerLogoDataUri: m.customerLogoDataUri });
   s.addText(m.explanationText, { x: L.content.left, y: 1.28, w: 11.7, h: 0.62, fontSize: 14.5, color: c.charcoal, fit: "shrink", breakLine: false });
 
   const chart = { x: L.content.left, y: 2.12, w: 6.7, h: 3.95 };

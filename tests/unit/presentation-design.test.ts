@@ -6,7 +6,7 @@ import { describe, expect, it } from "vitest";
 import { APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, PRESENTATION_ASSET_DIR, presentationTheme, presentationLayout, resolvePresentationAssetPath, validatePresentationTextLength, getGeneratedPresentationPath, sanitizePresentationFileSegment } from "@/lib/presentation";
 import { createPresentation } from "@/lib/presentation/pptx/create-presentation";
 import { addAssumptionGrid } from "@/lib/presentation/pptx/components";
-import { buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide, buildInvestmentReturnSlide } from "@/lib/presentation/slides";
+import { buildCategoryOverviewSlide, buildCoverSlide, buildDualModuleSlide, buildInvestmentReturnSlide, buildSingleModuleSlide } from "@/lib/presentation/slides";
 
 
 const testDualModel = {
@@ -76,6 +76,19 @@ async function pptxMediaCount(pptx: ReturnType<typeof createPresentation>) {
   const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
   const zip = await JSZip.loadAsync(buffer);
   return Object.keys(zip.files).filter((name) => name.startsWith("ppt/media/")).length;
+}
+
+function expectTextBoxGeometry(slideXml: string, text: string, expected: { x: number; y: number; fontSize: number }) {
+  const escapedText = text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const shapePattern = /<p:sp>[\s\S]*?<\/p:sp>/g;
+  const shapes = slideXml.match(shapePattern) ?? [];
+  const shape = shapes.find((candidate) => new RegExp(`<a:t>${escapedText}</a:t>`).test(candidate));
+  expect(shape, `${text} textbox should be present`).toBeTruthy();
+  const geometry = shape?.match(/<a:off x="(\d+)" y="(\d+)"\/>[\s\S]*?<a:rPr[^>]*sz="(\d+)"/);
+  expect(geometry, `${text} textbox geometry should be present`).toBeTruthy();
+  expect(Number(geometry?.[1])).toBe(Math.round(expected.x * 914400));
+  expect(Number(geometry?.[2])).toBe(Math.round(expected.y * 914400));
+  expect(Number(geometry?.[3])).toBe(expected.fontSize * 100);
 }
 
 function writeTemporaryGoldenAssets() {
@@ -178,6 +191,70 @@ it("fails the golden fixture clearly when an approved asset is missing", () => {
     const slideXml = await zip.file("ppt/slides/slide1.xml")?.async("text");
     expect(slideRels).toMatch(/Target="\.\.\/media\//);
     expect(slideXml).toContain("Logo Carrier logo");
+  });
+
+
+  it("applies opportunity slide narrative positions and customer-only top-right branding", async () => {
+    const pptx = createPresentation();
+    const logoDataUri = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+    buildSingleModuleSlide(pptx, {
+      companyName: "Acme Carrier",
+      customerLogoDataUri: logoDataUri,
+      categoryLabel: "Managing the Back Office",
+      moduleTitle: "Back Office Capacity",
+      analysisText: "Analysis fallback.",
+      valueNarrative: "McLeod workflow automation reduces duplicate entry.",
+      effectiveCustomerAnalysis: "The analysis identifies monthly labor-capacity value.",
+      presentationCallout: "Capacity recovered",
+      heroMetric: { value: "$5,880", period: "/ MONTH", label: "Estimated Labor-Capacity Value" },
+      assumptions: [{ label: "Eligible Orders", value: "2,520 / month" }],
+      slideNumber: 3,
+    });
+
+    const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
+    await validatePptxPackage(buffer);
+    const zip = await JSZip.loadAsync(buffer);
+    const slideXml = await zip.file("ppt/slides/slide1.xml")?.async("text") ?? "";
+    const slideRels = await zip.file("ppt/slides/_rels/slide1.xml.rels")?.async("text") ?? "";
+
+    expect(slideXml).not.toContain("McLeod Software");
+    expect(slideXml).toContain("Acme Carrier");
+    expect(slideXml).toMatch(/<a:rPr[^>]*sz="800"[\s\S]*?<a:t>Acme Carrier<\/a:t>/);
+    expect(slideXml).toContain("Acme Carrier logo");
+    expect(slideRels).toMatch(/Target="\.\.\/media\//);
+    expect(Object.keys(zip.files).filter((name) => name.startsWith("ppt/media/") && !zip.files[name].dir).length).toBeGreaterThanOrEqual(2);
+    expectTextBoxGeometry(slideXml, "HOW MCLEOD HELPS", { x: 1.05, y: 1.25, fontSize: 10 });
+    expectTextBoxGeometry(slideXml, "CUSTOMER ANALYSIS / BUSINESS IMPACT", { x: 1.05, y: 3.16, fontSize: 10 });
+    expectTextBoxGeometry(slideXml, "The analysis identifies monthly labor-capacity value.", { x: 1.05, y: 3.3, fontSize: 14 });
+  });
+
+  it("shows the customer name only in top-right branding when no customer logo is provided", async () => {
+    const pptx = createPresentation();
+    buildInvestmentReturnSlide(pptx, {
+      companyName: "No Logo Carrier",
+      explanationText: "Directional investment analysis.",
+      initialInvestment: "$10,000",
+      annualRecurringInvestment: "$1,000",
+      firstYearROI: "100%",
+      horizonYears: 3,
+      horizonROI: "200%",
+      paybackMonths: 12,
+      paybackDisplay: "12 Months",
+      netPresentValue: "$15,000",
+      internalRateOfReturn: "50%",
+      adoptionSchedule: [{ year: 1, display: "50%" }],
+      cumulativeCashFlowPoints: [{ month: 0, cumulativeNetCashFlow: -10000 }, { month: 12, cumulativeNetCashFlow: 0 }],
+      methodologyNote: "Planning estimate.",
+      slideNumber: 6,
+    });
+
+    const buffer = await pptx.write({ outputType: "nodebuffer" }) as Buffer;
+    await validatePptxPackage(buffer);
+    const zip = await JSZip.loadAsync(buffer);
+    const slideXml = await zip.file("ppt/slides/slide1.xml")?.async("text") ?? "";
+    expect(slideXml).not.toContain("McLeod Software");
+    expect(slideXml).toContain("No Logo Carrier");
+    expect(slideXml).toMatch(/<a:rPr[^>]*sz="800"[\s\S]*?<a:t>No Logo Carrier<\/a:t>/);
   });
 
   it("generates ROI chart lines without zero extents", async () => {

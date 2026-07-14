@@ -33,15 +33,13 @@ export function addFullSlideThemeBackground(slide: pptxgen.Slide, imagePath: str
   if (imagePath) slide.addImage({ path: requireGoldenPresentationAsset(imagePath), x: 0, y: 0, w: L.slide.width, h: L.slide.height });
 }
 
-export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; themeImagePath?: string | null; logoPath?: string | null }) {
+export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; customerLogoDataUri?: string | null; themeImagePath?: string | null }) {
   addFullSlideThemeBackground(slide, o.themeImagePath === undefined ? T.assets.themeImagePath : o.themeImagePath);
   addCategoryHeader(slide, { label: o.categoryLabel, x: L.content.left, y: 0.33, w: 4.8 });
   slide.addText(o.title, { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
   addSafeLine(slide, { x: L.content.left, y: 1.04, w: 1.28, h: 0, line: { color: c.sunriseGold, width: 2.2 } });
-  const logoPath = o.logoPath === undefined ? T.assets.logoPath : o.logoPath;
-  if (logoPath) slide.addImage({ path: logoPath, x: 10.65, y: 0.45, w: 1.8, h: 0.34, sizing: { type: "contain", w: 1.8, h: 0.34 } });
-  else slide.addText("McLeod Software", { x: 10.45, y: 0.48, w: 1.95, h: 0.22, align: "right", fontFace: font.bodyFont, fontSize: 8, bold: true, color: c.charcoal });
-  if (o.companyName) slide.addText(o.companyName, { x: 9.0, y: 0.82, w: 3.4, h: 0.16, align: "right", fontSize: 7, color: c.mutedText });
+  if (o.customerLogoDataUri) slide.addImage({ data: o.customerLogoDataUri, x: 10.75, y: 0.26, w: 1.55, h: 0.32, sizing: { type: "contain", w: 1.55, h: 0.32 }, altText: `${o.companyName ?? "Customer"} logo` });
+  if (o.companyName) slide.addText(o.companyName, { x: 9.0, y: o.customerLogoDataUri ? 0.62 : 0.48, w: 3.4, h: 0.18, align: "right", fontFace: font.bodyFont, fontSize: 8, color: c.mutedText, fit: "shrink", margin: 0 });
 }
 
 export function addFooter(slide: pptxgen.Slide, o: { companyName: string; slideNumber?: number; hideSlideNumber?: boolean }) {
@@ -70,9 +68,12 @@ export function addAssumptionGrid(slide: pptxgen.Slide, o: { items: AssumptionIt
   });
 }
 
-export function addNarrativeBlock(slide: pptxgen.Slide, o: { heading: string; text: string; secondaryText?: string; x: number; y: number; w: number; h: number }) {
-  slide.addText(o.heading.toUpperCase(), { x: o.x, y: o.y, w: o.w, h: 0.2, fontSize: 9.5, bold: true, color: c.sunriseGold });
-  slide.addText(o.text, { x: o.x, y: o.y + 0.3, w: o.w, h: o.h - 0.34, fontSize: font.minBodyFontSize, color: c.charcoal, breakLine: false, fit: "shrink" });
+export function addNarrativeBlock(slide: pptxgen.Slide, o: { heading: string; text: string; secondaryText?: string; x: number; y: number; w: number; h: number; headingFontSize?: number; bodyY?: number }) {
+  const bodyY = o.bodyY ?? o.y + 0.3;
+  const reservedBottom = o.secondaryText ? 0.34 : 0;
+  const bodyH = Math.max(0.2, o.y + o.h - reservedBottom - bodyY);
+  slide.addText(o.heading.toUpperCase(), { x: o.x, y: o.y, w: o.w, h: 0.2, fontSize: o.headingFontSize ?? 9.5, bold: true, color: c.sunriseGold });
+  slide.addText(o.text, { x: o.x, y: bodyY, w: o.w, h: bodyH, fontSize: font.minBodyFontSize, color: c.charcoal, breakLine: false, fit: "shrink" });
   if (o.secondaryText) slide.addText(o.secondaryText, { x: o.x, y: o.y + o.h - 0.28, w: o.w, h: 0.22, fontSize: 10, color: c.forest });
 }
 
