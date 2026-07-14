@@ -42,7 +42,7 @@ export function buildSingleModuleSlide(pptx: pptxgen, m: SingleModuleSlideModel)
   const hasImpact = Boolean(m.effectiveCustomerAnalysis?.trim());
   if (hasHow && hasImpact) {
     addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.valueNarrative ?? "", x: 1.05, y: 1.25, w: 6.95, h: 1.55, headingFontSize: 10 });
-    addNarrativeBlock(s, { heading: "Customer Analysis / Business Impact", text: m.effectiveCustomerAnalysis ?? "", secondaryText: m.informationalCapitalCallout, x: 1.05, y: 3.16, w: 7.25, h: 1.22, headingFontSize: 10, bodyY: 3.3 });
+    addNarrativeBlock(s, { heading: "Customer Analysis / Business Impact", text: m.effectiveCustomerAnalysis ?? "", secondaryText: m.informationalCapitalCallout, x: 1.05, y: 3.12, w: 7.25, h: 1.22, headingFontSize: 10, bodyY: 3.3 });
   } else if (hasHow || hasImpact) {
     addNarrativeBlock(s, { heading: hasHow ? "How McLeod Helps" : "Customer Analysis / Business Impact", text: (hasHow ? m.valueNarrative : m.effectiveCustomerAnalysis) ?? "", secondaryText: m.informationalCapitalCallout, x: 1.05, y: hasHow ? 1.25 : 3.16, w: hasHow ? 6.95 : 7.25, h: hasHow ? 2.13 : 1.22, headingFontSize: 10, bodyY: hasHow ? undefined : 3.3 });
   } else if (m.isCustomerSpecific) {
