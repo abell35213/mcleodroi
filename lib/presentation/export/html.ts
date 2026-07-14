@@ -78,9 +78,12 @@ export function renderPresentationHtml(snapshot: PresentationSnapshot): string {
           .map(
             (module) =>
               `<div class="module"><h3>${esc(module.moduleName)}</h3>` +
+              (module.customerSpecific ? `<p class="card-label">Customer-Specific Opportunity</p>` : "") +
               `<p class="metric">${esc(module.metricLabel)}: ${esc(module.metricValue)}</p>` +
               `<p>${esc(module.narrative)}</p>` +
               (module.valueNarrative ? `<p>${esc(module.valueNarrative)}</p>` : "") +
+              (module.assumptions?.length ? `<ul>${module.assumptions.map((a) => `<li>${esc(a.label)} — ${esc(a.value)}</li>`).join("")}</ul>` : "") +
+              (module.calculationRationale ? `<p><strong>Calculation rationale:</strong> ${esc(module.calculationRationale)}</p>` : "") +
               (module.disclaimer ? `<p class="disclaimer">${esc(module.disclaimer)}</p>` : "") +
               `</div>`,
           )
