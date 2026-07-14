@@ -1,4 +1,5 @@
 import { formatPresentationCurrency, formatPresentationPercentage } from "@/lib/presentation/format";
+import { getCategoryByKey } from "@/lib/modules";
 import type { PresentationSnapshot } from "@/lib/presentation/types";
 
 /** A single labelled metric shown in exec summary / ROI blocks. */
@@ -14,6 +15,9 @@ export type ExportModule = {
   narrative: string;
   valueNarrative: string;
   disclaimer: string;
+  customerSpecific?: boolean;
+  assumptions?: readonly { label: string; value: string }[];
+  calculationRationale?: string;
 };
 
 /** Structured, format-agnostic view model derived from the immutable snapshot. */
@@ -83,6 +87,7 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
     .sort((a, b) => a.displayOrder - b.displayOrder)
     .map((category) => ({
       name: category.name,
+      displayOrder: category.displayOrder,
       modules: [...category.modules]
         .sort((a, b) => a.displayOrder - b.displayOrder)
         .map((module): ExportModule => {
@@ -100,6 +105,28 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
         }),
     }));
 
+  for (const custom of snapshot.customOpportunities ?? []) {
+    const category = getCategoryByKey(custom.categoryKey);
+    const metricValue = custom.valueFrequency === "MONTHLY_RECURRING" ? `${formatPresentationCurrency(custom.monthlyRecurringValue ?? 0)} / month` : custom.valueFrequency === "ANNUAL_ONLY" ? `${formatPresentationCurrency(custom.annualOnlyValue ?? 0)} / year` : formatPresentationCurrency(custom.informationalCapitalValue ?? 0);
+    const exportModule: ExportModule = {
+      categoryName: category?.name ?? custom.categoryKey,
+      moduleName: custom.title,
+      opportunityHeadline: "Customer-Specific Opportunity",
+      metricLabel: custom.valueFrequency === "INFORMATIONAL_CAPITAL" ? "Informational capital" : custom.monthlyRecurringValue && custom.monthlyRecurringValue < 0 ? "Net Economic Impact" : "Customer-Specific Opportunity",
+      metricValue,
+      narrative: custom.customerBusinessImpact ?? "Narrative details may be added before customer presentation.",
+      valueNarrative: custom.howMcLeodHelps ?? "",
+      disclaimer: custom.methodologyNote ?? "",
+      customerSpecific: true,
+      assumptions: custom.assumptions.map((a) => ({ label: a.label, value: [a.displayValue, a.unit].filter(Boolean).join(" ") })),
+      calculationRationale: custom.calculationRationale,
+    };
+    const existing = categories.find((item) => item.name === exportModule.categoryName);
+    if (existing) existing.modules.push(exportModule);
+    else categories.push({ name: exportModule.categoryName, displayOrder: category?.displayOrder ?? 999, modules: [exportModule] });
+  }
+  categories.sort((a, b) => a.displayOrder - b.displayOrder);
+
   return {
     companyName: snapshot.analysis.companyName,
     preparedBy: snapshot.analysis.preparedBy,
@@ -110,7 +137,7 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
     summaryMetrics,
     roiMetrics,
     valueTypeCards,
-    categories,
+    categories: categories.map(({ name, modules }) => ({ name, modules })),
     informationalCapital: summary.informationalCapitalValues.map((entry) => ({ label: entry.moduleKey ? entry.moduleKey.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : entry.title ?? "Custom Opportunity", value: formatPresentationCurrency(entry.value) })),
     informationalCapitalTotal: summary.informationalCapitalValueTotal,
     overlapNotices: snapshot.overlapNotices.map((notice) => notice.message),

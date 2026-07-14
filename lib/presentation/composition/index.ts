@@ -1,11 +1,11 @@
 import { CAPACITY_VALUE_PRESENTATION_DISCLAIMER } from "@/lib/narratives/registry";
-import { getValueModule } from "@/lib/modules";
+import { getCategoryByKey, getValueModule } from "@/lib/modules";
 import type { ValueModuleInputDefinition, ValueType } from "@/lib/modules";
 import { buildAssumptionsAppendix } from "@/lib/analyses/assumptions";
 import { formatPresentationCount, formatPresentationCurrency, formatPresentationHours, formatPresentationPercentage } from "@/lib/presentation/format";
 import { APPROVED_POWERPOINT_TEMPLATE_PATH, APPROVED_THEME_IMAGE_PATH, APPROVED_TITLE_SLIDE_IMAGE_PATH, requireGoldenPresentationAsset } from "@/lib/presentation/theme";
 import { validatePresentationTextLength } from "@/lib/presentation/text";
-import type { AssumptionItemModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, InvestmentReturnSlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotCategory, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
+import type { AssumptionItemModel, AssumptionsAppendixModuleModel, AssumptionsAppendixSlideModel, CategoryOverviewSlideModel, CoverSlideModel, DualModuleSlideModel, ExecutiveSummarySlideModel, InvestmentReturnSlideModel, MetricModel, OpportunitySummarySlideModel, PresentationSnapshot, PresentationSnapshotModule, SingleModuleSlideModel, ValueCardModel } from "@/lib/presentation/types";
 
 export type CoverSlidePlan = { kind: "cover"; model: CoverSlideModel };
 export type ExecutiveSummarySlidePlan = { kind: "executiveSummary"; model: ExecutiveSummarySlideModel };
@@ -37,7 +37,6 @@ function metricForModule(m: PresentationSnapshotModule): MetricModel & { variant
   if (monthlyValue(m)) return { value: formatPresentationCurrency(monthlyValue(m)), period: "/ MONTH", label: valueTypeLabels[m.valueType] };
   return { value: formatPresentationCurrency(annualOpportunity(m)), period: "/ YEAR", label: valueTypeLabels[m.valueType], variant: "annual" };
 }
-function financialValueForCard(m: PresentationSnapshotModule): number { return annualOpportunity(m) || monthlyValue(m) || capitalValue(m); }
 function valueCardFromModule(m: PresentationSnapshotModule): ValueCardModel { const metric = metricForModule(m); return { title: m.moduleName, value: metric.value, period: metric.period, label: metric.label, supportingMetric: m.presentationCallout || undefined, valueType: m.valueType }; }
 
 function formatInputValue(input: ValueModuleInputDefinition, raw: number): string {
@@ -51,17 +50,62 @@ function assumptionItems(m: PresentationSnapshotModule): AssumptionItemModel[] {
   return definition.inputDefinitions.slice(0, 4).flatMap((input) => typeof m.inputs[input.key] === "number" ? [{ label: input.label, value: formatInputValue(input, m.inputs[input.key] as number) }] : []);
 }
 
-function singleModuleModel(snapshot: PresentationSnapshot, m: PresentationSnapshotModule, slideNumber: number): SingleModuleSlideModel {
-  const capital = m.valueType === "CAPITAL_AVOIDANCE" && monthlyValue(m) ? `Monthly economic equivalent: ${formatPresentationCurrency(monthlyValue(m))}.` : undefined;
-  return { companyName: snapshot.analysis.companyName, categoryLabel: m.categoryName, moduleTitle: m.moduleName, analysisText: m.effectiveCustomerAnalysis, valueNarrative: m.valueNarrative, effectiveCustomerAnalysis: m.effectiveCustomerAnalysis, presentationCallout: m.presentationCallout, heroMetric: metricForModule(m), assumptions: assumptionItems(m), disclaimer: m.presentationDisclaimer || undefined, informationalCapitalCallout: capital, slideNumber };
+
+type PresentedOpportunity = {
+  id: string;
+  title: string;
+  categoryKey: string;
+  categoryName: string;
+  categoryDisplayOrder: number;
+  displayOrder: number;
+  valueType: ValueType;
+  monthlyRecurringValue: number;
+  annualRecurringValue: number;
+  annualOnlyValue: number;
+  informationalCapitalValue: number;
+  valueNarrative: string;
+  customerAnalysis: string;
+  presentationCallout: string;
+  assumptions: AssumptionItemModel[];
+  calculationRationale?: string;
+  isCustomerSpecific: boolean;
+  disclaimer?: string;
+};
+
+function opportunityFromModule(m: PresentationSnapshotModule): PresentedOpportunity {
+  return { id: m.analysisModuleId, title: m.moduleName, categoryKey: m.categoryKey, categoryName: m.categoryName, categoryDisplayOrder: 0, displayOrder: m.displayOrder, valueType: m.valueType, monthlyRecurringValue: monthlyValue(m), annualRecurringValue: num(m.financialOutputs.annualRecurringValue), annualOnlyValue: num(m.financialOutputs.annualOnlyValue), informationalCapitalValue: capitalValue(m), valueNarrative: m.valueNarrative, customerAnalysis: m.effectiveCustomerAnalysis, presentationCallout: m.presentationCallout, assumptions: assumptionItems(m), isCustomerSpecific: false, disclaimer: m.presentationDisclaimer || undefined };
 }
+
+function opportunityFromCustom(snapshot: PresentationSnapshot, custom: NonNullable<PresentationSnapshot["customOpportunities"]>[number]): PresentedOpportunity {
+  const category = getCategoryByKey(custom.categoryKey);
+  const categoryName = category?.name ?? custom.categoryKey;
+  const blankNote = custom.howMcLeodHelps || custom.customerBusinessImpact ? "" : "Narrative details may be added before customer presentation.";
+  return { id: custom.id, title: custom.title, categoryKey: custom.categoryKey, categoryName, categoryDisplayOrder: category?.displayOrder ?? 999, displayOrder: custom.displayOrder, valueType: custom.valueClassification, monthlyRecurringValue: custom.monthlyRecurringValue ?? 0, annualRecurringValue: custom.annualRecurringValue ?? 0, annualOnlyValue: custom.annualOnlyValue ?? 0, informationalCapitalValue: custom.informationalCapitalValue ?? 0, valueNarrative: custom.howMcLeodHelps ?? blankNote, customerAnalysis: custom.customerBusinessImpact ?? "", presentationCallout: "Customer-Specific Opportunity", assumptions: custom.assumptions.slice(0, 4).map((a) => ({ label: a.label, value: [a.displayValue, a.unit].filter(Boolean).join(" ") })), calculationRationale: custom.calculationRationale, isCustomerSpecific: true };
+}
+
+function allPresentedOpportunities(snapshot: PresentationSnapshot): PresentedOpportunity[] {
+  const standard = snapshot.categories.flatMap((category) => category.modules.map((module) => ({ ...opportunityFromModule(module), categoryDisplayOrder: category.displayOrder })));
+  const custom = (snapshot.customOpportunities ?? []).map((item) => opportunityFromCustom(snapshot, item));
+  return [...standard, ...custom].sort((a, b) => a.categoryDisplayOrder - b.categoryDisplayOrder || a.displayOrder - b.displayOrder || a.title.localeCompare(b.title));
+}
+
+function annualOpportunityForPresented(o: PresentedOpportunity): number { return o.annualRecurringValue + o.annualOnlyValue; }
+function monthlyValueForPresented(o: PresentedOpportunity): number { return o.monthlyRecurringValue; }
+function capitalValueForPresented(o: PresentedOpportunity): number { return o.informationalCapitalValue; }
+function metricForPresented(o: PresentedOpportunity): MetricModel & { variant?: "standard" | "annual" | "capital" } {
+  if (o.valueType === "CAPITAL_AVOIDANCE" || o.informationalCapitalValue) return { value: formatPresentationCurrency(capitalValueForPresented(o)), label: o.isCustomerSpecific ? "Informational Capital" : "Avoided Capital Investment", variant: "capital" };
+  if (o.valueType === "NET_CAPACITY_VALUE") return { value: formatPresentationCurrency(monthlyValueForPresented(o) || annualOpportunityForPresented(o)), period: monthlyValueForPresented(o) ? "/ MONTH" : "/ YEAR", label: annualOpportunityForPresented(o) < 0 || monthlyValueForPresented(o) < 0 ? "Net Economic Impact" : "Net Capacity Value" };
+  if (monthlyValueForPresented(o)) return { value: formatPresentationCurrency(monthlyValueForPresented(o)), period: "/ MONTH", label: o.monthlyRecurringValue < 0 ? "Economic Offset" : valueTypeLabels[o.valueType] };
+  return { value: formatPresentationCurrency(annualOpportunityForPresented(o)), period: "/ YEAR", label: annualOpportunityForPresented(o) < 0 ? "Economic Offset" : valueTypeLabels[o.valueType], variant: "annual" };
+}
+function financialValueForPresented(o: PresentedOpportunity): number { return annualOpportunityForPresented(o) || monthlyValueForPresented(o) || capitalValueForPresented(o); }
+function valueCardFromPresented(o: PresentedOpportunity): ValueCardModel { const metric = metricForPresented(o); return { title: o.title, value: metric.value, period: metric.period, label: o.isCustomerSpecific ? "Customer-Specific Opportunity" : metric.label, supportingMetric: o.presentationCallout || undefined, valueType: o.valueType, customerSpecific: o.isCustomerSpecific }; }
+function singlePresentedModel(snapshot: PresentationSnapshot, o: PresentedOpportunity, slideNumber: number): SingleModuleSlideModel {
+  return { companyName: snapshot.analysis.companyName, categoryLabel: o.categoryName, moduleTitle: o.title, analysisText: o.customerAnalysis || o.valueNarrative, valueNarrative: o.valueNarrative, effectiveCustomerAnalysis: o.customerAnalysis || undefined, presentationCallout: o.presentationCallout, heroMetric: metricForPresented(o), assumptions: o.assumptions, calculationRationale: o.calculationRationale, isCustomerSpecific: o.isCustomerSpecific, disclaimer: o.disclaimer, slideNumber };
+}
+
 export function canUseDualModuleSlide(a: PresentationSnapshotModule, b: PresentationSnapshotModule): boolean {
   return a.categoryKey === b.categoryKey && validatePresentationTextLength({ text: a.effectiveCustomerAnalysis, kind: "dualModuleAnalysis" }).length === 0 && validatePresentationTextLength({ text: b.effectiveCustomerAnalysis, kind: "dualModuleAnalysis" }).length === 0 && validatePresentationTextLength({ text: a.valueNarrative, kind: "dualModuleAnalysis" }).length === 0 && validatePresentationTextLength({ text: b.valueNarrative, kind: "dualModuleAnalysis" }).length === 0 && a.valueType !== "CAPITAL_AVOIDANCE" && b.valueType !== "CAPITAL_AVOIDANCE";
-}
-function categoryOverview(snapshot: PresentationSnapshot, c: PresentationSnapshotCategory, slideNumber: number): CategoryOverviewSlideModel {
-  const total = c.modules.reduce((sum, m) => sum + annualOpportunity(m), 0);
-  const cards = [...c.modules].filter((m) => financialValueForCard(m) !== 0).sort((a, b) => Math.abs(financialValueForCard(b)) - Math.abs(financialValueForCard(a))).slice(0, 4).map(valueCardFromModule);
-  return { companyName: snapshot.analysis.companyName, categoryName: c.name, categoryOpportunity: { value: formatPresentationCurrency(total), label: "Annual Identified Opportunity" }, cards, slideNumber };
 }
 function executive(snapshot: PresentationSnapshot, slideNumber: number): ExecutiveSummarySlideModel {
   const modules = snapshot.categories.flatMap((category) => category.modules);
@@ -150,10 +194,18 @@ function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: n
     .flatMap((category) => [...category.modules].sort((a, b) => a.displayOrder - b.displayOrder))
     .map((m) => ({ moduleKey: m.moduleKey, moduleName: m.moduleName, categoryName: m.categoryName, inputs: m.inputs }));
   const appendix = buildAssumptionsAppendix(orderedModules);
-  if (appendix.modules.length === 0) return null;
+  const customModules: AssumptionsAppendixModuleModel[] = (snapshot.customOpportunities ?? []).map((custom) => ({
+    moduleName: custom.title,
+    categoryName: `Customer-Specific`,
+    rows: [
+      ...custom.assumptions.map((a) => ({ label: a.label, enteredValue: [a.displayValue, a.unit].filter(Boolean).join(" "), typicalRange: "—", sourceLabel: a.sourceNote ?? "Seller-entered" })),
+      { label: "Calculation rationale", enteredValue: custom.calculationRationale, typicalRange: "—", sourceLabel: custom.sourceNote ?? "Seller-entered" },
+    ],
+  }));
+  if (appendix.modules.length === 0 && customModules.length === 0) return null;
   return {
     companyName: snapshot.analysis.companyName,
-    modules: appendix.modules.map((m) => ({ moduleName: m.moduleName, categoryName: m.categoryName, rows: m.rows.map((r) => ({ label: r.label, enteredValue: r.enteredValue, typicalRange: r.typicalRange, sourceLabel: r.sourceLabel })) })),
+    modules: [...appendix.modules.map((m) => ({ moduleName: m.moduleName, categoryName: m.categoryName, rows: m.rows.map((r) => ({ label: r.label, enteredValue: r.enteredValue, typicalRange: r.typicalRange, sourceLabel: r.sourceLabel })) })), ...customModules],
     sources: appendix.sources.map((s) => ({ label: s.label, citation: s.citation })),
     slideNumber,
   };
@@ -163,21 +215,18 @@ export function composePresentationSlidePlan(snapshot: PresentationSnapshot): Pr
   let slide = 1;
   const plans: PresentationSlidePlan[] = [{ kind: "cover", model: { companyName: snapshot.analysis.companyName, analysisDate: formatDate(snapshot.analysis.analysisDate), preparedBy: snapshot.analysis.preparedBy, titleSlideImagePath: requireGoldenPresentationAsset(APPROVED_TITLE_SLIDE_IMAGE_PATH), customerLogoDataUri: snapshot.branding?.customerLogoDataUri ?? null, slideNumber: slide++ } }];
   plans.push({ kind: "executiveSummary", model: executive(snapshot, slide++) });
-  for (const category of [...snapshot.categories].sort((a,b) => a.displayOrder - b.displayOrder)) {
-    const modules = [...category.modules].sort((a,b) => a.displayOrder - b.displayOrder);
-    if (modules.length === 0) continue;
-    if (modules.length >= 3) plans.push({ kind: "categoryOverview", model: categoryOverview(snapshot, { ...category, modules }, slide++) });
-    for (const selectedModule of modules) {
-      plans.push({ kind: "singleModule", model: singleModuleModel(snapshot, selectedModule, slide++) });
-    }
+  const presented = allPresentedOpportunities(snapshot);
+  const byCategory = new Map<string, PresentedOpportunity[]>();
+  for (const item of presented) byCategory.set(item.categoryKey, [...(byCategory.get(item.categoryKey) ?? []), item]);
+  for (const [, opportunities] of [...byCategory.entries()].sort(([, a], [, b]) => a[0].categoryDisplayOrder - b[0].categoryDisplayOrder)) {
+    if (opportunities.length >= 3) plans.push({ kind: "categoryOverview", model: { companyName: snapshot.analysis.companyName, categoryName: opportunities[0].categoryName, categoryOpportunity: { value: formatPresentationCurrency(opportunities.reduce((sum, item) => sum + annualOpportunityForPresented(item), 0)), label: "Annual Identified Opportunity" }, cards: opportunities.filter((item) => financialValueForPresented(item) !== 0).sort((a, b) => Math.abs(financialValueForPresented(b)) - Math.abs(financialValueForPresented(a))).slice(0, 4).map(valueCardFromPresented), slideNumber: slide++ } });
+    for (const item of opportunities) plans.push({ kind: "singleModule", model: singlePresentedModel(snapshot, item, slide++) });
   }
-  const orderedModules = [...snapshot.categories]
-    .sort((a, b) => a.displayOrder - b.displayOrder)
-    .flatMap((category) => [...category.modules].sort((a, b) => a.displayOrder - b.displayOrder));
+  const orderedModules = presented;
   for (let i = 0; i < orderedModules.length; i += SUMMARY_CARDS_PER_SLIDE) {
     const pageModules = orderedModules.slice(i, i + SUMMARY_CARDS_PER_SLIDE);
     const isFinalSummaryPage = i + SUMMARY_CARDS_PER_SLIDE >= orderedModules.length;
-    plans.push({ kind: "opportunitySummary", model: opportunity(snapshot, slide++, pageModules, isFinalSummaryPage, i > 0) });
+    plans.push({ kind: "opportunitySummary", model: { ...opportunity(snapshot, slide++, [], isFinalSummaryPage, i > 0), classifications: pageModules.map(valueCardFromPresented) } });
   }
   const returnSlide = investmentReturn(snapshot, slide);
   if (returnSlide) { plans.push({ kind: "investmentReturn", model: returnSlide }); slide++; }

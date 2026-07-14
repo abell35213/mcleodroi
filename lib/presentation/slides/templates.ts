@@ -40,8 +40,19 @@ export function buildSingleModuleSlide(pptx: pptxgen, m: SingleModuleSlideModel)
   addBrandHeader(s, { categoryLabel: m.categoryLabel, title: m.moduleTitle, companyName: m.companyName });
   addHeroMetric(s, { ...m.heroMetric, x: 8.15, y: 1.5, w: 3.8, h: 1.7 });
   if (m.presentationCallout) addDisclaimer(s, { text: m.presentationCallout, x: 8.15, y: 3.32, w: 3.8 });
-  addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.valueNarrative ?? m.analysisText, x: L.content.left, y: 1.38, w: 6.95, h: 1.95 });
-  addNarrativeBlock(s, { heading: "Customer Analysis / Business Impact", text: m.effectiveCustomerAnalysis ?? m.analysisText, secondaryText: m.informationalCapitalCallout, x: L.content.left, y: 3.52, w: 7.25, h: 1.55 });
+  const hasHow = Boolean(m.valueNarrative?.trim());
+  const hasImpact = Boolean(m.effectiveCustomerAnalysis?.trim());
+  if (hasHow && hasImpact) {
+    addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.valueNarrative ?? "", x: L.content.left, y: 1.38, w: 6.95, h: 1.45 });
+    addNarrativeBlock(s, { heading: "Customer Analysis / Business Impact", text: m.effectiveCustomerAnalysis ?? "", secondaryText: m.informationalCapitalCallout, x: L.content.left, y: 3.02, w: 7.25, h: 1.2 });
+  } else if (hasHow || hasImpact) {
+    addNarrativeBlock(s, { heading: hasHow ? "How McLeod Helps" : "Customer Analysis / Business Impact", text: (hasHow ? m.valueNarrative : m.effectiveCustomerAnalysis) ?? "", secondaryText: m.informationalCapitalCallout, x: L.content.left, y: 1.38, w: 6.95, h: 2.0 });
+  } else if (m.isCustomerSpecific) {
+    addDisclaimer(s, { text: "Narrative details may be added before customer presentation.", x: L.content.left, y: 1.55, w: 6.95 });
+  } else {
+    addNarrativeBlock(s, { heading: "How McLeod Helps", text: m.analysisText, x: L.content.left, y: 1.38, w: 6.95, h: 1.95 });
+  }
+  if (m.calculationRationale) addDisclaimer(s, { text: `Calculation rationale: ${m.calculationRationale}`, x: L.content.left, y: 4.55, w: 12 });
   addAssumptionGrid(s, { items: m.assumptions, x: L.content.left, y: 5.35, w: 12 });
   if (m.disclaimer) addDisclaimer(s, { text: m.disclaimer, x: L.content.left, y: 6.28, w: 12 });
   addFooter(s, { companyName: m.companyName, slideNumber: m.slideNumber });
