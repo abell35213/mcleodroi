@@ -33,7 +33,7 @@ export function addFullSlideThemeBackground(slide: pptxgen.Slide, imagePath: str
   if (imagePath) slide.addImage({ path: requireGoldenPresentationAsset(imagePath), x: 0, y: 0, w: L.slide.width, h: L.slide.height });
 }
 
-export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; customerLogoDataUri?: string | null; themeImagePath?: string | null; logoPath?: string | null }) {
+export function addBrandHeader(slide: pptxgen.Slide, o: { categoryLabel: string; title: string; companyName?: string; customerLogoDataUri?: string | null; themeImagePath?: string | null }) {
   addFullSlideThemeBackground(slide, o.themeImagePath === undefined ? T.assets.themeImagePath : o.themeImagePath);
   addCategoryHeader(slide, { label: o.categoryLabel, x: L.content.left, y: 0.33, w: 4.8 });
   slide.addText(o.title, { x: L.content.left, y: 0.55, w: 9.4, h: 0.42, fontFace: font.headingFont, fontSize: font.slideTitleFontSize, bold: true, color: "000000", margin: 0, fit: "shrink" });
