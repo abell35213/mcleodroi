@@ -38,6 +38,39 @@ export async function removeFromAssessmentAction(analysisId: string, analysisMod
 }
 
 import { createCustomOpportunityDraft, removeCustomOpportunity, saveCustomOpportunity } from "@/lib/analyses/service";
+import type { CustomOpportunityInput } from "@/lib/custom-opportunities";
+
+export type CustomOpportunityFormValues = Omit<CustomOpportunityInput, "enteredValue"> & { enteredValue: string };
+export type CustomOpportunityActionState = {
+  status: "IDLE" | "SUCCESS" | "ERROR";
+  message?: string;
+  fieldErrors?: Partial<Record<"title" | "categoryKey" | "valueClassification" | "valueFrequency" | "enteredValue" | "calculationRationale" | "assumptions", string[]>>;
+  submittedValues?: CustomOpportunityFormValues;
+};
+
+function readCustomOpportunityFormData(formData: FormData): CustomOpportunityFormValues {
+  return {
+    title: String(formData.get("title") ?? ""),
+    shortTitle: String(formData.get("shortTitle") ?? ""),
+    categoryKey: String(formData.get("categoryKey") ?? ""),
+    valueClassification: String(formData.get("valueClassification") ?? ""),
+    valueFrequency: String(formData.get("valueFrequency") ?? ""),
+    enteredValue: String(formData.get("enteredValue") ?? ""),
+    calculationRationale: String(formData.get("calculationRationale") ?? ""),
+    howMcLeodHelps: String(formData.get("howMcLeodHelps") ?? ""),
+    customerBusinessImpact: String(formData.get("customerBusinessImpact") ?? ""),
+    presentationCallout: String(formData.get("presentationCallout") ?? ""),
+    methodologyNote: String(formData.get("methodologyNote") ?? ""),
+    sourceNote: String(formData.get("sourceNote") ?? ""),
+    assumptions: Array.from({ length: 8 }, (_, index) => ({
+      label: String(formData.get(`assumptionLabel${index}`) ?? ""),
+      displayValue: String(formData.get(`assumptionValue${index}`) ?? ""),
+      unit: String(formData.get(`assumptionUnit${index}`) ?? ""),
+      sourceNote: String(formData.get(`assumptionSource${index}`) ?? ""),
+      displayOrder: index,
+    })),
+  };
+}
 
 export async function addAnotherCustomOpportunityAction(analysisId: string) {
   const result = await createCustomOpportunityDraft({ analysisId });
@@ -52,10 +85,19 @@ export async function removeCustomOpportunityAction(analysisId: string, customOp
   redirect(`/analyses/${analysisId}/assessment`);
 }
 
-export async function saveCustomOpportunityAction(analysisId: string, customOpportunityId: string, formData: FormData) {
-  const assumptions = Array.from({ length: 8 }, (_, index) => ({ label: String(formData.get(`assumptionLabel${index}`) ?? ""), displayValue: String(formData.get(`assumptionValue${index}`) ?? ""), unit: String(formData.get(`assumptionUnit${index}`) ?? ""), sourceNote: String(formData.get(`assumptionSource${index}`) ?? ""), displayOrder: index }));
-  const result = await saveCustomOpportunity({ analysisId, customOpportunityId, input: { title: String(formData.get("title") ?? ""), shortTitle: String(formData.get("shortTitle") ?? ""), categoryKey: String(formData.get("categoryKey") ?? ""), valueClassification: String(formData.get("valueClassification") ?? ""), valueFrequency: String(formData.get("valueFrequency") ?? ""), enteredValue: String(formData.get("enteredValue") ?? ""), calculationRationale: String(formData.get("calculationRationale") ?? ""), howMcLeodHelps: String(formData.get("howMcLeodHelps") ?? ""), customerBusinessImpact: String(formData.get("customerBusinessImpact") ?? ""), presentationCallout: String(formData.get("presentationCallout") ?? ""), methodologyNote: String(formData.get("methodologyNote") ?? ""), sourceNote: String(formData.get("sourceNote") ?? ""), assumptions } });
-  if (!result.ok) throw new Error(result.error.message);
+export async function saveCustomOpportunityAction(analysisId: string, customOpportunityId: string, _prevState: CustomOpportunityActionState, formData: FormData): Promise<CustomOpportunityActionState> {
+  const submittedValues = readCustomOpportunityFormData(formData);
+  const result = await saveCustomOpportunity({ analysisId, customOpportunityId, input: submittedValues });
+  if (!result.ok) {
+    const fieldErrors: CustomOpportunityActionState["fieldErrors"] = {};
+    if (result.error.message.includes("Calculation rationale is required.")) fieldErrors.calculationRationale = ["Calculation rationale is required."];
+    if (result.error.message.includes("Opportunity title is required.")) fieldErrors.title = ["Opportunity title is required."];
+    if (result.error.message.includes("financial amount")) fieldErrors.enteredValue = ["Enter a finite financial amount using digits and an optional decimal."];
+    if (result.error.message.includes("At least one assumption")) fieldErrors.assumptions = ["At least one assumption with a label and value is required."];
+    if (result.error.code === "INVALID_INPUT_KEY") return { status: "ERROR", message: "Complete the highlighted required fields before saving.", fieldErrors, submittedValues };
+    console.error("Custom opportunity save failed", { analysisId, customOpportunityId, code: result.error.code });
+    return { status: "ERROR", message: "We could not save this custom opportunity. Please try again.", submittedValues };
+  }
   revalidatePath(`/analyses/${analysisId}/assessment`);
   redirect(`/analyses/${analysisId}/assessment?custom=${customOpportunityId}`);
 }
