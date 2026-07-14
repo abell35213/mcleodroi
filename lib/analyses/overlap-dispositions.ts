@@ -105,7 +105,10 @@ export function buildOverlapReviewStates(args: {
 }): OverlapReviewState[] {
   const dispositionByGroup = new Map(args.dispositions.map((disposition) => [disposition.overlapGroupKey, disposition]));
   return args.notices.map((notice) => {
-    const sourceFingerprint = (notice.key as string) === CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY ? sha256(`${CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY}:${args.customSourceFingerprint ?? ""}`) : createOverlapSourceFingerprint({ notice, modules: args.modules });
+    const sourceFingerprint =
+      (notice.key as string) === CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY
+        ? sha256(`${createOverlapSourceFingerprint({ notice, modules: args.modules })}:${args.customSourceFingerprint ?? ""}`)
+        : createOverlapSourceFingerprint({ notice, modules: args.modules });
     const disposition = dispositionByGroup.get(notice.key) ?? null;
     if (notice.type === "INFORMATION") return { notice, sourceFingerprint, disposition, status: "REVIEWED", blocksPresentation: false };
     if (!disposition) return { notice, sourceFingerprint, disposition, status: "NOT_REVIEWED", blocksPresentation: true };
