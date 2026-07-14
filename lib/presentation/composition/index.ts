@@ -198,7 +198,7 @@ function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: n
     moduleName: custom.title,
     categoryName: `Customer-Specific`,
     rows: [
-      ...custom.assumptions.map((a) => ({ label: a.label, enteredValue: [a.displayValue, a.unit].filter(Boolean).join(" "), typicalRange: "—", sourceLabel: a.sourceNote ?? "Seller-entered" })),
+      ...[...custom.assumptions].sort((a, b) => a.displayOrder - b.displayOrder).map((a) => ({ label: a.label, enteredValue: [a.displayValue, a.unit].filter(Boolean).join(" "), typicalRange: "—", sourceLabel: a.sourceNote ?? "Seller-entered" })), 
       { label: "Calculation rationale", enteredValue: custom.calculationRationale, typicalRange: "—", sourceLabel: custom.sourceNote ?? "Seller-entered" },
     ],
   }));
