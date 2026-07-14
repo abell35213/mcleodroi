@@ -776,7 +776,7 @@ export async function calculateAnalysis(args: {
   const persistedDispositions = (await db.analysisOverlapDisposition.findMany({ where: { analysisId: args.analysisId } }))
     .map(toOverlapDispositionRecord)
     .filter((record): record is NonNullable<typeof record> => record !== null);
-  const overlapReviewStates = buildOverlapReviewStates({ notices: overlapNotices, modules: calculated, dispositions: persistedDispositions, customSourceFingerprint: economicCustomOpportunities.map((custom) => custom.sourceFingerprint).join(":") });
+  const overlapReviewStates = buildOverlapReviewStates({ notices: overlapNotices, modules: calculated, dispositions: persistedDispositions, customSourceFingerprint: economicCustomOpportunities.map((custom) => custom.sourceFingerprint).sort().join(":") });
   const summary = summarizeCalculatedModules(calculated, customOpportunities);
   const investment = toAnalysisInvestment(analysis);
   const persistedInvestmentValidation = analysisInvestmentSchema.safeParse({
