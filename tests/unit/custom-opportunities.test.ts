@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { deriveCustomValues, fingerprintCustomOpportunity, validateCustomOpportunityCompatibility, validateCustomOpportunityInput } from "@/lib/custom-opportunities";
+import { parseAdoptionSchedule } from "@/lib/analyses/service";
 
 describe("custom opportunities", () => {
   const base = { title: "  Yard wait reduction  ", categoryKey: "TL_TRUCKING_OPERATIONS", valueClassification: "COST_REDUCTION", valueFrequency: "MONTHLY_RECURRING", enteredValue: "1250.50", calculationRationale: "50 hours × $25.01", assumptions: [{ label: "Hours saved", displayValue: "50", unit: "hours" }] };
@@ -37,5 +38,29 @@ describe("custom opportunities", () => {
     const first = fingerprintCustomOpportunity(valid.value);
     const second = fingerprintCustomOpportunity({ ...valid.value, enteredValue: 1251 });
     expect(first).not.toBe(second);
+  });
+});
+
+describe("assessment JSON parsing", () => {
+  it("treats an absent adoption schedule as optional empty state", () => {
+    expect(parseAdoptionSchedule(null)).toEqual({ schedule: null, integrityError: false });
+    expect(parseAdoptionSchedule(undefined)).toEqual({ schedule: null, integrityError: false });
+    expect(parseAdoptionSchedule("")).toEqual({ schedule: null, integrityError: false });
+  });
+
+  it("parses valid adoption schedule JSON", () => {
+    expect(parseAdoptionSchedule("[0.25,0.5,1]")).toEqual({ schedule: [0.25, 0.5, 1], integrityError: false });
+  });
+
+  it("flags malformed persisted adoption schedule JSON without logging payload", () => {
+    const spy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    expect(parseAdoptionSchedule("{ customer secret", { analysisId: "analysis-1" })).toEqual({ schedule: null, integrityError: true });
+    expect(spy).toHaveBeenCalledWith("Malformed persisted JSON", { recordId: "analysis-1", fieldName: "adoptionSchedulePctJson" });
+    expect(JSON.stringify(spy.mock.calls)).not.toContain("customer secret");
+    spy.mockRestore();
+  });
+
+  it("does not silently default financially significant malformed values", () => {
+    expect(parseAdoptionSchedule("[0.25,\"bad\"]", { analysisId: "analysis-2" }).integrityError).toBe(true);
   });
 });

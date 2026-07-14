@@ -16,6 +16,8 @@ import {
   moveAnalysisModule,
   updateAnalysisDetails,
   saveOverlapDisposition,
+  createCustomOpportunityDraft,
+  saveCustomOpportunity,
 } from "@/lib/analyses";
 import { getValueModule } from "@/lib/modules";
 
@@ -28,6 +30,7 @@ beforeAll(() => {
   dbUrl = `file:${join(tempDir, "test.db")}`;
   execFileSync("npx", ["--no-install", "prisma", "migrate", "deploy"], { env: { ...process.env, DATABASE_URL: dbUrl }, stdio: "pipe" });
   db = new PrismaClient({ datasourceUrl: dbUrl });
+
 });
 
 afterAll(async () => {
@@ -58,6 +61,33 @@ async function saveOrThrow(analysisModuleId: string, inputs: Record<string, numb
   if (!result.ok) throw new Error(result.error.message);
   return result.value;
 }
+
+describe("custom opportunities", () => {
+  it("saves custom opportunities only with calculation rationale and includes them after standard modules", async () => {
+    const analysis = await createAnalysis("TRUCKLOAD");
+    const standard = await selectOrThrow(analysis.id, "PROFIT_MARGIN_INCREASE");
+    const draft = await createCustomOpportunityDraft({ analysisId: analysis.id, db });
+    expect(draft.ok).toBe(true);
+    if (!draft.ok) return;
+    const missingRationale = await saveCustomOpportunity({ analysisId: analysis.id, customOpportunityId: draft.value.customOpportunityId, db, input: { title: "Dock flow", categoryKey: "TL_STRATEGY_ANALYTICS", valueClassification: "REVENUE_MARGIN_OPPORTUNITY", valueFrequency: "MONTHLY_RECURRING", enteredValue: "1000", calculationRationale: "", assumptions: [{ label: "Loads", displayValue: "10" }] } });
+    expect(missingRationale.ok).toBe(false);
+    expect(missingRationale.ok || missingRationale.error.message).toContain("Calculation rationale is required.");
+
+    const valid = await saveCustomOpportunity({ analysisId: analysis.id, customOpportunityId: draft.value.customOpportunityId, db, input: { title: "Dock flow", categoryKey: "TL_STRATEGY_ANALYTICS", valueClassification: "REVENUE_MARGIN_OPPORTUNITY", valueFrequency: "MONTHLY_RECURRING", enteredValue: "1000", calculationRationale: "10 loads × $100 margin", assumptions: [{ label: "Loads", displayValue: "10" }], howMcLeodHelps: "", customerBusinessImpact: "" } });
+    expect(valid.ok && valid.value.status).toBe("COMPLETE");
+    const persisted = await db.customOpportunity.findUnique({ where: { id: draft.value.customOpportunityId }, include: { assumptions: true } });
+    expect(persisted?.calculationRationale).toBe("10 loads × $100 margin");
+    expect(persisted?.assumptions[0]?.label).toBe("Loads");
+
+    await saveOrThrow(standard.analysisModuleId, { monthly_gross_revenue: 100000, current_margin_pct: 0.1, target_margin_pct: 0.12 });
+    const calculated = await calculateAnalysis({ analysisId: analysis.id, db });
+    expect(calculated.ok).toBe(true);
+    if (!calculated.ok) return;
+    expect(calculated.value.calculatedModules[0].moduleKey).toBe("PROFIT_MARGIN_INCREASE");
+    expect(calculated.value.customOpportunities?.[0]?.id).toBe(draft.value.customOpportunityId);
+    expect(calculated.value.workflowReadiness.canReview).toBe(true);
+  });
+});
 
 describe("analysis module selection", () => {
   it("selects modules by business type and rejects unavailable or duplicate modules", async () => {

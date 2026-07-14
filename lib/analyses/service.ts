@@ -590,6 +590,7 @@ export function deriveAnalysisWorkflowReadiness(
 }
 
 type InvestmentRecordFields = {
+  id?: string;
   investmentOneTimeCost: number | null;
   investmentAnnualRecurringCost: number | null;
   investmentChangeManagementCost: number | null;
@@ -598,23 +599,24 @@ type InvestmentRecordFields = {
   adoptionSchedulePctJson: string | null;
 };
 
-function parseAdoptionSchedule(json: string | null): { schedule: number[] | null; integrityError: boolean } {
-  if (json === null) return { schedule: null, integrityError: false };
+export function parseAdoptionSchedule(json: string | null | undefined, context?: { analysisId?: string }): { schedule: number[] | null; integrityError: boolean } {
+  if (json === null || json === undefined || json.trim() === "") return { schedule: null, integrityError: false };
   try {
     const parsed: unknown = JSON.parse(json);
-    if (Array.isArray(parsed)) {
-      return { schedule: parsed as number[], integrityError: false };
+    if (Array.isArray(parsed) && parsed.every((value) => typeof value === "number" && Number.isFinite(value))) {
+      return { schedule: parsed, integrityError: false };
     }
   } catch {
     // A persisted but malformed schedule is an integrity error; do not silently default it.
   }
+  console.error("Malformed persisted JSON", { recordId: context?.analysisId, fieldName: "adoptionSchedulePctJson" });
   return { schedule: null, integrityError: true };
 }
 
 export function toAnalysisInvestment(
   record: InvestmentRecordFields,
 ): AnalysisInvestment {
-  const parsedSchedule = parseAdoptionSchedule(record.adoptionSchedulePctJson);
+  const parsedSchedule = parseAdoptionSchedule(record.adoptionSchedulePctJson, "id" in record ? { analysisId: String(record.id) } : undefined);
   return {
     investmentOneTimeCost: record.investmentOneTimeCost,
     investmentAnnualRecurringCost: record.investmentAnnualRecurringCost,
