@@ -116,3 +116,7 @@ Phase 1 remains local-first, single-user oriented, SQLite-based, unauthenticated
 ## 19. Phase 2 scope
 
 Phase 2 should begin with P2-0: production-readiness planning and risk acceptance. Potential P2 topics include authentication, multi-user ownership, PostgreSQL/cloud deployment, object storage, backup/restore, CRM integration, and broader operational controls. None of those are implemented in Phase 1.
+
+## Custom Opportunities
+
+The ROI Builder supports customer-specific custom opportunities for direct-value planning inputs that are outside the governed standard modules. Custom opportunities require financial details and a rationale, while narrative fields are optional and do not block presentation generation. See `docs/methodology/custom-opportunities.md`.

@@ -58,8 +58,10 @@ export type ValueTypeSummary = {
 };
 
 export type InformationalCapitalValue = {
-  readonly moduleKey: ValueModuleKey;
-  readonly analysisModuleId: string;
+  readonly moduleKey?: ValueModuleKey;
+  readonly analysisModuleId?: string;
+  readonly customOpportunityId?: string;
+  readonly title?: string;
   readonly value: number;
 };
 
@@ -98,6 +100,34 @@ export type AnalysisInvestment = {
   readonly adoptionScheduleIntegrityError?: boolean;
 };
 
+
+export type CalculatedCustomOpportunity = {
+  readonly id: string;
+  readonly analysisId: string;
+  readonly title: string;
+  readonly shortTitle: string | null;
+  readonly categoryKey: CategoryKey;
+  readonly valueClassification: ValueType;
+  readonly valueFrequency: "MONTHLY_RECURRING" | "ANNUAL_ONLY" | "INFORMATIONAL_CAPITAL";
+  readonly enteredValue: number;
+  readonly monthlyRecurringValue: number | null;
+  readonly annualRecurringValue: number | null;
+  readonly annualOnlyValue: number | null;
+  readonly informationalCapitalValue: number | null;
+  readonly calculationRationale: string;
+  readonly howMcLeodHelps: string | null;
+  readonly customerBusinessImpact: string | null;
+  readonly presentationCallout: string | null;
+  readonly methodologyNote: string | null;
+  readonly sourceNote: string | null;
+  readonly status: "DRAFT" | "COMPLETE" | "NEEDS_REVISION" | "RETIRED";
+  readonly version: number;
+  readonly sourceFingerprint: string;
+  readonly displayOrder: number;
+  readonly narrativeStatus: "Narrative Not Added" | "Narrative Partially Added" | "Narrative Complete";
+  readonly assumptions: readonly { readonly id: string; readonly label: string; readonly displayValue: string; readonly numericValue: number | null; readonly unit: string | null; readonly sourceNote: string | null; readonly displayOrder: number }[];
+};
+
 export type CalculatedAnalysis = {
   readonly analysis: {
     readonly id: string;
@@ -106,6 +136,7 @@ export type CalculatedAnalysis = {
     readonly status: string;
   };
   readonly calculatedModules: readonly CalculatedAnalysisModule[];
+  readonly customOpportunities?: readonly CalculatedCustomOpportunity[];
   readonly overlapNotices: readonly OverlapNotice[];
   readonly overlapReviewStates: readonly OverlapReviewState[];
   readonly summary: AnalysisCalculationSummary;

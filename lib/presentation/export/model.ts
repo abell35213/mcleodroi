@@ -111,7 +111,7 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
     roiMetrics,
     valueTypeCards,
     categories,
-    informationalCapital: summary.informationalCapitalValues.map((entry) => ({ label: entry.moduleKey, value: formatPresentationCurrency(entry.value) })),
+    informationalCapital: summary.informationalCapitalValues.map((entry) => ({ label: entry.moduleKey ?? entry.title ?? "Custom Opportunity", value: formatPresentationCurrency(entry.value) })),
     informationalCapitalTotal: summary.informationalCapitalValueTotal,
     overlapNotices: snapshot.overlapNotices.map((notice) => notice.message),
     snapshotVersion: snapshot.snapshotVersion,

@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { OverlapDisposition as PrismaOverlapDisposition } from "@prisma/client";
 import { stableSerialize } from "@/lib/narratives/fingerprint";
+import { CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY } from "@/lib/custom-opportunities";
 import { getValueModule, overlapGroups, type OverlapGroupKey, type OverlapNotice, type ValueModuleKey } from "@/lib/modules";
 import type { CalculatedAnalysisModule } from "./types";
 
@@ -16,7 +17,7 @@ export type CompletedOverlapDisposition = (typeof completedOverlapDispositions)[
 export type OverlapDispositionRecord = {
   readonly id: string;
   readonly analysisId: string;
-  readonly overlapGroupKey: OverlapGroupKey;
+  readonly overlapGroupKey: OverlapGroupKey | typeof CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY;
   readonly disposition: PrismaOverlapDisposition;
   readonly acknowledgmentText: string | null;
   readonly sourceFingerprint: string;
@@ -92,18 +93,19 @@ function parseModuleKeys(json: string | null): ValueModuleKey[] {
 export function toOverlapDispositionRecord(row: {
   id: string; analysisId: string; overlapGroupKey: string; disposition: PrismaOverlapDisposition; acknowledgmentText: string | null; sourceFingerprint: string; excludedModuleKeysJson: string | null; reviewedAt: Date;
 }): OverlapDispositionRecord | null {
-  if (!overlapGroups.some((group) => group.key === row.overlapGroupKey)) return null;
-  return { ...row, overlapGroupKey: row.overlapGroupKey as OverlapGroupKey, excludedModuleKeys: parseModuleKeys(row.excludedModuleKeysJson) };
+  if (row.overlapGroupKey !== CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY && !overlapGroups.some((group) => group.key === row.overlapGroupKey)) return null;
+  return { ...row, overlapGroupKey: row.overlapGroupKey as OverlapGroupKey | typeof CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY, excludedModuleKeys: parseModuleKeys(row.excludedModuleKeysJson) };
 }
 
 export function buildOverlapReviewStates(args: {
   readonly notices: readonly OverlapNotice[];
   readonly modules: readonly CalculatedAnalysisModule[];
   readonly dispositions: readonly OverlapDispositionRecord[];
+  readonly customSourceFingerprint?: string;
 }): OverlapReviewState[] {
   const dispositionByGroup = new Map(args.dispositions.map((disposition) => [disposition.overlapGroupKey, disposition]));
   return args.notices.map((notice) => {
-    const sourceFingerprint = createOverlapSourceFingerprint({ notice, modules: args.modules });
+    const sourceFingerprint = (notice.key as string) === CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY ? sha256(`${CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY}:${args.customSourceFingerprint ?? ""}`) : createOverlapSourceFingerprint({ notice, modules: args.modules });
     const disposition = dispositionByGroup.get(notice.key) ?? null;
     if (notice.type === "INFORMATION") return { notice, sourceFingerprint, disposition, status: "REVIEWED", blocksPresentation: false };
     if (!disposition) return { notice, sourceFingerprint, disposition, status: "NOT_REVIEWED", blocksPresentation: true };

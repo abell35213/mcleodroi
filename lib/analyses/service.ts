@@ -31,6 +31,7 @@ import type {
   ValueModuleKey,
   ValueType,
 } from "@/lib/modules";
+import { CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY, CUSTOM_OPPORTUNITY_OVERLAP_MESSAGE, customOpportunityNarrativeStatus, deriveCustomValues, fingerprintCustomOpportunity, validateCustomOpportunityInput, type CustomOpportunityInput } from "@/lib/custom-opportunities";
 import type {
   AnalysisCalculationSummary,
   AnalysisInvestment,
@@ -38,6 +39,7 @@ import type {
   AnalysisModuleStatus,
   CalculatedAnalysis,
   CalculatedAnalysisModule,
+  CalculatedCustomOpportunity,
   InformationalCapitalValue,
   NarrativeMode,
   PersistedModuleInput,
@@ -493,6 +495,7 @@ function emptyBreakdown(): Map<ValueType, ValueTypeSummary> {
 
 export function summarizeCalculatedModules(
   modules: readonly CalculatedAnalysisModule[],
+  customOpportunities: readonly CalculatedCustomOpportunity[] = [],
 ): AnalysisCalculationSummary {
   const breakdown = emptyBreakdown();
   const informationalCapitalValues: InformationalCapitalValue[] = [];
@@ -537,11 +540,26 @@ export function summarizeCalculatedModules(
       });
     }
   }
+  for (const custom of customOpportunities) {
+    if (custom.status !== "COMPLETE") continue;
+    const monthly = custom.monthlyRecurringValue ?? 0;
+    const annual = custom.annualRecurringValue ?? 0;
+    const annualOnly = custom.annualOnlyValue ?? 0;
+    monthlyRecurringValueTotal += monthly;
+    annualRecurringValueTotal += annual;
+    annualOnlyValueTotal += annualOnly;
+    const current = breakdown.get(custom.valueClassification) ?? { valueType: custom.valueClassification, monthlyRecurringValue: 0, annualRecurringValue: 0, annualOnlyValue: 0, annualEconomicOpportunity: 0 };
+    breakdown.set(custom.valueClassification, { valueType: custom.valueClassification, monthlyRecurringValue: current.monthlyRecurringValue + monthly, annualRecurringValue: current.annualRecurringValue + annual, annualOnlyValue: current.annualOnlyValue + annualOnly, annualEconomicOpportunity: current.annualEconomicOpportunity + annual + annualOnly });
+    if (custom.informationalCapitalValue) {
+      informationalCapitalValueTotal += custom.informationalCapitalValue;
+      informationalCapitalValues.push({ customOpportunityId: custom.id, title: custom.title, value: custom.informationalCapitalValue });
+    }
+  }
   const completeModuleCount = modules.filter(
     (calculatedModule) =>
       calculatedModule.status === "COMPLETE" &&
       calculatedModule.calculationOutcome?.success,
-  ).length;
+  ).length + customOpportunities.filter((custom) => custom.status === "COMPLETE").length;
   return {
     monthlyRecurringValueTotal,
     annualRecurringValueTotal,
@@ -551,9 +569,9 @@ export function summarizeCalculatedModules(
     informationalCapitalValueTotal,
     valueTypeBreakdown: [...breakdown.values()],
     informationalCapitalValues,
-    moduleCount: modules.length,
+    moduleCount: modules.length + customOpportunities.length,
     completeModuleCount,
-    incompleteModuleCount: modules.length - completeModuleCount,
+    incompleteModuleCount: modules.length + customOpportunities.length - completeModuleCount,
   };
 }
 
@@ -705,7 +723,7 @@ export async function calculateAnalysis(args: {
   const db = args.db ?? defaultPrisma;
   const analysis = await db.analysis.findUnique({
     where: { id: args.analysisId },
-    include: { modules: { include: { inputs: true } } },
+    include: { modules: { include: { inputs: true } }, customOpportunities: { include: { assumptions: true } } },
   });
   if (!analysis) return err("ANALYSIS_NOT_FOUND", "Analysis was not found.");
   const calculated: CalculatedAnalysisModule[] = [];
@@ -747,14 +765,19 @@ export async function calculateAnalysis(args: {
         (allModules.get(right.moduleKey)?.displayOrder ?? 0)
     );
   });
-  const overlapNotices = getOverlapNoticesForSelectedModules(
+  const customOpportunities = analysis.customOpportunities.map(toCalculatedCustomOpportunity);
+  const economicCustomOpportunities = customOpportunities.filter((custom) => custom.status === "COMPLETE" && custom.valueFrequency !== "INFORMATIONAL_CAPITAL");
+  const registryOverlapNotices = getOverlapNoticesForSelectedModules(
     calculated.map((calculatedModule) => calculatedModule.moduleKey),
   );
+  const overlapNotices = economicCustomOpportunities.length > 0 && calculated.some((module) => module.status === "COMPLETE")
+    ? [...registryOverlapNotices, { key: CUSTOM_OPPORTUNITY_OVERLAP_GROUP_KEY as never, type: "REVIEW" as const, message: CUSTOM_OPPORTUNITY_OVERLAP_MESSAGE, modules: calculated.map((module) => module.moduleKey), selectedModuleKeys: calculated.map((module) => module.moduleKey) }]
+    : registryOverlapNotices;
   const persistedDispositions = (await db.analysisOverlapDisposition.findMany({ where: { analysisId: args.analysisId } }))
     .map(toOverlapDispositionRecord)
     .filter((record): record is NonNullable<typeof record> => record !== null);
-  const overlapReviewStates = buildOverlapReviewStates({ notices: overlapNotices, modules: calculated, dispositions: persistedDispositions });
-  const summary = summarizeCalculatedModules(calculated);
+  const overlapReviewStates = buildOverlapReviewStates({ notices: overlapNotices, modules: calculated, dispositions: persistedDispositions, customSourceFingerprint: economicCustomOpportunities.map((custom) => custom.sourceFingerprint).join(":") });
+  const summary = summarizeCalculatedModules(calculated, customOpportunities);
   const investment = toAnalysisInvestment(analysis);
   const persistedInvestmentValidation = analysisInvestmentSchema.safeParse({
     investmentOneTimeCost: investment.investmentOneTimeCost ?? undefined,
@@ -785,6 +808,7 @@ export async function calculateAnalysis(args: {
       status: analysis.status,
     },
     calculatedModules: calculated,
+    customOpportunities,
     overlapNotices,
     overlapReviewStates,
     summary,
@@ -995,4 +1019,42 @@ export async function updateAnalysisDetails(args: {
   }
   await db.analysis.update({ where: { id: args.analysisId }, data: parsed.data });
   return ok({ id: args.analysisId });
+}
+
+type CustomOpportunityRecord = {
+  id: string; analysisId: string; title: string; shortTitle: string | null; categoryKey: string; valueClassification: string; valueFrequency: string; enteredValue: number; calculationRationale: string; howMcLeodHelps: string | null; customerBusinessImpact: string | null; presentationCallout: string | null; methodologyNote: string | null; sourceNote: string | null; version: number; status: "DRAFT" | "COMPLETE" | "NEEDS_REVISION" | "RETIRED"; displayOrder: number; assumptions: { id: string; label: string; displayValue: string; numericValue: number | null; unit: string | null; sourceNote: string | null; displayOrder: number }[];
+};
+
+function toCalculatedCustomOpportunity(record: CustomOpportunityRecord): CalculatedCustomOpportunity {
+  const derived = deriveCustomValues(record.valueFrequency as "MONTHLY_RECURRING" | "ANNUAL_ONLY" | "INFORMATIONAL_CAPITAL", record.enteredValue);
+  const assumptions = [...record.assumptions].sort((a, b) => a.displayOrder - b.displayOrder).map((assumption) => ({ id: assumption.id, label: assumption.label, displayValue: assumption.displayValue, numericValue: assumption.numericValue, unit: assumption.unit, sourceNote: assumption.sourceNote, displayOrder: assumption.displayOrder }));
+  const base = { title: record.title, shortTitle: record.shortTitle, categoryKey: record.categoryKey as CategoryKey, valueClassification: record.valueClassification as ValueType, valueFrequency: record.valueFrequency as "MONTHLY_RECURRING" | "ANNUAL_ONLY" | "INFORMATIONAL_CAPITAL", enteredValue: record.enteredValue, calculationRationale: record.calculationRationale, assumptions, howMcLeodHelps: record.howMcLeodHelps, customerBusinessImpact: record.customerBusinessImpact, presentationCallout: record.presentationCallout, methodologyNote: record.methodologyNote, sourceNote: record.sourceNote, displayOrder: record.displayOrder, ...derived };
+  const fingerprint = fingerprintCustomOpportunity(base);
+  return { id: record.id, analysisId: record.analysisId, version: record.version, status: record.status, sourceFingerprint: fingerprint, narrativeStatus: customOpportunityNarrativeStatus(record), ...base };
+}
+
+export async function createCustomOpportunityDraft(args: { analysisId: string; db?: Db }): Promise<ServiceResult<{ customOpportunityId: string }>> {
+  const db = args.db ?? defaultPrisma;
+  const analysis = await db.analysis.findUnique({ where: { id: args.analysisId }, include: { customOpportunities: true } });
+  if (!analysis) return err("ANALYSIS_NOT_FOUND", "Analysis was not found.");
+  const displayOrder = (analysis.customOpportunities.reduce((max, item) => Math.max(max, item.displayOrder), 0) || 0) + DISPLAY_ORDER_STEP;
+  const draft = await db.customOpportunity.create({ data: { analysisId: args.analysisId, title: "Untitled Custom Opportunity", categoryKey: analysis.businessType === "BROKERAGE" ? "BR_STRATEGIC" : "TL_STRATEGY_ANALYTICS", valueClassification: "REVENUE_MARGIN_OPPORTUNITY", valueFrequency: "MONTHLY_RECURRING", enteredValue: 0, monthlyRecurringValue: 0, annualRecurringValue: 0, calculationRationale: "Draft rationale pending seller input.", status: "DRAFT", displayOrder, sourceFingerprint: "draft" } });
+  return ok({ customOpportunityId: draft.id });
+}
+
+export async function removeCustomOpportunity(args: { customOpportunityId: string; db?: Db }): Promise<ServiceResult<{ customOpportunityId: string }>> {
+  const db = args.db ?? defaultPrisma;
+  await db.customOpportunity.delete({ where: { id: args.customOpportunityId } });
+  return ok({ customOpportunityId: args.customOpportunityId });
+}
+
+export async function saveCustomOpportunity(args: { analysisId: string; customOpportunityId: string; input: CustomOpportunityInput; db?: Db }): Promise<ServiceResult<CalculatedCustomOpportunity>> {
+  const db = args.db ?? defaultPrisma;
+  const current = await db.customOpportunity.findUnique({ where: { id: args.customOpportunityId }, include: { assumptions: true } });
+  if (!current || current.analysisId !== args.analysisId) return err("ANALYSIS_MODULE_NOT_FOUND", "Custom opportunity was not found.");
+  const validated = validateCustomOpportunityInput({ ...args.input, displayOrder: current.displayOrder });
+  if (!validated.ok) return err("INVALID_INPUT_KEY", validated.issues.map((issue) => issue.message).join(" "));
+  const v = validated.value;
+  const updated = await db.customOpportunity.update({ where: { id: current.id }, data: { title: v.title, shortTitle: v.shortTitle, categoryKey: v.categoryKey, valueClassification: v.valueClassification, valueFrequency: v.valueFrequency, enteredValue: v.enteredValue, monthlyRecurringValue: v.monthlyRecurringValue, annualRecurringValue: v.annualRecurringValue, annualOnlyValue: v.annualOnlyValue, informationalCapitalValue: v.informationalCapitalValue, calculationRationale: v.calculationRationale, howMcLeodHelps: v.howMcLeodHelps, customerBusinessImpact: v.customerBusinessImpact, presentationCallout: v.presentationCallout, methodologyNote: v.methodologyNote, sourceNote: v.sourceNote, status: "COMPLETE", version: { increment: v.sourceFingerprint === current.sourceFingerprint ? 0 : 1 }, sourceFingerprint: v.sourceFingerprint, assumptions: { deleteMany: {}, create: v.assumptions.map((a, index) => ({ label: a.label, displayValue: a.displayValue, numericValue: a.numericValue, unit: a.unit, sourceNote: a.sourceNote, displayOrder: a.displayOrder ?? index })) } }, include: { assumptions: true } });
+  return ok(toCalculatedCustomOpportunity(updated));
 }

@@ -38,3 +38,7 @@ The final “The Identified Opportunities” section is module-based: every incl
 Generated PowerPoint slides no longer emit the proprietary/confidential footer text. Footer-free background treatment conceals the legacy embedded footer region without changing the approved title or theme artwork.
 
 The brokerage display category is now “Brokerage Operational Efficiencies”; the internal `BR_SHIPPER_SALES` category key remains unchanged for compatibility.
+
+## Version History
+
+- Presentation snapshot `1.6.0` and template `1.4.0` add customer-specific custom opportunities to snapshots and presentation composition while preserving the governed standard-module methodology constants.
