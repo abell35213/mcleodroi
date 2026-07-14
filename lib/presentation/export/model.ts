@@ -118,7 +118,7 @@ export function buildPresentationExportModel(snapshot: PresentationSnapshot): Pr
       valueNarrative: custom.howMcLeodHelps ?? "",
       disclaimer: custom.methodologyNote ?? "",
       customerSpecific: true,
-      assumptions: custom.assumptions.map((a) => ({ label: a.label, value: [a.displayValue, a.unit].filter(Boolean).join(" ") })),
+      assumptions: [...custom.assumptions].sort((a, b) => a.displayOrder - b.displayOrder).map((a) => ({ label: a.label, value: [a.displayValue, a.unit].filter(Boolean).join(" ") })),
       calculationRationale: custom.calculationRationale,
     };
     const existing = categories.find((item) => item.name === exportModule.categoryName);
