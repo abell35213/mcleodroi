@@ -92,6 +92,12 @@ export async function saveCustomOpportunityAction(analysisId: string, customOppo
     const fieldErrors: CustomOpportunityActionState["fieldErrors"] = {};
     if (result.error.message.includes("Calculation rationale is required.")) fieldErrors.calculationRationale = ["Calculation rationale is required."];
     if (result.error.message.includes("Opportunity title is required.")) fieldErrors.title = ["Opportunity title is required."];
+    if (result.error.message.includes("Category is required.")) fieldErrors.categoryKey = ["Category is required."];
+    if (result.error.message.includes("Value classification is required.")) fieldErrors.valueClassification = ["Value classification is required."];
+    if (result.error.message.includes("Value frequency is required.")) fieldErrors.valueFrequency = ["Value frequency is required."];
+    if (result.error.message.includes("Informational Capital must use informational capital frequency.")) fieldErrors.valueFrequency = ["Informational Capital must use informational capital frequency."];
+    if (result.error.message.includes("Only Informational Capital may use informational capital frequency.")) fieldErrors.valueFrequency = ["Only Informational Capital may use informational capital frequency."];
+    if (result.error.message.includes("Annual-Only Value must use annual-only frequency.")) fieldErrors.valueFrequency = ["Annual-Only Value must use annual-only frequency."];
     if (result.error.message.includes("financial amount")) fieldErrors.enteredValue = ["Enter a finite financial amount using digits and an optional decimal."];
     if (result.error.message.includes("At least one assumption")) fieldErrors.assumptions = ["At least one assumption with a label and value is required."];
     if (result.error.code === "INVALID_INPUT_KEY") return { status: "ERROR", message: "Complete the highlighted required fields before saving.", fieldErrors, submittedValues };
