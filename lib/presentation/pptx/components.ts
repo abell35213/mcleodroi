@@ -70,8 +70,10 @@ export function addAssumptionGrid(slide: pptxgen.Slide, o: { items: AssumptionIt
 
 export function addNarrativeBlock(slide: pptxgen.Slide, o: { heading: string; text: string; secondaryText?: string; x: number; y: number; w: number; h: number; headingFontSize?: number; bodyY?: number }) {
   const bodyY = o.bodyY ?? o.y + 0.3;
+  const reservedBottom = o.secondaryText ? 0.34 : 0;
+  const bodyH = Math.max(0.2, o.y + o.h - reservedBottom - bodyY);
   slide.addText(o.heading.toUpperCase(), { x: o.x, y: o.y, w: o.w, h: 0.2, fontSize: o.headingFontSize ?? 9.5, bold: true, color: c.sunriseGold });
-  slide.addText(o.text, { x: o.x, y: bodyY, w: o.w, h: Math.max(0.2, o.y + o.h - bodyY), fontSize: font.minBodyFontSize, color: c.charcoal, breakLine: false, fit: "shrink" });
+  slide.addText(o.text, { x: o.x, y: bodyY, w: o.w, h: bodyH, fontSize: font.minBodyFontSize, color: c.charcoal, breakLine: false, fit: "shrink" });
   if (o.secondaryText) slide.addText(o.secondaryText, { x: o.x, y: o.y + o.h - 0.28, w: o.w, h: 0.22, fontSize: 10, color: c.forest });
 }
 
