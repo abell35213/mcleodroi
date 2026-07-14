@@ -1055,6 +1055,44 @@ export async function saveCustomOpportunity(args: { analysisId: string; customOp
   const validated = validateCustomOpportunityInput({ ...args.input, displayOrder: current.displayOrder });
   if (!validated.ok) return err("INVALID_INPUT_KEY", validated.issues.map((issue) => issue.message).join(" "));
   const v = validated.value;
-  const updated = await db.customOpportunity.update({ where: { id: current.id }, data: { title: v.title, shortTitle: v.shortTitle, categoryKey: v.categoryKey, valueClassification: v.valueClassification, valueFrequency: v.valueFrequency, enteredValue: v.enteredValue, monthlyRecurringValue: v.monthlyRecurringValue, annualRecurringValue: v.annualRecurringValue, annualOnlyValue: v.annualOnlyValue, informationalCapitalValue: v.informationalCapitalValue, calculationRationale: v.calculationRationale, howMcLeodHelps: v.howMcLeodHelps, customerBusinessImpact: v.customerBusinessImpact, presentationCallout: v.presentationCallout, methodologyNote: v.methodologyNote, sourceNote: v.sourceNote, status: "COMPLETE", version: { increment: v.sourceFingerprint === current.sourceFingerprint ? 0 : 1 }, sourceFingerprint: v.sourceFingerprint, assumptions: { deleteMany: {}, create: v.assumptions.map((a, index) => ({ label: a.label, displayValue: a.displayValue, numericValue: a.numericValue, unit: a.unit, sourceNote: a.sourceNote, displayOrder: a.displayOrder ?? index })) } }, include: { assumptions: true } });
+  const updated = await db.customOpportunity.update({
+    where: { id: current.id },
+    data: {
+      title: v.title,
+      shortTitle: v.shortTitle,
+      categoryKey: v.categoryKey,
+      valueClassification: v.valueClassification,
+      valueFrequency: v.valueFrequency,
+      enteredValue: v.enteredValue,
+      monthlyRecurringValue: v.monthlyRecurringValue,
+      annualRecurringValue: v.annualRecurringValue,
+      annualOnlyValue: v.annualOnlyValue,
+      informationalCapitalValue: v.informationalCapitalValue,
+      calculationRationale: v.calculationRationale,
+      howMcLeodHelps: v.howMcLeodHelps,
+      customerBusinessImpact: v.customerBusinessImpact,
+      presentationCallout: v.presentationCallout,
+      methodologyNote: v.methodologyNote,
+      sourceNote: v.sourceNote,
+      status: "COMPLETE",
+      version:
+        current.status === "DRAFT"
+          ? 1
+          : { increment: v.sourceFingerprint === current.sourceFingerprint ? 0 : 1 },
+      sourceFingerprint: v.sourceFingerprint,
+      assumptions: {
+        deleteMany: {},
+        create: v.assumptions.map((a, index) => ({
+          label: a.label,
+          displayValue: a.displayValue,
+          numericValue: a.numericValue,
+          unit: a.unit,
+          sourceNote: a.sourceNote,
+          displayOrder: a.displayOrder ?? index,
+        })),
+      },
+    },
+    include: { assumptions: true },
+  });
   return ok(toCalculatedCustomOpportunity(updated));
 }
