@@ -1,5 +1,5 @@
 import type { BenchmarkApprovalStatus, BenchmarkSourceType, BusinessType, CategoryKey, NarrativeStatus, OverlapNotice, ProductContext, ValueModuleKey, ValueType } from "@/lib/modules";
-import type { InformationalCapitalValue, NarrativeMode, ValueTypeSummary } from "@/lib/analyses/types";
+import type { CalculatedCustomOpportunity, InformationalCapitalValue, NarrativeMode, ValueTypeSummary } from "@/lib/analyses/types";
 import type { OverlapDispositionRecord } from "@/lib/analyses/overlap-dispositions";
 import type { BreakdownData, CumulativeBenefitData, WaterfallData } from "@/lib/analyses/charts";
 import type { RoiMetrics } from "@/lib/calculations/roi";
@@ -26,7 +26,7 @@ export type PresentationSnapshot = {
   snapshotVersion: string; presentationTemplateVersion: string; narrativeRegistryVersion: string; createdAt: string;
   analysis: { id: string; companyName: string; customerContact: string | null; businessType: BusinessType; productContext: ProductContext; preparedBy: string; analysisDate: string };
   summary: { monthlyRecurringValueTotal: number; annualRecurringValueTotal: number; annualOnlyValueTotal: number; totalIdentifiedAnnualEconomicOpportunity: number; informationalCapitalValueTotal: number; valueTypeBreakdown: readonly ValueTypeSummary[]; informationalCapitalValues: readonly InformationalCapitalValue[] };
-  overlapNotices: readonly OverlapNotice[]; overlapDispositions?: readonly PresentationSnapshotOverlapDisposition[]; categories: PresentationSnapshotCategory[];
+  overlapNotices: readonly OverlapNotice[]; overlapDispositions?: readonly PresentationSnapshotOverlapDisposition[]; categories: PresentationSnapshotCategory[]; customOpportunities?: readonly CalculatedCustomOpportunity[];
   /** Finance-grade ROI folded into the snapshot; `null` when no investment entered. Optional for backward compatibility with 1.0.0 snapshots. */
   roi?: RoiMetrics | null;
   /** Value-story chart datasets rendered identically across PPTX/PDF/HTML. Optional for backward compatibility. */

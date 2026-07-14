@@ -44,6 +44,13 @@ enum OverlapDisposition {
   NEEDS_REVISION
 }
 
+enum CustomOpportunityStatus {
+  DRAFT
+  COMPLETE
+  NEEDS_REVISION
+  RETIRED
+}
+
 model Analysis {
   id               String         @id @default(cuid())
   companyName      String
@@ -64,6 +71,54 @@ model Analysis {
   modules          AnalysisModule[]
   presentationGenerations PresentationGeneration[]
   overlapDispositions AnalysisOverlapDisposition[]
+  customOpportunities CustomOpportunity[]
+}
+
+model CustomOpportunity {
+  id              String   @id @default(cuid())
+  analysisId      String
+  analysis        Analysis @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  title           String
+  shortTitle      String?
+  categoryKey     String
+  valueClassification String
+  valueFrequency  String
+  enteredValue    Float
+  monthlyRecurringValue Float?
+  annualRecurringValue Float?
+  annualOnlyValue Float?
+  informationalCapitalValue Float?
+  calculationRationale String
+  howMcLeodHelps String?
+  customerBusinessImpact String?
+  presentationCallout String?
+  methodologyNote String?
+  sourceNote String?
+  status CustomOpportunityStatus @default(DRAFT)
+  version Int @default(1)
+  sourceFingerprint String
+  displayOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  assumptions CustomOpportunityAssumption[]
+
+  @@index([analysisId, displayOrder])
+}
+
+model CustomOpportunityAssumption {
+  id String @id @default(cuid())
+  customOpportunityId String
+  customOpportunity CustomOpportunity @relation(fields: [customOpportunityId], references: [id], onDelete: Cascade)
+  label String
+  displayValue String
+  numericValue Float?
+  unit String?
+  sourceNote String?
+  displayOrder Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customOpportunityId, displayOrder])
 }
 
 model AnalysisModule {

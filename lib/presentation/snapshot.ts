@@ -51,6 +51,7 @@ export async function createPresentationSnapshot(args: { analysisId: string; db?
     overlapNotices: calculated.value.overlapNotices,
     overlapDispositions: calculated.value.overlapReviewStates.filter((state) => state.notice.type === "REVIEW" && !state.blocksPresentation && state.disposition).map((state) => ({ overlapGroupKey: state.notice.key, disposition: state.disposition!.disposition, modulesInvolved: state.notice.selectedModuleKeys, excludedModuleKeys: state.disposition!.excludedModuleKeys, sourceFingerprint: state.sourceFingerprint, reviewedAt: state.disposition!.reviewedAt.toISOString(), acknowledgmentText: state.disposition!.acknowledgmentText })),
     categories: [...categories.values()],
+    customOpportunities: (calculated.value.customOpportunities ?? []).filter((custom) => custom.status === "COMPLETE"),
     roi: calculated.value.roi ?? null,
     charts: {
       waterfall: buildValueWaterfall(calculated.value),
