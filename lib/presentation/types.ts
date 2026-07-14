@@ -40,18 +40,19 @@ export type PresentationServiceResult<T> = { ok: true; value: T } | { ok: false;
 export type MetricModel = { value: string; period?: string; label: string; supportingText?: string };
 export type CoverSlideModel = { companyName: string; analysisDate?: string; preparedBy?: string; titleSlideImagePath?: string | null; customerLogoDataUri?: string | null; slideNumber?: number };
 export type ValueCardModel = { title: string; value: string; period?: string; label: string; supportingMetric?: string; valueType?: ValueType; customerSpecific?: boolean };
-export type ExecutiveSummarySlideModel = { companyName: string; businessTypeLabel: string; productName: string; categoryNames: string[]; moduleNames: string[]; discussionSummary: string; alignmentSummary: string; keyAreasLeadIn: string; needThemes: { heading: string; bullets: string[] }[]; annualOpportunity: MetricModel; monthlyOpportunity?: MetricModel; slideNumber: number };
+export type BrandedSlideModel = { customerLogoDataUri?: string | null };
+export type ExecutiveSummarySlideModel = BrandedSlideModel & { companyName: string; businessTypeLabel: string; productName: string; categoryNames: string[]; moduleNames: string[]; discussionSummary: string; alignmentSummary: string; keyAreasLeadIn: string; needThemes: { heading: string; bullets: string[] }[]; annualOpportunity: MetricModel; monthlyOpportunity?: MetricModel; slideNumber: number };
 export type AssumptionItemModel = { label: string; value: string };
-export type SingleModuleSlideModel = { companyName: string; categoryLabel: string; moduleTitle: string; analysisText: string; valueNarrative?: string; effectiveCustomerAnalysis?: string; presentationCallout?: string; heroMetric: MetricModel & { variant?: "standard" | "annual" | "capital" }; assumptions: AssumptionItemModel[]; calculationRationale?: string; isCustomerSpecific?: boolean; disclaimer?: string; informationalCapitalCallout?: string; slideNumber: number };
+export type SingleModuleSlideModel = BrandedSlideModel & { companyName: string; categoryLabel: string; moduleTitle: string; analysisText: string; valueNarrative?: string; effectiveCustomerAnalysis?: string; presentationCallout?: string; heroMetric: MetricModel & { variant?: "standard" | "annual" | "capital" }; assumptions: AssumptionItemModel[]; calculationRationale?: string; isCustomerSpecific?: boolean; disclaimer?: string; informationalCapitalCallout?: string; slideNumber: number };
 export type DualModuleItemModel = { title: string; primaryMetric: string; period?: string; label: string; supportingMetric?: string; analysisText: string; howMcLeodHelps?: string; customerImpact?: string; disclaimerMarker?: string };
-export type DualModuleSlideModel = { companyName: string; categoryLabel: string; title: string; modules: [DualModuleItemModel, DualModuleItemModel]; slideNumber: number };
-export type CategoryOverviewSlideModel = { companyName: string; categoryName: string; categoryOpportunity: MetricModel; cards: ValueCardModel[]; slideNumber: number };
-export type OpportunitySummarySlideModel = { companyName: string; title?: string; classifications: ValueCardModel[]; monthlyOpportunity?: MetricModel; annualOpportunity: MetricModel; informationalCapital?: MetricModel; disclaimer: string; slideNumber: number; showTotals?: boolean };
+export type DualModuleSlideModel = BrandedSlideModel & { companyName: string; categoryLabel: string; title: string; modules: [DualModuleItemModel, DualModuleItemModel]; slideNumber: number };
+export type CategoryOverviewSlideModel = BrandedSlideModel & { companyName: string; categoryName: string; categoryOpportunity: MetricModel; cards: ValueCardModel[]; slideNumber: number };
+export type OpportunitySummarySlideModel = BrandedSlideModel & { companyName: string; title?: string; classifications: ValueCardModel[]; monthlyOpportunity?: MetricModel; annualOpportunity: MetricModel; informationalCapital?: MetricModel; disclaimer: string; slideNumber: number; showTotals?: boolean };
 export type AssumptionsAppendixRowModel = { label: string; enteredValue: string; typicalRange: string; sourceLabel: string };
 export type AssumptionsAppendixModuleModel = { moduleName: string; categoryName: string; rows: readonly AssumptionsAppendixRowModel[] };
 export type AssumptionsAppendixSourceModel = { label: string; citation: string };
 export type InvestmentReturnCashFlowPointModel = { month: number; cumulativeNetCashFlow: number };
-export type InvestmentReturnSlideModel = {
+export type InvestmentReturnSlideModel = BrandedSlideModel & {
   companyName: string;
   explanationText: string;
   initialInvestment: string;
@@ -68,4 +69,4 @@ export type InvestmentReturnSlideModel = {
   methodologyNote: string;
   slideNumber: number;
 };
-export type AssumptionsAppendixSlideModel = { companyName: string; modules: readonly AssumptionsAppendixModuleModel[]; sources: readonly AssumptionsAppendixSourceModel[]; slideNumber: number };
+export type AssumptionsAppendixSlideModel = BrandedSlideModel & { companyName: string; modules: readonly AssumptionsAppendixModuleModel[]; sources: readonly AssumptionsAppendixSourceModel[]; slideNumber: number };

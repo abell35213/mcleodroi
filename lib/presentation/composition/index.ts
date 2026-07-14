@@ -100,8 +100,10 @@ function metricForPresented(o: PresentedOpportunity): MetricModel & { variant?: 
 }
 function financialValueForPresented(o: PresentedOpportunity): number { return annualOpportunityForPresented(o) || monthlyValueForPresented(o) || capitalValueForPresented(o); }
 function valueCardFromPresented(o: PresentedOpportunity): ValueCardModel { const metric = metricForPresented(o); return { title: o.title, value: metric.value, period: metric.period, label: o.isCustomerSpecific ? "Customer-Specific Opportunity" : metric.label, supportingMetric: o.isCustomerSpecific ? undefined : o.presentationCallout || undefined, valueType: o.valueType, customerSpecific: o.isCustomerSpecific }; }
+function customerLogoDataUri(snapshot: PresentationSnapshot): string | null { return snapshot.branding?.customerLogoDataUri ?? null; }
+
 function singlePresentedModel(snapshot: PresentationSnapshot, o: PresentedOpportunity, slideNumber: number): SingleModuleSlideModel {
-  return { companyName: snapshot.analysis.companyName, categoryLabel: o.categoryName, moduleTitle: o.title, analysisText: o.customerAnalysis || o.valueNarrative, valueNarrative: o.valueNarrative, effectiveCustomerAnalysis: o.customerAnalysis || undefined, presentationCallout: o.presentationCallout, heroMetric: metricForPresented(o), assumptions: o.assumptions, calculationRationale: o.calculationRationale, isCustomerSpecific: o.isCustomerSpecific, disclaimer: o.disclaimer, slideNumber };
+  return { companyName: snapshot.analysis.companyName, customerLogoDataUri: customerLogoDataUri(snapshot), categoryLabel: o.categoryName, moduleTitle: o.title, analysisText: o.customerAnalysis || o.valueNarrative, valueNarrative: o.valueNarrative, effectiveCustomerAnalysis: o.customerAnalysis || undefined, presentationCallout: o.presentationCallout, heroMetric: metricForPresented(o), assumptions: o.assumptions, calculationRationale: o.calculationRationale, isCustomerSpecific: o.isCustomerSpecific, disclaimer: o.disclaimer, slideNumber };
 }
 
 export function canUseDualModuleSlide(a: PresentationSnapshotModule, b: PresentationSnapshotModule): boolean {
@@ -118,6 +120,7 @@ function executive(snapshot: PresentationSnapshot, slideNumber: number): Executi
   requireGoldenPresentationAsset(APPROVED_THEME_IMAGE_PATH);
   return {
     companyName: snapshot.analysis.companyName,
+    customerLogoDataUri: customerLogoDataUri(snapshot),
     businessTypeLabel,
     productName,
     categoryNames,
@@ -142,6 +145,7 @@ function opportunity(snapshot: PresentationSnapshot, slideNumber: number, module
   const hasCapacity = snapshot.categories.some((c) => c.modules.some((m) => m.valueType === "CAPACITY_VALUE" || m.valueType === "NET_CAPACITY_VALUE"));
   return {
     companyName: snapshot.analysis.companyName,
+    customerLogoDataUri: customerLogoDataUri(snapshot),
     title: continued ? "The Identified Opportunities — Continued" : "The Identified Opportunities",
     classifications: modules.map(valueCardFromModule),
     monthlyOpportunity: snapshot.summary.monthlyRecurringValueTotal ? { value: formatPresentationCurrency(snapshot.summary.monthlyRecurringValueTotal), label: "Monthly Recurring Economic Opportunity" } : undefined,
@@ -171,6 +175,7 @@ function investmentReturn(snapshot: PresentationSnapshot, slideNumber: number): 
   const wording = paybackWording(roi.paybackMonths, roi.horizonYears, roi.investment);
   return {
     companyName: snapshot.analysis.companyName,
+    customerLogoDataUri: customerLogoDataUri(snapshot),
     explanationText: `By investing in McLeod Software, ${snapshot.analysis.companyName} can begin capturing the operational and financial opportunities identified in this analysis. Based on the configured investment and adoption assumptions, the investment is estimated to achieve payback within ${wording}, after which the cumulative economic benefit continues to grow throughout the analysis period.`,
     initialInvestment: formatPresentationCurrency(roi.investment),
     annualRecurringInvestment: formatPresentationCurrency(roi.annualRecurringCost),
@@ -205,6 +210,7 @@ function assumptionsAppendixModel(snapshot: PresentationSnapshot, slideNumber: n
   if (appendix.modules.length === 0 && customModules.length === 0) return null;
   return {
     companyName: snapshot.analysis.companyName,
+    customerLogoDataUri: customerLogoDataUri(snapshot),
     modules: [...appendix.modules.map((m) => ({ moduleName: m.moduleName, categoryName: m.categoryName, rows: m.rows.map((r) => ({ label: r.label, enteredValue: r.enteredValue, typicalRange: r.typicalRange, sourceLabel: r.sourceLabel })) })), ...customModules],
     sources: appendix.sources.map((s) => ({ label: s.label, citation: s.citation })),
     slideNumber,
@@ -219,7 +225,7 @@ export function composePresentationSlidePlan(snapshot: PresentationSnapshot): Pr
   const byCategory = new Map<string, PresentedOpportunity[]>();
   for (const item of presented) byCategory.set(item.categoryKey, [...(byCategory.get(item.categoryKey) ?? []), item]);
   for (const [, opportunities] of [...byCategory.entries()].sort(([, a], [, b]) => a[0].categoryDisplayOrder - b[0].categoryDisplayOrder)) {
-    if (opportunities.length >= 3) plans.push({ kind: "categoryOverview", model: { companyName: snapshot.analysis.companyName, categoryName: opportunities[0].categoryName, categoryOpportunity: { value: formatPresentationCurrency(opportunities.reduce((sum, item) => sum + annualOpportunityForPresented(item), 0)), label: "Annual Identified Opportunity" }, cards: opportunities.filter((item) => financialValueForPresented(item) !== 0).sort((a, b) => Math.abs(financialValueForPresented(b)) - Math.abs(financialValueForPresented(a))).slice(0, 4).map(valueCardFromPresented), slideNumber: slide++ } });
+    if (opportunities.length >= 3) plans.push({ kind: "categoryOverview", model: { companyName: snapshot.analysis.companyName, customerLogoDataUri: customerLogoDataUri(snapshot), categoryName: opportunities[0].categoryName, categoryOpportunity: { value: formatPresentationCurrency(opportunities.reduce((sum, item) => sum + annualOpportunityForPresented(item), 0)), label: "Annual Identified Opportunity" }, cards: opportunities.filter((item) => financialValueForPresented(item) !== 0).sort((a, b) => Math.abs(financialValueForPresented(b)) - Math.abs(financialValueForPresented(a))).slice(0, 4).map(valueCardFromPresented), slideNumber: slide++ } });
     for (const item of opportunities) plans.push({ kind: "singleModule", model: singlePresentedModel(snapshot, item, slide++) });
   }
   const orderedModules = presented;
